@@ -1,19 +1,6 @@
 # Services
 
 
-### MongoDB
-Mongodb is required on the same machine that run the services.
-To start it: `sudo mongod --dbpath /path/to/mongodb/db --bind_ip 0.0.0.0` 
-
-### Pcap import
-```
-./importer.py pcap_file.pcap
-```
-
-### To start services
-```
-./run_ws.sh
-```
 
 ### General idea
 We create pcap of N minutes on the virtual machine. We somehow download them, and use the `importer.py` script to analyze and import them into mongodb. The webapp does rest request to the webservices, that does query to mongodb.

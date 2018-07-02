@@ -2,33 +2,60 @@
 
 Automatic package analyzer made by Ca' Foscari team (unive) for CyberChallenge attack/defense CTF. 
 
-![](https://github.com/cyberchallengeit-ve/ctftools/blob/master/flower/demo.png?raw=true)
+![](https://github.com/secgroup/flower/blob/master/demo_images/demo3.png?raw=true)
 
-Features:
+## Features:
 - Flow list
 - Regex filtering with hilight
+![](https://github.com/secgroup/flower/blob/master/demo_images/demo_search_hilight.png?raw=true)
 - Hilight in red flow with flags
 - Favourite management
 - Time filter
 - Service filter
+![](https://github.com/secgroup/flower/blob/master/demo_images/demo_service_selection.png)
 - Colored hexdump
+![](https://github.com/secgroup/flower/blob/master/demo_images/demo_hex_dump.png?raw=true)
+- Automatic export GET/POST request directly in python format
+![](https://github.com/secgroup/flower/blob/master/demo_images/demo_request_export.png)
+- Automatic export to pwntools
+![](https://github.com/secgroup/flower/blob/master/demo_images/demp_export_pwn.png)
+
+
+## Install
+```
+git clone https://github.com/secgroup/flower
+cd flower
+sudo npm install 
+pip install -r services/requirements.txt
+```
 
 ## Setup
 env var to set:
-- `REACT_APP_FLOWER_SERVER_IP` ip of the host that will have flower web services and db active
+- `REACT_APP_FLOWER_SERVER_IP` ip of the host that will have flower services and db active
 - `REACT_APP_FLAG_REGEX` regex that match flags
-
-## Install
-Install package dependencies:
-```
-npm install 
-```
-You must have mongodb installed and running in `REACT_APP_FLOWER_SERVER_IP` ip.
+Mongodb is required on the same machine that run the services.
+To start it: `sudo mongod --dbpath /path/to/mongodb/db --bind_ip 0.0.0.0` 
 
 
 ## Run
-Start flower
+
+#### Start flower
 ```bash
-services/run_ws.sh #better in a different window, to see what is happening
 ./run.sh
 ```
+#### Start flower services
+```bash
+cd services
+./run_ws.sh
+```
+Once everything has been started, flower should be accessible at the address of the machine that started it on port 3000
+
+
+## Pcap import
+You must first install pynids from [here](https://github.com/MITRECND/pynids). The pip version is outdated! Good luck with the installation.
+Then, you can import pcaps into mongodb by simply call
+```
+cd services
+./importer.py pcap_file.pcap
+```
+You can find a test_pcap in `services/test_pcap`. for quick demo, run `./importer.py test_pcap/dump-2018-06-27_13:25:31.pcap`

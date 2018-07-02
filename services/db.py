@@ -19,7 +19,7 @@ class DB:
             self.file_coll = self.db.filesImported
 
         except ServerSelectionTimeoutError as err:
-            sys.stderr.write("Mongodb server not active on %s: %s" % mongo_server,err)
+            sys.stderr.write("MongoDB server not active on %s\n%s" % (mongo_server,err))
             sys.exit(1)
 
     def getFlowList(self, filters):
