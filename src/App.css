@@ -1,0 +1,97 @@
+.App {
+   text-align: center;
+}
+
+.App-logo {
+   animation: App-logo-spin infinite 20s linear;
+   height: 80px;
+}
+
+.App-header {
+   background-color: #222;
+   height: 150px;
+   padding: 20px;
+   color: white;
+}
+
+.App-title {
+   font-size: 1.5em;
+}
+
+.App-intro {
+   font-size: large;
+}
+
+@keyframes App-logo-spin {
+   from {
+      transform: rotate(0deg);
+   }
+   to {
+      transform: rotate(360deg);
+   }
+}
+
+.rows .row {
+   display: inline-block;
+}
+@import url("https://fonts.googleapis.com/css?family=Roboto+Mono");
+
+.column_4_small {
+   float: left;
+   top: 0px;
+   bottom: 0px;
+   width: 15%;
+   height: 100vh;
+   padding: 1px;
+   margin: 10px;
+}
+.column_4_big {
+   float: left;
+   top: 0px;
+   bottom: 0px;
+   width: 30%;
+   height: 100vh;
+   padding: 1px;
+   margin: 10px;
+}
+.column_2 {
+   float: left;
+   top: 0px;
+   bottom: 0px;
+   width: 50%;
+   height: 100vh;
+   padding: 1px;
+   margin: 10px;
+}
+.row:after {
+   content: "";
+   display: table;
+   clear: both;
+}
+
+#fav_flow {
+   width: 96px;
+   height: 200px;
+   padding: 2px;
+   border: 1px solid #000;
+   float: left;
+   background-color: #f00;
+}
+
+#all_flow {
+   width: 96px;
+   padding: 2px;
+   height: 100%;
+   border: 1px solid #000;
+   float: right;
+   background-color: #f00;
+}
+
+#flow_details {
+   padding: 2px;
+
+   height: 100%;
+   margin-left: 105px;
+   border: 1px solid #000;
+   background-color: #090;
+}
