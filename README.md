@@ -1,24 +1,10 @@
 # Flower
 
-Automatic package analyzer made by Ca' Foscari team (unive) for CyberChallenge attack/defense CTF. 
+Automatic package analyzer made by Ca' Foscari team (unive) for CyberChallenge attack/defense CTF of 27/06/2018.
+This tool was written in less than ten days. Every **pull request** is welcome!
 
 ![](https://github.com/secgroup/flower/blob/master/demo_images/demo3.png?raw=true)
 
-## Features:
-- Flow list
-- Regex filtering with hilight
-![](https://github.com/secgroup/flower/blob/master/demo_images/demo_search_hilight.png?raw=true)
-- Hilight in red flow with flags
-- Favourite management
-- Time filter
-- Service filter
-![](https://github.com/secgroup/flower/blob/master/demo_images/demo_service_selection.png)
-- Colored hexdump
-![](https://github.com/secgroup/flower/blob/master/demo_images/demo_hex_dump.png?raw=true)
-- Automatic export GET/POST request directly in python format
-![](https://github.com/secgroup/flower/blob/master/demo_images/demo_request_export.png)
-- Automatic export to pwntools
-![](https://github.com/secgroup/flower/blob/master/demo_images/demp_export_pwn.png)
 
 
 ## Install
@@ -32,7 +18,7 @@ pip install -r services/requirements.txt
 ## Setup
 env var to set:
 - `REACT_APP_FLOWER_SERVER_IP` ip of the host that will have flower services and db active
-- `REACT_APP_FLAG_REGEX` regex that match flags
+- `REACT_APP_FLAG_REGEX` regex that match flags. 
 Mongodb is required on the same machine that run the services.
 To start it: `sudo mongod --dbpath /path/to/mongodb/db --bind_ip 0.0.0.0` 
 
@@ -48,7 +34,7 @@ To start it: `sudo mongod --dbpath /path/to/mongodb/db --bind_ip 0.0.0.0`
 cd services
 ./run_ws.sh
 ```
-Once everything has been started, flower should be accessible at the address of the machine that started it on port 3000
+Once everything has been started, flower should be accessible at the address of the machine that started it on port 3000.
 
 
 ## Pcap import
@@ -59,3 +45,22 @@ cd services
 ./importer.py pcap_file.pcap
 ```
 You can find a test_pcap in `services/test_pcap`. for quick demo, run `./importer.py test_pcap/dump-2018-06-27_13:25:31.pcap`
+
+## Security tips
+if you will use flower in a ctf, remember to set up the firewall in the most appropriate way, as the current implementation does not use other security techniques.
+
+## Features
+- Flow list
+- Regex filtering with hilight
+![](https://github.com/secgroup/flower/blob/master/demo_images/demo_search_hilight.png?raw=true)
+- Hilight in red flow with flags
+- Favourite management
+- Time filter
+- Service filter
+![](https://github.com/secgroup/flower/blob/master/demo_images/demo_service_selection.png)
+- Colored hexdump
+![](https://github.com/secgroup/flower/blob/master/demo_images/demo_hex_dump.png?raw=true)
+- Automatic export GET/POST request directly in python format
+![](https://github.com/secgroup/flower/blob/master/demo_images/demo_request_export.png)
+- Automatic export to pwntools
+![](https://github.com/secgroup/flower/blob/master/demo_images/demp_export_pwn.png)
