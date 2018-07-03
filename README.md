@@ -1,11 +1,9 @@
-# Flower
-
+Flower
+======
 Automatic package analyzer made by Ca' Foscari team (unive) for CyberChallenge attack/defense CTF of 27/06/2018.
 This tool was written in less than ten days. Every **pull request** is welcome!
 
 ![](https://github.com/secgroup/flower/blob/master/demo_images/demo3.png?raw=true)
-
-
 
 ## Install
 ```
@@ -16,7 +14,7 @@ pip install -r services/requirements.txt
 ```
 
 ## Setup
-env var to set:
+Env var to set:
 - `REACT_APP_FLOWER_SERVER_IP` ip of the host that will have flower services and db active
 - `REACT_APP_FLAG_REGEX` regex that match flags. 
 Mongodb is required on the same machine that run the services.
@@ -39,15 +37,15 @@ Once everything has been started, flower should be accessible at the address of 
 
 ## Pcap import
 You must first install pynids from [here](https://github.com/MITRECND/pynids). The pip version is outdated! Good luck with the installation.
-Then, you can import pcaps into mongodb by simply call
+Then, you can import pcaps into mongodb by executing the provided script `importer.py` as follows:
 ```
 cd services
 ./importer.py pcap_file.pcap
 ```
-You can find a test_pcap in `services/test_pcap`. for quick demo, run `./importer.py test_pcap/dump-2018-06-27_13:25:31.pcap`
+You can find a test_pcap in `services/test_pcap`. For a quick demo, run `./importer.py test_pcap/dump-2018-06-27_13:25:31.pcap`
 
 ## Security tips
-if you will use flower in a ctf, remember to set up the firewall in the most appropriate way, as the current implementation does not use other security techniques.
+If you are going to use flower in a CTF, remember to set up the firewall in the most appropriate way, as the current implementation does not use other security techniques.
 
 ## Features
 - Flow list
