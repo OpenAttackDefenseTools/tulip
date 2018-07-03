@@ -1,6 +1,6 @@
 Flower
 ======
-Automatic package analyzer made by Ca' Foscari team (unive) for CyberChallenge attack/defense CTF of 27/06/2018.
+Automatic packet analyzer made by Ca' Foscari team (unive) for CyberChallenge attack/defense CTF of 27/06/2018.
 This tool was written in less than ten days. Every **pull request** is welcome!
 
 ![](https://github.com/secgroup/flower/blob/master/demo_images/demo3.png?raw=true)
@@ -49,9 +49,9 @@ If you are going to use flower in a CTF, remember to set up the firewall in the 
 
 ## Features
 - Flow list
-- Regex filtering with hilight
+- Regex filtering with highlight
 ![](https://github.com/secgroup/flower/blob/master/demo_images/demo_search_hilight.png?raw=true)
-- Hilight in red flow with flags
+- Highlight in red flow with flags
 - Favourite management
 - Time filter
 - Service filter
