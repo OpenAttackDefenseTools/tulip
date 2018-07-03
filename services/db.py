@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 # This file is part of Flower.
 #
 # Copyright ©2018 Nicolò Mazzucato

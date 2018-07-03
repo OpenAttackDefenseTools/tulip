@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 # This file is part of Flower.
 #
 # Copyright ©2018 Nicolò Mazzucato
@@ -20,9 +23,14 @@
 # along with Flower.  If not, see <https://www.gnu.org/licenses/>.
 
 import pprint
-from BaseHTTPServer import BaseHTTPRequestHandler
-from StringIO import StringIO
 
+try:
+    from BaseHTTPServer import BaseHTTPRequestHandler
+    from StringIO import StringIO
+except ImportError:
+    # python3
+    from http.server import BaseHTTPRequestHandler
+    from io import StringIO
 
 #class to parse request informations
 class HTTPRequest(BaseHTTPRequestHandler):
@@ -75,4 +83,4 @@ Accept-Language: en-US,*
 Host: 10.0.1.1:5010"""
 
 if __name__ == "__main__":
-    print convert_http_requests(data, False)
+    print(convert_http_requests(data, False))
