@@ -1,4 +1,4 @@
-!#/bin/bash
+#!/bin/bash
 
 gnome-terminal --  pwd; sleep 10 && 
 gnome-terminal --  ctft;pwd; sleep 200;
