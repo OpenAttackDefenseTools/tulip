@@ -38,6 +38,8 @@
   "devDependencies": {
     "babel-cli": "^6.26.0",
     "babel-preset-flow": "^6.23.0",
-    "prettier": "1.13.5"
+    "prettier": "1.13.5",
+    "babel-preset-react": "^6.24.1",
+    "babel-plugin-transform-class-properties": "^6.24.1"
   }
 }
