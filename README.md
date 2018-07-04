@@ -6,10 +6,10 @@ This tool was written in less than ten days. Every **pull request** is welcome!
 ![](https://github.com/secgroup/flower/blob/master/demo_images/demo3.png?raw=true)
 
 ## Install
-```
+```bash
 git clone https://github.com/secgroup/flower
 cd flower
-sudo npm install 
+npm install 
 pip install -r services/requirements.txt
 ```
 
