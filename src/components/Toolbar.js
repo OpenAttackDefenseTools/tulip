@@ -90,7 +90,7 @@ export class MyToolbar extends Component<props_types, state_types> {
          <Toolbar>
             <IconButton color="inherit" aria-label="Menu" />
             <Typography variant="title" color="inherit">
-               Flower
+               Flower 🌸
             </Typography>
 
             <SearchBar
