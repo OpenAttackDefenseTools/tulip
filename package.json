@@ -5,8 +5,6 @@
   "dependencies": {
     "@material-ui/core": "^1.2.1",
     "@material-ui/icons": "^1.1.0",
-    "ansi2html": "0.0.1",
-    "ansi2html-extended": "0.0.4",
     "arrow-keys-react": "^1.0.6",
     "dompurify": "^1.0.5",
     "escape-html": "^1.0.3",

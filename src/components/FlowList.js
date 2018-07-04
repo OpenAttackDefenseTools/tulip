@@ -26,7 +26,7 @@
 import React, { Component } from "react";
 
 import { withStyles } from "@material-ui/core/styles";
-import { List, AutoSizer, ArrowKeyStepper } from "react-virtualized";
+import { List, AutoSizer } from "react-virtualized";
 
 import FlowItem from "./FlowItem";
 import FlowItem_type from "./FlowItem";
@@ -34,7 +34,6 @@ import { fetchFlows } from "../data/fetcher";
 //import VirtualList from "react-tiny-virtual-list";
 
 import _ from "lodash/core";
-import ArrowKeysReact from "arrow-keys-react";
 
 const styles = theme => ({
     root: {
@@ -130,9 +129,9 @@ export class FlowList extends Component<props_types, state_types> {
 
     handleKeyPress = (e: KeyboardEvent<HTMLDivElement>) => {
         console.log("premuto:" + e.key);
-        if (e.key == "k") {
+        if (e.key === "k") {
             console.log("up key detected.");
-            if (this.state.selected_inx == 0) return;
+            if (this.state.selected_inx === 0) return;
             this.setState(prevState => ({
                 selected_inx: prevState.selected_inx - 1
             }));
@@ -140,9 +139,9 @@ export class FlowList extends Component<props_types, state_types> {
                 this.state.data[this.state.selected_inx - 1]
             );
             this.list.scrollToRow(this.state.selected_inx);
-        } else if (e.key == "j") {
+        } else if (e.key === "j") {
             console.log("down key detected.");
-            if (this.state.selected_inx == this.state.data.length - 1) return;
+            if (this.state.selected_inx === this.state.data.length - 1) return;
             this.setState(prevState => ({
                 selected_inx: prevState.selected_inx + 1
             }));
@@ -154,7 +153,6 @@ export class FlowList extends Component<props_types, state_types> {
     };
 
     render() {
-        const { classes } = this.props;
 
         var data = this.state.data;
         console.log("richiamato render flow list");

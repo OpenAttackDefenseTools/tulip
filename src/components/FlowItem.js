@@ -27,15 +27,10 @@ import React, { Component } from "react";
 
 //ui
 import { withStyles } from "@material-ui/core/styles";
-import List from "@material-ui/core/List";
 import ListItem from "@material-ui/core/ListItem";
-import ListItemText from "@material-ui/core/ListItemText";
-import Avatar from "@material-ui/core/Avatar";
 import Divider from "@material-ui/core/Divider";
-import StarIcon from "@material-ui/icons/Star";
 import ListItemIcon from "@material-ui/core/ListItemIcon";
 import Grid from "@material-ui/core/Grid";
-import FormControlLabel from "@material-ui/core/FormControlLabel";
 import Checkbox from "@material-ui/core/Checkbox";
 import Favorite from "@material-ui/icons/Favorite";
 import FavoriteBorder from "@material-ui/icons/FavoriteBorder";
@@ -81,7 +76,7 @@ export class FlowItem extends Component<props_types, state_types> {
         this.state = { starred: props.item.starred || false };
     }
     render() {
-        const { classes, item } = this.props;
+        const { item } = this.props;
 
         const item_color = this.getItemColor(item);
         return (

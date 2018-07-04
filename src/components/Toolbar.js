@@ -135,7 +135,7 @@ export class MyToolbar extends Component<props_types, state_types> {
                }}
                onChange={item => {
                   var time = this.getTimeFromString(item.target.value);
-                  if (item == 0) item = Number.MAX_SAFE_INTEGER;
+                  if (item === 0) item = Number.MAX_SAFE_INTEGER;
                   console.log(item.target.value);
                   this.setState({ to_time: time });
                   this.props.onTimeSet(this.state.from_time, time);
@@ -177,9 +177,9 @@ export class MyToolbar extends Component<props_types, state_types> {
       return d.getHours() + ":" + d.getMinutes();
    }
    getTimeFromString(time_str: string) {
-      if (time_str.length == 0) return 0;
-      var h = parseInt(time_str.split(":")[0]);
-      var min = parseInt(time_str.split(":")[1]);
+      if (time_str.length === 0) return 0;
+      var h = parseInt(time_str.split(":")[0],10);
+      var min = parseInt(time_str.split(":")[1],10);
       var d = new Date();
       d.setUTCHours(h - 2); //fast time-zone fix TODO FIX THIS
       d.setUTCMinutes(min);

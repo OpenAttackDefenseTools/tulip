@@ -36,7 +36,6 @@ import { withStyles } from "@material-ui/core/styles";
 //utility
 import DOMPurify from "dompurify";
 import hexdump from "hexdump-nodejs";
-import { CopyToClipboard } from "react-copy-to-clipboard";
 
 const styles = theme => ({
     root: theme.mixins.gutters({
@@ -105,7 +104,6 @@ export class FlowDetail extends Component<props_types, state_types> {
         const this_flow = this.props.flow;
         console.log(this_flow);
         const this_flow_data = this.state.flow_data;
-        const start_time = this.props.flow.time;
         return (
             <Paper className={classes.paper}>
                 {/* modal for copy*/}
@@ -145,8 +143,8 @@ export class FlowDetail extends Component<props_types, state_types> {
                     style={{
                         padding: 10,
                         margin: 10,
-                        marginLeft: item.from == "c" ? 200 : 10,
-                        marginRight: item.from == "c" ? 10 : 200
+                        marginLeft: item.from === "c" ? 200 : 10,
+                        marginRight: item.from === "c" ? 10 : 200
                     }}
                 >
                     <div
@@ -156,7 +154,7 @@ export class FlowDetail extends Component<props_types, state_types> {
                     >
                         {" "}
                         {"" + inx + ". "}
-                        {item.from == "c" ? "Server" : "Client"}{" "}
+                        {item.from === "c" ? "Server" : "Client"}{" "}
                         {" +" + (item.time - start_time) + " ms"}
                         <pre
                             style={{
@@ -190,8 +188,7 @@ export class FlowDetail extends Component<props_types, state_types> {
     openModalWithText(text: string) {
         console.log("to_copy: ");
         console.log(text);
-        this.state.to_copy = text;
-        this.setState({ modal_opened: true });
+        this.setState({ modal_opened: true, to_copy:text });
     }
 
     get_text_formatted(item: FlowItem_type) {
@@ -222,7 +219,7 @@ export class FlowDetail extends Component<props_types, state_types> {
         return result;
     }
     color_hexdump_line(line: string) {
-        if (line.length == 0) return "";
+        if (line.length === 0) return "";
         var colors = ["#993300", "#000099", "#993300", "#000099"]; //inizialmente sopportava 4 colori
         var offset = line.substring(0, 10);
         var bytes = line.substring(10, 10 + 48);
@@ -238,7 +235,7 @@ export class FlowDetail extends Component<props_types, state_types> {
 
         var rem = line.substring(10 + 49);
         var text_result = "";
-        for (var i = 0; i < rem.length; i += rem.length / 4)
+        for (i = 0; i < rem.length; i += rem.length / 4)
             text_result +=
                 '<b><span style="color:' +
                 colors[i / (rem.length / 4)] +

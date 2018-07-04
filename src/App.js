@@ -35,7 +35,6 @@ import MyToolbar from "./components/Toolbar";
 import { withStyles } from "@material-ui/core/styles";
 import AppBar from "@material-ui/core/AppBar";
 
-const drawerWidth = 300;
 
 const styles = theme => ({
    root: {
