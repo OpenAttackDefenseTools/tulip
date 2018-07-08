@@ -89,10 +89,12 @@ export class MyToolbar extends Component<props_types, state_types> {
       return (
          <Toolbar>
             <IconButton color="inherit" aria-label="Menu" />
-            <Typography variant="title" color="inherit">
-               Flower 🌸
-            </Typography>
 
+            {/*// eslint-disable-next-line*/}
+            <Typography variant="title" color="inherit">
+               Flower
+            </Typography>
+            <span role="img" aria-label="flower" style={{margin:10, fontSize:30}}>🌸</span>
             <SearchBar
                onRequestSearch={this.props.onRequestSearch}
                style={{
