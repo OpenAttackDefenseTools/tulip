@@ -33,10 +33,10 @@ Each document will have:
 
 ```
 
-# Descrizione servizi necessari per ui
+# Services description
 All the end-points return an object or an array of objects.
 
-### POST /query
+##### POST /query
 Accept the following payload
 ```
     {
@@ -50,20 +50,20 @@ Accept the following payload
 ```
 It returns an array of documents, WITHOUT the "flow" field
 
-### GET /services
+##### GET /services
 Returns informations about all services. It is configurable on `configurations.py`
 
-### GET /flow/<flow_id>
+##### GET /flow/(flow_id)
 Returns the all document with `flow_id` id, including the field `flow`
 
-### GET /star/<flow_id>/[0,1]
+##### GET /star/(flow_id)/(0,1)
 Set the flow favourite (1) or not (0)
 
-### POST /starred
+##### POST /starred
 Returns a list of document like `/query` endpoint, but only with starred items.
 
-### POST /to_python_request/<tokenize>
-Restituisce la richiesta come python request. Tokenize serve per dire se fare o meno il parse degli args
+##### POST /to_python_request/(tokenize)
+convert the request to python syntax. Tokenize is used to toggle the auto-parsing of args.
 
-### GET /to_pwn/<id>
-converte un flusso in pwntools
+##### GET /to_pwn/(id)
+Convert the flow with the specified id in pwntools syntax
