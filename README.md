@@ -49,6 +49,7 @@ If you are going to use flower in a CTF, remember to set up the firewall in the 
 
 ## Features
 - Flow list
+- **Vim like navigation** ( `k` and `j` to navigate the list)
 - Regex filtering with highlight
 ![](https://github.com/secgroup/flower/blob/master/demo_images/demo_search_hilight.png?raw=true)
 - Highlight in red flow with flags
@@ -62,3 +63,11 @@ If you are going to use flower in a CTF, remember to set up the firewall in the 
 ![](https://github.com/secgroup/flower/blob/master/demo_images/demo_request_export.png)
 - Automatic export to pwntools
 ![](https://github.com/secgroup/flower/blob/master/demo_images/demp_export_pwn.png)
+
+## Credits
+- [Nicolò Mazzucato](https://github.com/nicomazz)
+- Antonio Groza
+- Simone Brunello
+- Alessio Marotta
+
+With the support of [c00kies@venice](https://secgroup.github.io/)
