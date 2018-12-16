@@ -5,6 +5,10 @@ This tool was written in less than ten days. Every **pull request** is welcome!
 
 ![](https://github.com/secgroup/flower/blob/master/demo_images/demo3.png?raw=true)
 
+Presentation of Flower (from min 7:30), and general introduction to CTF at ESC2K18 in italian:
+
+[![tools presentation](http://img.youtube.com/vi/oGB7LFwTghE/0.jpg)](http://www.youtube.com/watch?v=oGB7LFwTghE)
+
 ## Install
 ```bash
 git clone https://github.com/secgroup/flower
