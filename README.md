@@ -9,6 +9,12 @@ Presentation of Flower (from min 7:30), and general introduction to CTF at ESC2K
 
 [![tools presentation](http://img.youtube.com/vi/oGB7LFwTghE/0.jpg)](http://www.youtube.com/watch?v=oGB7LFwTghE)
 
+## Run with docker
+Edit `docker-compose.yml` file and replace `REACT_APP_FLAG_REGEX` environment variable with the flag regex.
+Run flower using `docker-compose up --build`. Flower starts at address `http://localhost:3000`.
+To import pcaps enter in the services container with `docker exec -it flower_flower-python_1 /bin/bash`. The container share the `shared` folder with the host. Put the pcap files inside this folder and use `python services/importer.py /shared/pcap_file_here` from the container to import pcaps to flower.
+
+
 ## Install
 ```bash
 git clone https://github.com/secgroup/flower

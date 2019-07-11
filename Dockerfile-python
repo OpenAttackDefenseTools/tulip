@@ -1,0 +1,19 @@
+FROM python:2.7
+
+WORKDIR /
+
+RUN apt-get update && apt-get install -y tcpdump libnet1-dev libpcap-dev tar patch wget
+
+RUN wget "https://github.com/MITRECND/pynids/archive/0.6.2.tar.gz" && tar -xvzf 0.6.2.tar.gz
+
+WORKDIR /pynids-0.6.2
+
+RUN python setup.py build && python setup.py install
+
+COPY . /app
+
+WORKDIR /app
+
+RUN pip install -r services/requirements.txt
+
+CMD sleep 3 && python services/webservice.py
