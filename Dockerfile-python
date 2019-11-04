@@ -2,9 +2,10 @@ FROM python:2.7
 
 WORKDIR /
 
-RUN apt-get update && apt-get install -y tcpdump libnet1-dev libpcap-dev tar patch wget
-
-RUN wget "https://github.com/MITRECND/pynids/archive/0.6.2.tar.gz" && tar -xvzf 0.6.2.tar.gz
+RUN apt-get update && \
+    apt-get install -y tcpdump libnet1-dev libpcap-dev tar patch wget && \
+    wget "https://github.com/MITRECND/pynids/archive/0.6.2.tar.gz" && \
+    tar -xvzf 0.6.2.tar.gz
 
 WORKDIR /pynids-0.6.2
 

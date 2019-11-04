@@ -4,9 +4,8 @@ COPY . /app
 
 WORKDIR /app
 
-RUN rm -rf node_modules
-
-RUN yarn install
-RUN yarn build
+RUN rm -rf node_modules && \
+    yarn install && \
+    yarn build
 
 EXPOSE 3000
