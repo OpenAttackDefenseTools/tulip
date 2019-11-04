@@ -11,11 +11,13 @@ Presentation of Flower (from min 7:30), and general introduction to CTF at ESC2K
 
 ## Run with docker
 Edit `docker-compose.yml` file and replace `REACT_APP_FLAG_REGEX` environment variable with the flag regex.
+
 Run flower using `docker-compose up --build`. Flower starts at address `http://localhost:3000`.
-To import pcaps enter in the services container with `docker exec -it flower_flower-python_1 /bin/bash`. The container share the `shared` folder with the host. Put the pcap files inside this folder and use `python services/importer.py /shared/pcap_file_here` from the container to import pcaps to flower.
+
+The container just created should be called `flower_flower-python_1`. To import pcaps enter in the services container with `docker exec -it flower_flower-python_1 /bin/bash`. The container share the `shared` folder with the host. Put the pcap files inside this folder and use `python services/importer.py /shared/pcap_file_here` from the container to import pcaps to flower.
 
 
-## Install
+## Manual installation
 ```bash
 git clone https://github.com/secgroup/flower
 cd flower
@@ -23,7 +25,7 @@ npm install
 pip install -r services/requirements.txt
 ```
 
-## Setup
+### Setup
 Env var to set:
 - `REACT_APP_FLOWER_SERVER_IP` ip of the host that will have flower services and db active
 - `REACT_APP_FLAG_REGEX` regex that match flags. 
@@ -31,7 +33,7 @@ Mongodb is required on the same machine that run the services.
 To start it: `sudo mongod --dbpath /path/to/mongodb/db --bind_ip 0.0.0.0` 
 
 
-## Run
+### Run
 
 #### Start flower
 ```bash
@@ -45,7 +47,7 @@ cd services
 Once everything has been started, flower should be accessible at the address of the machine that started it on port 3000.
 
 
-## Pcap import
+### Pcap import
 You must first install pynids from [here](https://github.com/MITRECND/pynids). The pip version is outdated! Good luck with the installation.
 Then, you can import pcaps into mongodb by executing the provided script `importer.py` as follows:
 ```
