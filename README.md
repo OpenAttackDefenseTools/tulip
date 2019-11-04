@@ -27,7 +27,8 @@ pip install -r services/requirements.txt
 
 ### Setup
 Env var to set:
-- `REACT_APP_FLOWER_SERVER_IP` ip of the host that will have flower services and db active
+- `REACT_APP_FLOWER_MONGO` ip of the host that will have flower db active (mongodb)
+- `REACT_APP_FLOWER_SERVICES` ip of the host that will have services active
 - `REACT_APP_FLAG_REGEX` regex that match flags. 
 Mongodb is required on the same machine that run the services.
 To start it: `sudo mongod --dbpath /path/to/mongodb/db --bind_ip 0.0.0.0` 

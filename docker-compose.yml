@@ -20,9 +20,9 @@ services:
       - internal
     command: "yarn start"
     environment:
-      REACT_APP_FLOWER_SERVER_IP: mongo
+      REACT_APP_FLOWER_MONGO: mongo
       REACT_APP_FLAG_REGEX: "FLG[0-9a-f]{29}"
-      SERVICES_ADDRESS: 127.0.0.1
+      REACT_APP_FLOWER_SERVICES: 127.0.0.1
 
   flower-python:
     build:
@@ -38,7 +38,7 @@ services:
     volumes:
       - ./shared:/shared
     environment:
-      REACT_APP_FLOWER_SERVER_IP: mongo
+      REACT_APP_FLOWER_MONGO: mongo
       REACT_APP_FLAG_REGEX: "FLG[0-9a-f]{29}"
 
 networks:
