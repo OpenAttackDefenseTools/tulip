@@ -1,6 +1,7 @@
-Flower
+Flower 🌸
 ======
 Automatic packet analyzer made by Ca' Foscari team (unive) for CyberChallenge attack/defense CTF of 27/06/2018.
+
 This tool was written in less than ten days. Every **pull request** is welcome!
 
 ![](https://github.com/secgroup/flower/blob/master/demo_images/demo3.png?raw=true)
@@ -10,12 +11,15 @@ Presentation of Flower (from min 7:30), and general introduction to CTF at ESC2K
 [![tools presentation](http://img.youtube.com/vi/oGB7LFwTghE/0.jpg)](http://www.youtube.com/watch?v=oGB7LFwTghE)
 
 ## Run with docker
-Edit `docker-compose.yml` file and replace `REACT_APP_FLAG_REGEX` environment variable with the flag regex.
 
-Run flower using `docker-compose up --build`. Flower starts at address `http://localhost:3000`.
+Just run `docker-compose up`, and after a while you will find flower at [http://localhost:3000](http://localhost:3000).
 
-The container just created should be called `flower_flower-python_1`. To import pcaps enter in the services container with `docker exec -it flower_flower-python_1 /bin/bash`. The container share the `shared` folder with the host. Put the pcap files inside this folder and use `python services/importer.py /shared/pcap_file_here` from the container to import pcaps to flower.
+For the flag regex, modify `REACT_APP_FLAG_REGEX` in `docker-compose.yml`.
 
+The build will automatically import the test pcap.
+
+To enter in the service to import other pcaps, run `docker exec -it flower_flower-python_1 /bin/bash` (if flower is in a folder with a different name, modify the prefix after `-it`).
+The container share the `/shared` folder with the host. Put the pcap files inside this folder and use `python services/importer.py /shared/pcap_file_here` from the container to import pcaps to flower.
 
 ## Manual installation
 ```bash
@@ -61,6 +65,7 @@ You can find a test_pcap in `services/test_pcap`. For a quick demo, run `./impor
 If you are going to use flower in a CTF, remember to set up the firewall in the most appropriate way, as the current implementation does not use other security techniques.
 
 ## Features
+- Only one command needed to make it run, thanks to docker.
 - Flow list
 - **Vim like navigation** ( `k` and `j` to navigate the list)
 - Regex filtering with highlight
