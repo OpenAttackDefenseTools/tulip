@@ -23,7 +23,7 @@
 
 //@flow
 
-const server_ip = process.env.REACT_APP_FLOWER_SERVER_IP || "0.0.0.0";
+const server_ip = process.env.REACT_APP_FLOWER_SERVICES || "127.0.0.1";
 const base_url = "http://" + server_ip + ":5000/";
 
 export function fetchFlows(filters: *, then: (*) => mixed) {

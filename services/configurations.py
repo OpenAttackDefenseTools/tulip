@@ -25,7 +25,7 @@
 import re
 import os
 
-ws_ip = os.getenv("REACT_APP_FLOWER_SERVER_IP", "0.0.0.0")
+ws_ip = os.getenv("REACT_APP_FLOWER_MONGO", "0.0.0.0")
 mongo_server = 'mongodb://' + ws_ip + ':27017/'
 vm_ip = "10.10.3.1"  # todo put regex
 
