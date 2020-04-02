@@ -7,4 +7,5 @@ jobs:
       - checkout 
       - setup_remote_docker
       - run: docker-compose up -d
+      - run: sleep 60
       - run: docker exec -it project_flower-python_1 python2 services/tests.py
