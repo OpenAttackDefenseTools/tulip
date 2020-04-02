@@ -6,7 +6,5 @@ jobs:
     steps:
       - checkout 
       - setup_remote_docker
-      - run: echo "Running docker compose up!"
       - run: docker-compose up -d
-      - run: python services/tests.py
-
+      - run: docker exec -it project_flower-python_1 python2 services/tests.py
