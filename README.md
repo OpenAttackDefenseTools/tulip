@@ -1,4 +1,5 @@
 
+[![circleci][circleci-shield]][circleci-shield]
 [![Contributors][contributors-shield]][contributors-url]
 [![Forks][forks-shield]][forks-url]
 [![Pull requests][pr-shield]][pr-url]
@@ -137,6 +138,8 @@ With the support of [c00kies@venice](https://secgroup.github.io/)
 
 <!-- MARKDOWN LINKS & IMAGES -->
 <!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
+[circleci-shield]: https://circleci.com/gh/secgroup/flower.svg?style=shield
+
 [contributors-shield]: https://img.shields.io/github/contributors/secgroup/flower.svg?style=flat-square
 [contributors-url]: https://github.com/secgroup/flower/graphs/contributors
 
