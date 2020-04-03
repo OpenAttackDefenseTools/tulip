@@ -10,7 +10,7 @@
     "escape-html": "^1.0.3",
     "flow-bin": "^0.74.0",
     "hexdump-nodejs": "^0.1.0",
-    "lodash": "^4.17.10",
+    "lodash": "^4.17.13",
     "material-ui": "^1.0.0-beta.47",
     "material-ui-search-bar": "^1.0.0-beta.4",
     "moment": "^2.22.2",
