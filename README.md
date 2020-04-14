@@ -11,7 +11,8 @@
 <br />
 <p align="center">
   <a href="https://github.com/secgroup/flower">
-    <img src="demo_images/cherry-blossom.png" alt="Logo" width="80" height="80">
+    <img src="demo_images/logo.svg">
+
   </a>
   <h3 align="center">Flower</h3>
   <p align="center">
