@@ -35,7 +35,6 @@ import MyToolbar from "./components/Toolbar";
 import { withStyles } from "@material-ui/core/styles";
 import AppBar from "@material-ui/core/AppBar";
 
-
 const styles = theme => ({
    root: {
       flexGrow: 1,
@@ -67,6 +66,7 @@ type state_types = {
 type props_types = {
    classes: *
 };
+var searchDelayTimer;
 class App extends Component<props_types, state_types> {
    constructor(props) {
       super(props);
@@ -95,6 +95,14 @@ class App extends Component<props_types, state_types> {
       filters["starred"] = 1;
       return filters;
    }
+
+   search(text) {
+      clearTimeout(searchDelayTimer);
+      searchDelayTimer = setTimeout(() => {
+         this.setState({ text_filter: text, requestInProgress: true });
+      }, 400);
+   }
+
    render() {
       const { classes } = this.props;
 
@@ -131,7 +139,7 @@ class App extends Component<props_types, state_types> {
       const myToolbar = (
          <MyToolbar
             onRequestSearch={text => {
-               this.setState({ text_filter: text, requestInProgress: true });
+               this.search(text);
             }}
             onTimeSet={(from, to) => {
                console.log("selected from: " + from + " to " + to);
