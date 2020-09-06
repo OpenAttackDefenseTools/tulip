@@ -96,7 +96,7 @@ export class MyToolbar extends Component<props_types, state_types> {
             </Typography>
             <span role="img" aria-label="flower" style={{margin:10, fontSize:30}}>🌸</span>
             <SearchBar
-               onRequestSearch={this.props.onRequestSearch}
+               onChange={this.props.onRequestSearch}
                style={{
                   margin: 10,
                   padding: 3,
