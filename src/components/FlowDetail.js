@@ -36,6 +36,8 @@ import { withStyles } from "@material-ui/core/styles";
 //utility
 import DOMPurify from "dompurify";
 import hexdump from "hexdump-nodejs";
+import { Buffer } from "buffer/";
+import _ from "lodash/core";
 
 const styles = theme => ({
     root: theme.mixins.gutters({
@@ -206,16 +208,15 @@ export class FlowDetail extends Component<props_types, state_types> {
     }
     get_hexdump(text: string) {
         var toDump = this.fromHex(text);
-        var buffer = new Buffer(toDump.length);
-        buffer.write(toDump);
+        var buffer = Buffer.from(toDump);
         return this.color_hexdump(
             hexdump(buffer).replace("Offset ", "Offset _") //fix this
         );
     }
     color_hexdump(text: string) {
         var lines = text.split("\n");
-        var result = "";
-        for (var line of lines) result += this.color_hexdump_line(line);
+        var result = lines[0] + "\n";
+        for (var line of lines.slice(1)) result += this.color_hexdump_line(line);
         return result;
     }
     color_hexdump_line(line: string) {
@@ -225,6 +226,7 @@ export class FlowDetail extends Component<props_types, state_types> {
         var bytes = line.substring(10, 10 + 48);
         var bytes_result = "";
 
+        bytes = bytes.replaceAll("   ", " __"); // FIXME
         for (var i = 0; i < 48; i += 12)
             bytes_result +=
                 '<b><span style="color:' +
@@ -234,13 +236,14 @@ export class FlowDetail extends Component<props_types, state_types> {
                 "</span></b>";
 
         var rem = line.substring(10 + 49);
+        rem.padEnd(16, " ");
         var text_result = "";
-        for (i = 0; i < rem.length; i += rem.length / 4)
+        for (i = 0; i < 16; i += 4)
             text_result +=
                 '<b><span style="color:' +
-                colors[i / (rem.length / 4)] +
+                colors[i / 4] +
                 '">' +
-                rem.substring(i, i + rem.length / 4) +
+                _.escape(rem.substring(i, i + 4)).replaceAll(/[^\x21-\x7f]/ig, ".") + // FIXME;
                 "</span></b>";
 
         return offset + bytes_result + "|" + text_result + "|\n";
