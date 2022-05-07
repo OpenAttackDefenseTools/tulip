@@ -1,4 +1,4 @@
-Flask_Cors==3.0.6
+Flask_Cors==3.0.9
 pymongo==3.6.1
 Flask==1.0.2
 requests==2.23.0
