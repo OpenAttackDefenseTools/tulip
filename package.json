@@ -21,7 +21,7 @@
     "react-scripts": "1.1.4",
     "react-split-pane": "^0.1.77",
     "react-time-range-picker": "^1.4.0",
-    "react-tiny-virtual-list": "^2.1.4",
+    "react-tiny-virtual-list": "^2.2.0",
     "react-virtual-list": "^2.3.0",
     "react-virtualized": "^9.19.1"
   },
