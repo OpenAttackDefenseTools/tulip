@@ -16,7 +16,7 @@
     "moment": "^2.29.3",
     "react": "^16.4.1",
     "react-copy-to-clipboard": "^5.0.1",
-    "react-dom": "^16.4.2",
+    "react-dom": "^16.13.0",
     "react-moment": "^0.7.4",
     "react-scripts": "1.1.4",
     "react-split-pane": "^0.1.77",
