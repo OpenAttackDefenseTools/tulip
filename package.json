@@ -8,7 +8,7 @@
     "arrow-keys-react": "^1.0.6",
     "dompurify": "^2.3.6",
     "escape-html": "^1.0.3",
-    "flow-bin": "^0.74.0",
+    "flow-bin": "^0.177.0",
     "hexdump-nodejs": "^0.1.0",
     "lodash": "^4.17.21",
     "material-ui": "^1.0.0-beta.47",
