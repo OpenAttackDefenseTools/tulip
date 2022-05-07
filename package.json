@@ -18,7 +18,7 @@
     "react-copy-to-clipboard": "^5.0.1",
     "react-dom": "^16.13.0",
     "react-moment": "^0.7.4",
-    "react-scripts": "1.1.4",
+    "react-scripts": "5.0.1",
     "react-split-pane": "^0.1.77",
     "react-time-range-picker": "^1.4.0",
     "react-tiny-virtual-list": "^2.2.0",
