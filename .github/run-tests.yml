@@ -1,0 +1,18 @@
+name: Test
+
+on:
+  push:
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+    runs-on: ubuntu:20.04
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Run the old unit test and hope it works
+      run: |
+              docker-compose up -d
+              sleep 60
+              docker exec -it project_flower-python_1 python2 services/tests.py

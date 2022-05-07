@@ -1,29 +1,29 @@
 {
-  "name": "flower",
-  "version": "0.1.0",
-  "private": true,
   "dependencies": {
-    "@material-ui/core": "^1.2.1",
-    "@material-ui/icons": "^1.1.0",
-    "arrow-keys-react": "^1.0.6",
+    "@babel/cli": "^7.17.10",
+    "@babel/preset-flow": "^7.16.7",
+    "@babel/preset-react": "^7.16.7",
+    "@material-ui/core": "^4.12.4",
+    "@material-ui/icons": "^4.11.3",
     "dompurify": "^2.3.6",
-    "escape-html": "^1.0.3",
-    "flow-bin": "^0.177.0",
     "hexdump-nodejs": "^0.1.0",
-    "lodash": "^4.17.21",
-    "material-ui": "^1.0.0-beta.47",
-    "material-ui-search-bar": "^1.0.0-beta.14",
+    "lodash": "4.17.19",
+    "material-ui-search-bar": "^1.0.0",
     "moment": "^2.29.3",
-    "react": "^16.14.0",
+    "react": "^18.1.0",
     "react-copy-to-clipboard": "^5.1.0",
-    "react-dom": "^16.13.0",
-    "react-moment": "^1.1.2",
-    "react-scripts": "5.0.1",
+    "react-dom": "^18.1.0",
+    "react-scripts": "^5.0.1",
     "react-split-pane": "^0.1.92",
-    "react-time-range-picker": "^1.4.0",
-    "react-tiny-virtual-list": "^2.2.0",
     "react-virtual-list": "^2.3.0",
-    "react-virtualized": "^9.22.3"
+    "react-virtualized": "^9.22.3",
+    "webpack": "^5.72.0"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.17.10",
+    "@babel/preset-env": "^7.17.10",
+    "babel-loader": "^8.2.5",
+    "prettier": "^2.2.1"
   },
   "scripts": {
     "start": "react-scripts start",
@@ -33,11 +33,16 @@
     "prepublish": "npm run build",
     "flow": "flow"
   },
-  "devDependencies": {
-    "babel-cli": "^6.26.0",
-    "babel-preset-flow": "^6.23.0",
-    "prettier": "2.6.2",
-    "babel-preset-react": "^6.24.1",
-    "babel-plugin-transform-class-properties": "^6.24.1"
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
   }
 }
