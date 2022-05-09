@@ -137,10 +137,11 @@ func (t *tcpStream) ReassembledSG(sg reassembly.ScatterGather, ac reassembly.Ass
 	data := sg.Fetch(length)
 
 	var from string
+	// This does not make any sense to me (RDJ)
 	if dir == reassembly.TCPDirClientToServer {
-		from = "c"
-	} else {
 		from = "s"
+	} else {
+		from = "c"
 	}
 
 	// RDJ; Add a flowItem based on the data we just reassembled

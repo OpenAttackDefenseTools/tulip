@@ -36,7 +36,7 @@ class DB:
     def __init__(self):
         try:
             self.client = MongoClient(
-                mongo_server, serverSelectionTimeoutMS=200)
+                mongo_server, serverSelectionTimeoutMS=200, unicode_decode_error_handler='ignore')
             self.client.server_info()
             self.db = self.client.pcap
             self.pcap_coll = self.db.pcap
