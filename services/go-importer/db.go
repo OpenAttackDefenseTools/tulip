@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
@@ -67,4 +68,17 @@ func (db database) InsertFlow(flow flowEntry) {
 	if err != nil {
 		panic(err)
 	}
+}
+
+// Insert a new pcap uri, returns true if the pcap was not present yet,
+// otherwise returns false
+func (db database) InsertPcap(uri string) bool {
+	files := db.client.Database("pcap").Collection("filesImported")
+
+	match := files.FindOne(context.TODO(), bson.M{"file_name": uri})
+	shouldInsert := match.Err() == mongo.ErrNoDocuments
+	if shouldInsert {
+		files.InsertOne(context.TODO(), bson.M{"file_name": uri})
+	}
+	return shouldInsert
 }

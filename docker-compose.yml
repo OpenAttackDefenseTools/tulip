@@ -2,10 +2,11 @@ version: "3.2"
 services:
 
   mongo:
-    image: mongo:4
+    image: mongo:5
     networks:
       - internal
     restart: always
+    # TODO; REMOVE; super hecking insecure
     # Just for dev purposes
     ports:
       - "27017:27017"
@@ -34,6 +35,21 @@ services:
     image: flower-python:latest
     ports:
       - "5000:5000"
+    depends_on:
+      - mongo
+    networks:
+      - internal
+    volumes:
+      - ./shared:/shared
+    environment:
+      REACT_APP_FLOWER_MONGO: mongo
+      REACT_APP_FLAG_REGEX: "FLG[0-9a-f]{29}"
+
+  flower-importer:
+    build:
+      context: .
+      dockerfile: Dockerfile-golang
+    image: flower-importer:latest
     depends_on:
       - mongo
     networks:

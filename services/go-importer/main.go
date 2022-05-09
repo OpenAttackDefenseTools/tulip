@@ -48,11 +48,15 @@ func main() {
 	}
 
 	// TODO; Make this configurable
-	db = ConnectMongo("mongodb://localhost:27017")
+	db = ConnectMongo("mongodb://mongo:27017")
 
 	for _, uri := range flag.Args() {
-		log.Println("Processing file:", uri)
-		handlePcap(uri)
+		if db.InsertPcap(uri) {
+			log.Println("Processing file:", uri)
+			handlePcap(uri)
+		} else {
+			log.Println("Skipped: ", uri)
+		}
 	}
 
 }

@@ -92,9 +92,9 @@ export class MyToolbar extends Component<props_types, state_types> {
 
             {/*// eslint-disable-next-line*/}
             <Typography variant="title" color="inherit">
-               Flower
+               TULIP
             </Typography>
-            <span role="img" aria-label="flower" style={{margin:10, fontSize:30}}>🌷</span>
+            <span role="img" aria-label="tulip" style={{margin:10, fontSize:30}}>🌷</span>
             <SearchBar
                onChange={this.props.onRequestSearch}
                style={{
