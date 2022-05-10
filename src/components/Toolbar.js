@@ -118,7 +118,6 @@ export class MyToolbar extends Component<props_types, state_types> {
                }}
                onChange={item => {
                   var time = this.getTimeFromString(item.target.value);
-                  console.log(item.target.value);
                   this.setState({ from_time: time });
                   this.props.onTimeSet(time, this.state.to_time);
                }}
@@ -138,7 +137,6 @@ export class MyToolbar extends Component<props_types, state_types> {
                onChange={item => {
                   var time = this.getTimeFromString(item.target.value);
                   if (item === 0) item = Number.MAX_SAFE_INTEGER;
-                  console.log(item.target.value);
                   this.setState({ to_time: time });
                   this.props.onTimeSet(this.state.from_time, time);
                }}

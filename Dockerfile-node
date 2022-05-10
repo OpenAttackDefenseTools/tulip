@@ -1,11 +1,15 @@
 FROM node:17
 
-COPY . /app
+COPY package.json /app/
+COPY yarn.lock /app/
+COPY .flowconfig /app/
+COPY .babelrc /app/
+COPY ./public /app/public
+COPY ./src /app/src
 
 WORKDIR /app
 
-RUN rm -rf node_modules && \
-    yarn install && \
+RUN yarn install && \
     yarn build
 
 EXPOSE 3000

@@ -43,9 +43,6 @@ export function fetchFlows(filters: *, then: (*) => mixed) {
     if (hasNotEmpty(filters, "starred"))
         filter_object["starred"] = filters["starred"];
 
-    console.log("Fetching flows: ");
-    console.log(filter_object);
-
     fetch(base_url + "query", {
         method: "POST",
         headers: {
@@ -55,7 +52,6 @@ export function fetchFlows(filters: *, then: (*) => mixed) {
         body: JSON.stringify(filter_object)
     })
         .then(response => {
-            console.log(response);
             return response.json();
         })
         .then(responseJson => {
@@ -68,7 +64,6 @@ export function fetchFlows(filters: *, then: (*) => mixed) {
 }
 
 export function fetchServices(then: (*) => mixed) {
-    console.log("FETCHING services!!");
     return fetchUrl(base_url + "services", data => then(data.sort()));
 }
 
@@ -106,7 +101,6 @@ export function getPythonRequest(request: string, then: (*) => mixed) {
         body: request
     })
         .then(response => {
-            console.log(response);
             return response.text();
         })
         .then(responseText => {
@@ -116,7 +110,6 @@ export function getPythonRequest(request: string, then: (*) => mixed) {
 export function getPwnRequest(flow_id: string, then: (*) => mixed) {
     fetch(base_url + "to_pwn/" + flow_id)
         .then(response => {
-            console.log(response);
             return response.text();
         })
         .then(responseText => {

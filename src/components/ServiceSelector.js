@@ -72,15 +72,12 @@ export class ServiceSelector extends Component<props_types,state_types> {
     }
     componentDidMount() {
         fetchServices(services => {
-            console.log("ok, ho i servizi: ");
-            console.log(services);
             this.setState({ services: services });
             this.props.onServicesFetched(services)
         });
     }
     render() {
         const { classes } = this.props;
-        console.log("nome che dovriei mettere: " + this.state.target_name);
         return (
             <form className={classes.root} autoComplete="off">
                 <FormControl className={classes.formControl}>
@@ -114,8 +111,6 @@ export class ServiceSelector extends Component<props_types,state_types> {
         if (inx === -1) this.props.onTargetChanged(null);
         else {
             var target_service = this.state.services[inx];
-            console.log("target service:")
-            console.log(target_service );
             this.props.onTargetChanged(target_service.ip,target_service.port);
         }
     };

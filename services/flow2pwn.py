@@ -22,6 +22,18 @@
 # You should have received a copy of the GNU General Public License
 # along with Flower.  If not, see <https://www.gnu.org/licenses/>.
 
+import string
+
+def escape(i):
+    ret = chr(i) if 0x20 <= i and i < 0x7f else f'\\x{i:02x}'
+    if ret in '\\"':
+        ret = '\\' + ret
+    return ret
+
+def convert(message):
+    data = bytes.fromhex(message["hex"])
+    return ''.join([escape(i) for i in data])
+
 #convert a flow into pwn script
 def flow2pwn(flow):
     ip = flow["dst_ip"]
@@ -34,11 +46,12 @@ proc = remote('{}', {})
 
     for message in flow['flow']:
         if message['from'] == 's':
-            script += """proc.writeline("{}")\n""".format(message['data'][:-1])
+            script += """proc.write(b"{}")\n""".format(convert(message))
 
         else:
             for m in range(len(message['data'])):
-                script += """proc.recvuntil("{}")\n""".format(message['data'][-20:].replace("\n","\\n"))
+                script += """proc.recvuntil(b"{}")\n""".format(convert(message)[-20:].replace("\n","\\n"))
                 break
 
     return script
+

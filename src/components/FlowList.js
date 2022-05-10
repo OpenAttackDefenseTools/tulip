@@ -92,8 +92,6 @@ export class FlowList extends Component<props_types, state_types> {
             filters_applied: filters
         });
         fetchFlows(filters, flows => {
-            console.log("ok, ho i flows!: ");
-            console.log(flows);
             this.setState({
                 data: flows,
                 filters_applied: filters
@@ -116,7 +114,6 @@ export class FlowList extends Component<props_types, state_types> {
                         this.props.onFlowSelected(flow);
                     }}
                     onStar={star => {
-                        console.log("Cambio stato stella!");
                         let data = [...this.state.data];
                         data[index].starred = star; //new value
                         this.setState({ data });
@@ -128,9 +125,7 @@ export class FlowList extends Component<props_types, state_types> {
     };
 
     handleKeyPress = (e: KeyboardEvent<HTMLDivElement>) => {
-        console.log("premuto:" + e.key);
         if (e.key === "k") {
-            console.log("up key detected.");
             if (this.state.selected_inx === 0) return;
             this.setState(prevState => ({
                 selected_inx: prevState.selected_inx - 1
@@ -140,7 +135,6 @@ export class FlowList extends Component<props_types, state_types> {
             );
             this.list.scrollToRow(this.state.selected_inx);
         } else if (e.key === "j") {
-            console.log("down key detected.");
             if (this.state.selected_inx === this.state.data.length - 1) return;
             this.setState(prevState => ({
                 selected_inx: prevState.selected_inx + 1
@@ -155,7 +149,6 @@ export class FlowList extends Component<props_types, state_types> {
     render() {
 
         var data = this.state.data;
-        console.log("richiamato render flow list");
 
         return (
             <AutoSizer data={this.state.data}>

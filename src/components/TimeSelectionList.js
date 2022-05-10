@@ -66,7 +66,6 @@ export class TimeSelectionList extends Component<props_types, state_types> {
    };
 
    render() {
-      console.log("time interval: " + this.props.timeInterval);
       var items = [];
       var five_min = 1000 * 60 * 5;
       var current_millis = new Date().getTime();

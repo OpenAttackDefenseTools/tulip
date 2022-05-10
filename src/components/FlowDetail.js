@@ -90,7 +90,6 @@ export class FlowDetail extends Component<props_types, state_types> {
         const flow_id = this.props.flow._id["$oid"];
 
         if (this.state.flow_id === flow_id) {
-            console.log("non Aggiorno, è quello di prima!");
             return;
         }
         fetchFlow(flow_id, flow => {
@@ -104,7 +103,6 @@ export class FlowDetail extends Component<props_types, state_types> {
         const { classes } = this.props;
 
         const this_flow = this.props.flow;
-        console.log(this_flow);
         const this_flow_data = this.state.flow_data;
         return (
             <Paper className={classes.paper}>
@@ -181,15 +179,11 @@ export class FlowDetail extends Component<props_types, state_types> {
         });
     }
     fetchPwnTextToCopy(item: FlowItem_type) {
-        console.log("item id:");
-        console.log(item);
         getPwnRequest(item, to_copy => {
             this.openModalWithText(to_copy);
         });
     }
     openModalWithText(text: string) {
-        console.log("to_copy: ");
-        console.log(text);
         this.setState({ modal_opened: true, to_copy:text });
     }
 
@@ -258,8 +252,6 @@ export class FlowDetail extends Component<props_types, state_types> {
         var reg_string :string = this.props.filter
             ? this.props.filter
             : this.getFlagRegex()
-        console.log("hilight string:");
-        console.log(reg_string);
 
         var reg = new RegExp(reg_string, "i"); //this.props.regex);
        

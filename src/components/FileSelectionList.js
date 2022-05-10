@@ -51,8 +51,6 @@ export class FileSelectionList extends Component<{
    }
    componentDidMount() {
       fetchFiles(files => {
-         console.log("ok, ho i files: ");
-         console.log(files);
          this.setState({ files: files });
          if (this.state.actual_inx == -1 && files.length > 0) {
             this.props.file_clicked(files[0]);
