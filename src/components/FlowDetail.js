@@ -247,13 +247,19 @@ export class FlowDetail extends Component<props_types, state_types> {
         return process.env.REACT_APP_FLAG_REGEX || "[A-Z0-9]{31}=";
     }
     hilight_flag(text: string) {
-        //text = escape(text)
-        //  if (!this.props.regex) return text;
-        var reg_string :string = this.props.filter
-            ? this.props.filter
-            : this.getFlagRegex()
-
-        var reg = new RegExp(reg_string, "i"); //this.props.regex);
+        var reg = null;
+        if (this.props.filter) {
+            try {
+                // The filter might not be a valid regex
+                reg = new RegExp(this.props.filter, "i"); //this.props.regex);
+            } catch(e) {
+                // (pass)
+            }
+        }
+        if (!reg) {
+            // Fallback to the flag regex (case sensitive)
+            reg = RegExp(this.getFlagRegex(), "");
+        }
        
         var final_str =
             "" +

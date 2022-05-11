@@ -127,7 +127,6 @@ class App extends Component<props_types, state_types> {
             list_id="main_list"
             filters={this.getFilters()}
             onFlowSelected={flow => {
-               console.log("Selezionato un flow");
                this.setState({ selected_flow: flow });
             }}
             largeItems={true}
