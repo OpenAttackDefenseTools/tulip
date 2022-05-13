@@ -18,7 +18,7 @@
     "react-split-pane": "^0.1.92",
     "react-virtual-list": "^2.3.0",
     "react-virtualized": "^9.22.3",
-    "webpack": "^5.72.0"
+    "webpack": "^5.72.1"
   },
   "devDependencies": {
     "@babel/core": "^7.17.10",
