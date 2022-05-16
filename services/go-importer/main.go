@@ -55,7 +55,9 @@ func main() {
 
 	// If a watch dir was configured, handle all files in the directory, then
 	// keep monitoring it for new files.
-	watchDir()
+	if *watch_dir != "" {
+		watchDir()
+	}
 }
 
 func watchDir() {
