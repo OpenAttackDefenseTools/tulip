@@ -31,6 +31,7 @@ var tstype = ""
 var promisc = true
 
 var watch_dir = flag.String("dir", "", "Directory to watch for new pcaps")
+var mongodb = flag.String("mongo", "mongo:27017", "MongoDB dns name + port (e.g. mongo:27017)")
 
 var db database
 
@@ -46,8 +47,8 @@ func main() {
 		log.Fatal("Usage: ./go-importer <file0.pcap> ... <fileN.pcap>")
 	}
 
-	// TODO; Make this configurable
-	db = ConnectMongo("mongodb://mongo:27017")
+	db_string := "mongodb://" + *mongodb
+	db = ConnectMongo(db_string)
 
 	// Pass positional arguments to the pcap handler
 	handlePcaps(flag.Args())

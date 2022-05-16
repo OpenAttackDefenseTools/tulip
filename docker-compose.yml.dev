@@ -6,6 +6,8 @@ services:
     networks:
       - internal
     restart: always
+    ports:
+      - "27017:27017"
 
   flower-node:
     build:
