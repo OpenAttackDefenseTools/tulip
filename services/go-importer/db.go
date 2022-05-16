@@ -22,17 +22,17 @@ type flowItem struct {
 }
 
 type flowEntry struct {
-	Src_port      int
-	Dst_port      int
-	Src_ip        string
-	Dst_ip        string
-	Time          int
-	Duration      int
-	Inx           int
-	Starred       int
-	Contains_flag bool
-	Filename      string
-	Flow          []flowItem
+	Src_port int
+	Dst_port int
+	Src_ip   string
+	Dst_ip   string
+	Time     int
+	Duration int
+	Inx      int
+	Starred  int
+	Filename string
+	Flow     []flowItem
+	Tag      string
 }
 
 type database struct {

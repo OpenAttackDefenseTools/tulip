@@ -54,6 +54,7 @@ type FlowItem_type = {
     dst_ip: string,
     dst_port: number,
     contains_flag: boolean,
+    tag: string,
     starred: boolean,
     flow: Array<*>
 };
@@ -132,7 +133,9 @@ export class FlowItem extends Component<props_types, state_types> {
     getItemColor(item: FlowItem_type) {
         const isSelected = this.props.selected || false;
         if (isSelected) return "#03a9f4";
-        if (item.contains_flag) return "#FF6666";
+        if (item.tag == "fishy") return "#FF6666";
+        if (item.tag == "flag_bot") return "#55d569";
+        // Default fall-back color
         return "#F5F5F5";
     }
     getIpSourceDestInfo() {

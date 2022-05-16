@@ -10,6 +10,7 @@ package main
 
 import (
 	"encoding/hex"
+	"math/rand"
 
 	//	"fmt"
 	"sync"
@@ -190,18 +191,26 @@ func (t *tcpStream) ReassemblyComplete(ac reassembly.AssemblerContext) bool {
 		duration = 0
 	}
 
+	tag := ""
+	if rand.Int()%10 == 1 {
+		tag = "fishy"
+	}
+	if rand.Int()%10 == 1 {
+		tag = "flag_bot"
+	}
+
 	entry := flowEntry{
-		Src_port:      int(t.src_port),
-		Dst_port:      int(t.dst_port),
-		Src_ip:        src.String(),
-		Dst_ip:        dst.String(),
-		Time:          time,
-		Duration:      duration,
-		Inx:           0,
-		Starred:       0,
-		Contains_flag: false,
-		Filename:      t.source,
-		Flow:          t.flowItems,
+		Src_port: int(t.src_port),
+		Dst_port: int(t.dst_port),
+		Src_ip:   src.String(),
+		Dst_ip:   dst.String(),
+		Time:     time,
+		Duration: duration,
+		Inx:      0,
+		Starred:  0,
+		Tag:      tag,
+		Filename: t.source,
+		Flow:     t.flowItems,
 	}
 
 	t.reassemblyCallback(entry)
