@@ -31,6 +31,7 @@ var tstype = ""
 var promisc = true
 
 var watch_dir = flag.String("dir", "", "Directory to watch for new pcaps")
+var eve_file = flag.String("eve", "", "Eve file to watch for suricata's tags")
 var mongodb = flag.String("mongo", "mongo:27017", "MongoDB dns name + port (e.g. mongo:27017)")
 
 var db database
@@ -56,7 +57,12 @@ func main() {
 	// If a watch dir was configured, handle all files in the directory, then
 	// keep monitoring it for new files.
 	if *watch_dir != "" {
-		watchDir()
+		go watchDir()
+	}
+
+	if *eve_file != "" {
+		time.Sleep(10*time.Second) // .... don't ask
+		watchEve(*eve_file)
 	}
 }
 

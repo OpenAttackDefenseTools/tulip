@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"log"
+	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -9,7 +11,9 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 )
 
-// RDJ; Added a flow struct
+const WINDOW = 500 // ms
+
+// Added a flow struct
 type flowItem struct {
 	/// From: "s" / "c" for server or client
 	From string
@@ -81,4 +85,47 @@ func (db database) InsertPcap(uri string) bool {
 		files.InsertOne(context.TODO(), bson.M{"file_name": uri})
 	}
 	return shouldInsert
+}
+
+type flowID struct {
+	src_port int
+	dst_port int
+	src_ip   string
+	dst_ip   string
+	time     time.Time
+}
+
+func (db database) AddSignatureToFlow(suricata suricataLog) {
+
+	// Find a flow that more or less matches the one we're looking for
+	flow := suricata.flow
+	flowCollection := db.client.Database("pcap").Collection("pcap")
+	//epoch := int(flow.time.UnixNano() / 1000000)
+	query := bson.D{
+		{"src_port", flow.src_port},
+		{"dst_port", flow.dst_port},
+		{"src_ip", flow.src_ip},
+		{"dst_ip", flow.dst_ip},
+		/*
+			{"time", bson.D{
+				{"$gt", epoch - WINDOW},
+				{"$lt", epoch + WINDOW},
+			}},*/
+	}
+
+	info := bson.M{"$set": bson.D{
+		{"tag", "fishy"},
+		{"suricata", suricata.signature},
+	}}
+
+	// enrich the flow with suricata information
+	// TODO; update many -> update one
+	res, err := flowCollection.UpdateMany(context.TODO(), query, info)
+
+	// TODO; remove fatal
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	log.Println("Updated %d flows w/ suricata info", res.ModifiedCount)
 }

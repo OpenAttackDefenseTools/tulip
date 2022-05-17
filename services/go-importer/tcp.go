@@ -10,7 +10,6 @@ package main
 
 import (
 	"encoding/hex"
-	"math/rand"
 
 	//	"fmt"
 	"sync"
@@ -192,12 +191,13 @@ func (t *tcpStream) ReassemblyComplete(ac reassembly.AssemblerContext) bool {
 	}
 
 	tag := ""
-	if rand.Int()%10 == 1 {
-		tag = "fishy"
-	}
-	if rand.Int()%10 == 1 {
-		tag = "flag_bot"
-	}
+	/*
+		if rand.Int()%10 == 1 {
+			tag = "fishy"
+		}
+		if rand.Int()%10 == 1 {
+			tag = "flag_bot"
+		}*/
 
 	entry := flowEntry{
 		Src_port: int(t.src_port),

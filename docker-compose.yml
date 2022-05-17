@@ -21,7 +21,7 @@ services:
     command: "yarn start"
     environment:
       REACT_APP_FLOWER_MONGO: mongo
-      REACT_APP_FLAG_REGEX: "FLG[0-9a-f]{29}"
+      REACT_APP_FLAG_REGEX: "[0-9A-F]{31}="
       REACT_APP_FLOWER_SERVICES: 127.0.0.1
 
   flower-python:
@@ -39,7 +39,7 @@ services:
       - ./shared:/shared
     environment:
       REACT_APP_FLOWER_MONGO: mongo
-      REACT_APP_FLAG_REGEX: "FLG[0-9a-f]{29}"
+      REACT_APP_FLAG_REGEX: "[0-9A-F]{31}="
 
   flower-importer:
     build:
@@ -54,7 +54,7 @@ services:
       - ./shared:/shared
     environment:
       REACT_APP_FLOWER_MONGO: mongo
-      REACT_APP_FLAG_REGEX: "FLG[0-9a-f]{29}"
+      REACT_APP_FLAG_REGEX: "[0-9A-F]{31}="
 
 networks:
   internal:

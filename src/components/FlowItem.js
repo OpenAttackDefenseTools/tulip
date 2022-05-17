@@ -55,6 +55,7 @@ type FlowItem_type = {
     dst_port: number,
     contains_flag: boolean,
     tag: string,
+    suricata: string,
     starred: boolean,
     flow: Array<*>
 };
@@ -125,6 +126,7 @@ export class FlowItem extends Component<props_types, state_types> {
                     <b>{this.props.serviceName || item.dst_port}</b>
                     {this.props.large && this.getIpSourceDestInfo()}
                     {this.getTimeInfo()}
+                    {this.getSuricataInfo()}
                 </div>
             </Grid>
         );
@@ -158,6 +160,14 @@ export class FlowItem extends Component<props_types, state_types> {
                 <b>{moment(item.time).format("SSS")}</b>
                 {"ms "}
                 {this.props.large && " duration: " + item.duration + "ms"}
+            </div>
+        );
+    }
+    getSuricataInfo() {
+        const item = this.props.item;
+        return (item.suricata &&
+            <div>
+                <p>Matched rule: <b>{item.suricata}</b> </p>
             </div>
         );
     }
