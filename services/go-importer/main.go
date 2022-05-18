@@ -166,14 +166,7 @@ func handlePcap(fname string) {
 		return
 	}
 
-	var dec gopacket.Decoder
-	var ok bool
-	decoder_name := fmt.Sprintf("%s", handle.LinkType())
-	if dec, ok = gopacket.DecodersByLayerName[decoder_name]; !ok {
-		log.Println("No decoder named", decoder_name)
-		return
-	}
-	source := gopacket.NewPacketSource(handle, dec)
+	source := gopacket.NewPacketSource(handle, handle.LinkType())
 	source.Lazy = lazy
 	source.NoCopy = true
 	count := 0

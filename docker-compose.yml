@@ -51,7 +51,8 @@ services:
     networks:
       - internal
     volumes:
-      - ./shared:/shared
+      - /traffic:/traffic:ro
+    command: "./go-importer -dir /traffic -eve /traffic/eve.json"
     environment:
       REACT_APP_FLOWER_MONGO: mongo
       REACT_APP_FLAG_REGEX: "[0-9A-F]{31}="
