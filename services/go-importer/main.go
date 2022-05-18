@@ -9,6 +9,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/fsnotify/fsnotify"
@@ -54,16 +55,27 @@ func main() {
 	// Pass positional arguments to the pcap handler
 	handlePcaps(flag.Args())
 
+	var wg sync.WaitGroup
+
 	// If a watch dir was configured, handle all files in the directory, then
 	// keep monitoring it for new files.
 	if *watch_dir != "" {
-		go watchDir()
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			watchDir()
+		}()
 	}
 
 	if *eve_file != "" {
 		time.Sleep(5 * time.Second) // .... don't ask
-		watchEve(*eve_file)
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			watchEve(*eve_file)
+		}()
 	}
+	wg.Wait()
 }
 
 func watchDir() {
