@@ -16,7 +16,7 @@ export interface Flow {
 }
 
 export interface FullFlow extends Flow {
-    flow: FlowData
+    flow: FlowData[]
 }
 
 export interface Id {

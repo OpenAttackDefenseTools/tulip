@@ -352,6 +352,7 @@ module.exports = {
     },
     fontFamily: {
       sans: [
+        'Recursive',
         'ui-sans-serif',
         'system-ui',
         '-apple-system',

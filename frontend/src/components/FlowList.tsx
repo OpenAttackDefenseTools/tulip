@@ -106,7 +106,7 @@ interface FlowListEntryProps {
 }
 
 function FlowListEntry({ flow, isActive, onHeartClick }: FlowListEntryProps) {
-  const formatted_time = format(new Date(flow.time), "HH:mm:ss SSS");
+  const formatted_time = format(new Date(flow.time), "HH:mm:ss:SSS");
   return (
     <li className={isActive ? classes.active : undefined}>
       <div className="flex">

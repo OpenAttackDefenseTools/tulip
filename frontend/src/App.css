@@ -4,7 +4,7 @@
 .grid-container {
   display: grid;
   grid-template-columns: 400px 1fr;
-  grid-template-rows: 50px calc(100vh - 100px) 50px;
+  grid-template-rows: 50px calc(100vh - 50px);
   grid-column-gap: 0px;
   grid-row-gap: 0px;
 }
@@ -25,9 +25,10 @@
   border-bottom: 1px solid rgba(0, 0, 0, 0.2);
 }
 
+/* no need for footer
 .footer-area {
   grid-area: 3 / 1 / 4 / 3;
-}
+}*/
 
 
 /* Header */

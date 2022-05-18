@@ -1,4 +1,5 @@
 import { useAtom } from "jotai";
+import { atomWithStorage } from "jotai/utils";
 import { Suspense } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Service } from "../api";
@@ -9,6 +10,8 @@ import {
   TEXT_FILTER_KEY,
   fetchUrlAtom,
 } from "../App";
+
+export const showHexAtom = atomWithStorage("showHex", false);
 
 function ServiceSelection() {
   const FILTER_KEY = SERVICE_FILTER_KEY;
@@ -116,6 +119,24 @@ function EndDateSelection() {
   );
 }
 
+function ShowHexToggle() {
+  const [showHex, setShowHex] = useAtom(showHexAtom);
+
+  return (
+    <div className="flex items-baseline mx-4">
+      <input
+        type="checkbox"
+        className="mr-2"
+        checked={showHex}
+        onChange={() => {
+          setShowHex(!showHex);
+        }}
+      />
+      <label htmlFor="">Hexdump</label>
+    </div>
+  );
+}
+
 export function Header() {
   return (
     <>
@@ -133,6 +154,9 @@ export function Header() {
       </div>
       <div>
         <EndDateSelection></EndDateSelection>
+      </div>
+      <div className="ml-auto">
+        <ShowHexToggle></ShowHexToggle>
       </div>
     </>
   );
