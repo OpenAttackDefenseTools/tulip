@@ -61,7 +61,7 @@ func main() {
 	}
 
 	if *eve_file != "" {
-		time.Sleep(10*time.Second) // .... don't ask
+		time.Sleep(5 * time.Second) // .... don't ask
 		watchEve(*eve_file)
 	}
 }

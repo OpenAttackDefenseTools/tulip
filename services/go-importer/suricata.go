@@ -2,11 +2,11 @@ package main
 
 import (
 	"bufio"
-	"fmt"
 	"log"
 	"os"
 	"os/signal"
 	"strings"
+	"time"
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/tidwall/gjson"
@@ -82,7 +82,6 @@ func updateEve(eve_handle *os.File) {
 	// iterate over each line in the file
 	for scanner.Scan() {
 		line := scanner.Text()
-		fmt.Println(line)
 		// Line parsing failed. Probably incomplete?
 		if !handleEveLine(line) {
 			// Roll back to last good position
@@ -140,8 +139,11 @@ func handleEveLine(json string) bool {
 	src_ip := gjson.Get(json, "src_ip")
 	dst_port := gjson.Get(json, "dest_port")
 	dst_ip := gjson.Get(json, "dest_ip")
-	time := gjson.Get(json, "flow.start")
+	start_time := gjson.Get(json, "flow.start")
 	signature := gjson.Get(json, "alert.signature")
+
+	// TODO; Double check this, might be broken for non-UTC?
+	start_time_obj, _ := time.Parse("2006-01-02T15:04:05.999999999-0700", start_time.String())
 
 	logItem := suricataLog{
 		flow: flowID{
@@ -149,7 +151,7 @@ func handleEveLine(json string) bool {
 			src_ip:   src_ip.String(),
 			dst_port: int(dst_port.Int()),
 			dst_ip:   dst_ip.String(),
-			time:     time.Time(),
+			time:     start_time_obj,
 		},
 		signature: signature.String(),
 	}

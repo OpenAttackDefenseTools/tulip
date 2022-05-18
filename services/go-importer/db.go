@@ -100,17 +100,16 @@ func (db database) AddSignatureToFlow(suricata suricataLog) {
 	// Find a flow that more or less matches the one we're looking for
 	flow := suricata.flow
 	flowCollection := db.client.Database("pcap").Collection("pcap")
-	//epoch := int(flow.time.UnixNano() / 1000000)
+	epoch := int(flow.time.UnixNano() / 1000000)
 	query := bson.D{
 		{"src_port", flow.src_port},
 		{"dst_port", flow.dst_port},
 		{"src_ip", flow.src_ip},
 		{"dst_ip", flow.dst_ip},
-		/*
-			{"time", bson.D{
-				{"$gt", epoch - WINDOW},
-				{"$lt", epoch + WINDOW},
-			}},*/
+		{"time", bson.D{
+			{"$gt", epoch - WINDOW},
+			{"$lt", epoch + WINDOW},
+		}},
 	}
 
 	info := bson.M{"$set": bson.D{
@@ -127,5 +126,5 @@ func (db database) AddSignatureToFlow(suricata suricataLog) {
 		log.Fatal(err)
 	}
 
-	log.Println("Updated %d flows w/ suricata info", res.ModifiedCount)
+	log.Printf("Updated %d flows w/ suricata info\n", res.ModifiedCount)
 }
