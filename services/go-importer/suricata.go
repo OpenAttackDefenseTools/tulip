@@ -76,7 +76,8 @@ func watchEve(eve_file string) {
 // The eve file was just written to, let's parse some logs!
 func updateEve(eve_handle *os.File) {
 
-	var p int64
+	// BUG: I'm re-reading the entire file for now, we can probably pin it the last successfully synced log?
+	_, _ = eve_handle.Seek(0, 0)
 	scanner := bufio.NewScanner(eve_handle)
 
 	// iterate over each line in the file
@@ -84,12 +85,8 @@ func updateEve(eve_handle *os.File) {
 		line := scanner.Text()
 		// Line parsing failed. Probably incomplete?
 		if !handleEveLine(line) {
-			// Roll back to last good position
-			eve_handle.Seek(p, 0)
 			break
 		}
-		// Save the current position
-		p, _ = eve_handle.Seek(0, 1)
 	}
 }
 

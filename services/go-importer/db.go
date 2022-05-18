@@ -126,5 +126,7 @@ func (db database) AddSignatureToFlow(suricata suricataLog) {
 		log.Fatal(err)
 	}
 
-	log.Printf("Updated %d flows w/ suricata info\n", res.ModifiedCount)
+	if res.MatchedCount > 0 {
+		log.Println("Matched suricata signature", suricata.signature)
+	}
 }
