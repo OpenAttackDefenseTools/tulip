@@ -96,7 +96,7 @@ export function setStarred(flow_id: string, star: boolean) {
 }
 
 export function getPythonRequest(request: string, then: (*) => mixed) {
-    fetch(base_url + "to_python_request/1", {
+    fetch(base_url + "to_python_request?tokenize=1", {
         method: "POST",
         body: request
     })
