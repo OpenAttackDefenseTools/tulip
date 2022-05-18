@@ -78,6 +78,12 @@ class TulipApi {
         const response = await fetch(`${this.API_ENDPOINT}/flow/${id}`);
         return (await response.json()) as FullFlow;
     }
+
+
+    async starFlow(id: string, star: boolean) {
+        const response = await fetch(`${this.API_ENDPOINT}/star/${id}/${star ? "1" : "0"}`);
+        return await response.text()
+    }
 }
 
 export const api = new TulipApi();
