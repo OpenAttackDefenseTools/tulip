@@ -26,6 +26,7 @@ from flask import Flask, Response
 
 from configurations import services
 from data2req import convert_http_requests
+from base64 import b64decode
 from db import DB
 from bson import json_util
 from flask_cors import CORS
@@ -81,10 +82,11 @@ def getFlowDetail(id):
     return to_ret
 
 
-@application.route('/to_python_request/<tokenize>', methods=['POST'])
-def convertToRequests(tokenize):
-    data = request.data
-    converted = convert_http_requests(data,True if tokenize == "true" else False)
+@application.route('/to_python_request', methods=['POST'])
+def convertToRequests():
+    data = b64decode(request.data)
+    tokenize = request.args.get("tokenize", False)
+    converted = convert_http_requests(data, tokenize)
     return converted
 
 @application.route('/to_pwn/<id>')
