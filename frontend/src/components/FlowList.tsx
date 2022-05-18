@@ -72,7 +72,10 @@ export function FlowList() {
 
   return (
     <div className="">
-      <div className="sticky top-0 bg-white p-2 border-b-gray-300 border-b shadow-md">
+      <div
+        className="sticky top-0 bg-white p-2 border-b-gray-300 border-b shadow-md flex items-center"
+        style={{ height: 50 }}
+      >
         <input
           type="checkbox"
           className="mr-2"

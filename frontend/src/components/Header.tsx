@@ -155,9 +155,10 @@ export function Header() {
       <div>
         <EndDateSelection></EndDateSelection>
       </div>
-      <div className="ml-auto">
+
+      {/* <div className="ml-auto">
         <ShowHexToggle></ShowHexToggle>
-      </div>
+      </div> */}
     </>
   );
 }
