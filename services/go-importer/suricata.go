@@ -5,7 +5,6 @@ import (
 	"log"
 	"os"
 	"os/signal"
-	"strings"
 	"time"
 
 	"github.com/fsnotify/fsnotify"
@@ -50,10 +49,8 @@ func watchEve(eve_file string) {
 					return
 				}
 				if event.Op&(fsnotify.Write) != 0 {
-					if strings.HasSuffix(event.Name, ".pcap") {
-						log.Println("Eve file was updated", event.Name, event.Op.String())
-						updateEve(eve_handle)
-					}
+					log.Println("Eve file was updated", event.Name, event.Op.String())
+					updateEve(eve_handle)
 				}
 			case err, ok := <-watcher.Errors:
 				if !ok {
