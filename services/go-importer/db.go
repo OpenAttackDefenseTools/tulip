@@ -70,7 +70,8 @@ func (db database) InsertFlow(flow flowEntry) {
 	_, err := flowCollection.InsertOne(context.TODO(), flow)
 	// check for errors in the insertion
 	if err != nil {
-		panic(err)
+		log.Println("Error occured while inserting record: ", err)
+		log.Println("NO PCAP DATA WILL BE AVAILABLE FOR: ", flow.Filename)
 	}
 }
 
@@ -121,9 +122,9 @@ func (db database) AddSignatureToFlow(suricata suricataLog) {
 	// TODO; update many -> update one
 	res, err := flowCollection.UpdateMany(context.TODO(), query, info)
 
-	// TODO; remove fatal
 	if err != nil {
-		log.Fatal(err)
+		log.Println("Error occured while editing record:", err)
+		return
 	}
 
 	if res.MatchedCount > 0 {
