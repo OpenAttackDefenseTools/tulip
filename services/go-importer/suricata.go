@@ -61,7 +61,7 @@ func watchEve(eve_file string) {
 		}
 	}()
 
-	err = watcher.Add(*watch_dir)
+	err = watcher.Add(eve_file)
 	if err != nil {
 		log.Fatal(err)
 	}
