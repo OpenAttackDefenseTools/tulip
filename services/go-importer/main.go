@@ -9,6 +9,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/fsnotify/fsnotify"
@@ -31,6 +32,8 @@ var tstype = ""
 var promisc = true
 
 var watch_dir = flag.String("dir", "", "Directory to watch for new pcaps")
+var eve_file = flag.String("eve", "", "Eve file to watch for suricata's tags")
+var mongodb = flag.String("mongo", "mongo:27017", "MongoDB dns name + port (e.g. mongo:27017)")
 
 var db database
 
@@ -46,15 +49,33 @@ func main() {
 		log.Fatal("Usage: ./go-importer <file0.pcap> ... <fileN.pcap>")
 	}
 
-	// TODO; Make this configurable
-	db = ConnectMongo("mongodb://mongo:27017")
+	db_string := "mongodb://" + *mongodb
+	db = ConnectMongo(db_string)
 
 	// Pass positional arguments to the pcap handler
 	handlePcaps(flag.Args())
 
+	var wg sync.WaitGroup
+
 	// If a watch dir was configured, handle all files in the directory, then
 	// keep monitoring it for new files.
-	watchDir()
+	if *watch_dir != "" {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			watchDir()
+		}()
+	}
+
+	if *eve_file != "" {
+		time.Sleep(5 * time.Second) // .... don't ask
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			watchEve(*eve_file)
+		}()
+	}
+	wg.Wait()
 }
 
 func watchDir() {
@@ -145,14 +166,7 @@ func handlePcap(fname string) {
 		return
 	}
 
-	var dec gopacket.Decoder
-	var ok bool
-	decoder_name := fmt.Sprintf("%s", handle.LinkType())
-	if dec, ok = gopacket.DecodersByLayerName[decoder_name]; !ok {
-		log.Println("No decoder named", decoder_name)
-		return
-	}
-	source := gopacket.NewPacketSource(handle, dec)
+	source := gopacket.NewPacketSource(handle, handle.LinkType())
 	source.Lazy = lazy
 	source.NoCopy = true
 	count := 0
