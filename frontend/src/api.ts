@@ -86,7 +86,7 @@ class TulipApi {
     }
 
     async toPythonRequest(body: string, tokenize: boolean) {
-        const response = await fetch(`${this.API_ENDPOINT}/to_python_request/${tokenize ? "1" : "0"}`, {
+        const response = await fetch(`${this.API_ENDPOINT}/to_python_request?tokenize=${tokenize ? "1" : "0"}`, {
             method: "POST",
             headers: {
                 "Content-Type": "text/plain;charset=UTF-8"
