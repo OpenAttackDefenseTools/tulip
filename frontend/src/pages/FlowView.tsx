@@ -37,16 +37,18 @@ function WebFlow({ flow }: { flow: FlowData }) {
   const data = flow.data;
   const [header, ...rest] = data.split("\r\n\r\n");
   const http_content = rest.join("\r\n\r\n");
+
+  const Hack = "iframe" as any;
   return (
     <div className="pb-5">
       <pre className="p-5">{header}</pre>
       <div className="mx-4 border border-gray-200 rounded-lg">
-        <iframe
+        <Hack
           srcDoc={http_content}
           sandbox=""
           height={300}
           csp="default-src none" // there is a warning here but it actually works, not supported in firefox though :(
-        ></iframe>
+        ></Hack>
       </div>
     </div>
   );

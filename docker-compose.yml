@@ -1,6 +1,5 @@
 version: "3.2"
 services:
-
   mongo:
     image: mongo:5
     networks:
@@ -10,6 +9,22 @@ services:
     # Just for dev purposes
     ports:
       - "27017:27017"
+
+  flower-frontend:
+    build:
+      context: frontend
+      dockerfile: Dockerfile-frontend
+    image: flower-frontend:latest
+    ports:
+      - "3001:3001"
+    depends_on:
+      - mongo
+    networks:
+      - internal
+    environment:
+      REACT_APP_FLOWER_MONGO: mongo
+      REACT_APP_FLAG_REGEX: "FLG[0-9a-f]{29}"
+      REACT_APP_FLOWER_SERVICES: 127.0.0.1
 
   flower-node:
     build:
