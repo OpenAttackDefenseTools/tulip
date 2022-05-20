@@ -174,7 +174,7 @@ export class FlowDetail extends Component<props_types, state_types> {
         );
     }
     fetchTextToCopy(item: FlowItem_type) {
-        getPythonRequest(item.data, to_copy => {
+        getPythonRequest(btoa(unescape(encodeURIComponent(item.data))), to_copy => {
             this.openModalWithText(to_copy);
         });
     }

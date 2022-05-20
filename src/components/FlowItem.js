@@ -54,6 +54,8 @@ type FlowItem_type = {
     dst_ip: string,
     dst_port: number,
     contains_flag: boolean,
+    tag: string,
+    suricata: string,
     starred: boolean,
     flow: Array<*>
 };
@@ -124,6 +126,7 @@ export class FlowItem extends Component<props_types, state_types> {
                     <b>{this.props.serviceName || item.dst_port}</b>
                     {this.props.large && this.getIpSourceDestInfo()}
                     {this.getTimeInfo()}
+                    {this.getSuricataInfo()}
                 </div>
             </Grid>
         );
@@ -132,7 +135,9 @@ export class FlowItem extends Component<props_types, state_types> {
     getItemColor(item: FlowItem_type) {
         const isSelected = this.props.selected || false;
         if (isSelected) return "#03a9f4";
-        if (item.contains_flag) return "#FF6666";
+        if (item.tag == "fishy") return "#FF6666";
+        if (item.tag == "flag_bot") return "#55d569";
+        // Default fall-back color
         return "#F5F5F5";
     }
     getIpSourceDestInfo() {
@@ -155,6 +160,14 @@ export class FlowItem extends Component<props_types, state_types> {
                 <b>{moment(item.time).format("SSS")}</b>
                 {"ms "}
                 {this.props.large && " duration: " + item.duration + "ms"}
+            </div>
+        );
+    }
+    getSuricataInfo() {
+        const item = this.props.item;
+        return (item.suricata &&
+            <div>
+                <p>Matched rule: <b>{item.suricata}</b> </p>
             </div>
         );
     }

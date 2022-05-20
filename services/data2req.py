@@ -22,23 +22,24 @@
 # You should have received a copy of the GNU General Public License
 # along with Flower.  If not, see <https://www.gnu.org/licenses/>.
 
-import pprint
-
-try:
-    from BaseHTTPServer import BaseHTTPRequestHandler
-    from StringIO import StringIO
-except ImportError:
-    # python3
-    from http.server import BaseHTTPRequestHandler
-    from io import StringIO
+from http.server import BaseHTTPRequestHandler
+from io import BytesIO
 
 #class to parse request informations
 class HTTPRequest(BaseHTTPRequestHandler):
-    def __init__(self, request_text):
-        self.rfile = StringIO(request_text)
+    def __init__(self, raw_http_request):
+        self.rfile = BytesIO(raw_http_request)
         self.raw_requestline = self.rfile.readline()
         self.error_code = self.error_message = None
         self.parse_request()
+
+        self.headers = dict(self.headers)
+        # Data
+        try:
+            self.data = raw_http_request[raw_http_request.index(
+                b'\n\n')+2:].rstrip()
+        except ValueError:
+            self.data = None
 
     def send_error(self, code, message):
         self.error_code = code
@@ -47,40 +48,34 @@ class HTTPRequest(BaseHTTPRequestHandler):
 # tokenize used for automatically fill data param of request
 def convert_http_requests(data, tokenize=True):
     request = HTTPRequest(data)
-    body = data.split("\n\n", 1)
+    body = data.split(b"\r\n\r\n", 1)
 
     tokens = {}
     headers = {}
 
     if tokenize and len(body) > 1:
-        for i in body[1].split("&"):
+        for i in body[1].decode().split("&"):
             d = i.split("=")
             tokens[d[0]] = d[1]
 
     blocked_headers = ["content-length", "accept-encoding", "connection", "accept"]
 
     for i in request.headers:
-        if not i in blocked_headers:
+        if not i.lower() in blocked_headers:
             headers[i] = request.headers[i]
 
-    return """requests.{}("http://"+sys.argv[1]+"{}",\n\tdata={},\n\theaders={}\n)""".format(
+    return """import sys
+import requests
+
+host = sys.argv[1]
+
+headers = {}
+
+data = {}
+
+requests.{}("http://{{}}{}".format(host), data=data, headers=headers)""".format(
+        str(dict(headers)),
+        tokens,
         request.command.lower(),
         request.path,
-        tokens,
-        str(dict(headers)),
     )
-
-
-
-
-test_data = """GET /messages HTTP/1.1
-User-Agent: Mozilla/5.0 (Unknown; Linux i686) AppleWebKit/534.34 (KHTML, like Gecko) PhantomJS/1.9.8 Safari/534.34
-Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
-Cookie: session=.eJwdjsFqwzAQBX-l7DkULEcXQ6EHucGHXZMgW0iX0NhOXMlKQG5QrZB_r9vjg5nhPeB4DsM8QvEd7sMGjl89FA94OUEBJFpXS2ONLCMJx1A0kRhynfCnliXT_jCRpdHIC0PWWrKTJ4lRq32qVclRVAvJMmFq-OrlpJCtbDRCs1o1SdsmQ9l6s9tz3GEi1fpadFta919XW-PJVzmmbtEWOcmPkWSVa-syTHoxtkzkdWaEe4PnBu7zEP7_wzj769KncIm8f8_c-XPqbtfXMJzg-QtOmlBt.DhJ0zQ.EgQaH_4t3viAFoeSsir_tVxdBDo
-Connection: Keep-Alive
-Accept-Encoding: gzip
-Accept-Language: en-US,*
-Host: 10.0.1.1:5010"""
-
-if __name__ == "__main__":
-    print(convert_http_requests(data, False))
