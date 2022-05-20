@@ -54,7 +54,7 @@ export type Service = {
 
 
 class TulipApi {
-    private API_ENDPOINT = "http://127.0.0.1:5000";
+    private API_ENDPOINT = "/api";
 
     async getServices() {
         const response = await fetch(`${this.API_ENDPOINT}/services`);
