@@ -226,7 +226,7 @@ export function FlowView() {
           <Flow
             flow={flow_data}
             delta_time={delta_time}
-            key={flow._id.$oid + flow_data.time}
+            key={flow._id.$oid + " " + i}
           ></Flow>
         );
       })}

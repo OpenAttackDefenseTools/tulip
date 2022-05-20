@@ -88,7 +88,7 @@ export function FlowList() {
       </div>
       <ul className={classes.list_container}>
         {flowList.map((flow) => (
-          <Link to={`/flow/${flow._id.$oid}?${searchParams}`}>
+          <Link to={`/flow/${flow._id.$oid}?${searchParams}`} key={flow._id.$oid}>
             <FlowListEntry
               key={flow._id.$oid}
               flow={flow}
