@@ -1,5 +1,5 @@
 import { useParams } from "react-router-dom";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { api, FlowData, FullFlow } from "../api";
 import { showHexAtom } from "../components/Header";
 import { useAtom } from "jotai";
@@ -14,23 +14,49 @@ import classNames from "classnames";
 
 import { hexy } from "hexy";
 
-function HexFlow({ flow }: { flow: FlowData }) {
-  const data = flow.hex;
-  // make hex view here, use Buffer or maybe not.
-  const buffer = Buffer.from(data, "hex");
+function CopyButton({ copyText }: { copyText?: string }) {
   return (
-    <div className="pb-5">
-      <pre className="p-5 overflow-scroll">{hexy(buffer)}</pre>
+    <>
+      {copyText && (
+        <button
+          className="p-2 text-sm text-blue-500"
+          onClick={() => {
+            navigator.clipboard.writeText(copyText);
+          }}
+        >
+          Copy
+        </button>
+      )}
+    </>
+  );
+}
+
+function FlowContainer({
+  copyText,
+  children,
+}: {
+  copyText?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className=" pb-5 flex flex-col">
+      <div className="ml-auto">
+        <CopyButton copyText={copyText}></CopyButton>
+      </div>
+      <pre className="p-5 overflow-scroll">{children}</pre>
     </div>
   );
 }
 
+function HexFlow({ flow }: { flow: FlowData }) {
+  const data = flow.hex;
+  // make hex view here, use Buffer or maybe not.
+  const buffer = Buffer.from(data, "hex");
+  return <FlowContainer>{hexy(buffer)}</FlowContainer>;
+}
+
 function TextFlow({ flow }: { flow: FlowData }) {
-  return (
-    <div className="pb-5">
-      <pre className="p-5 overflow-scroll">{flow.data}</pre>
-    </div>
-  );
+  return <FlowContainer copyText={flow.data}>{flow.data}</FlowContainer>;
 }
 
 function WebFlow({ flow }: { flow: FlowData }) {
@@ -40,9 +66,9 @@ function WebFlow({ flow }: { flow: FlowData }) {
 
   const Hack = "iframe" as any;
   return (
-    <div className="pb-5">
-      <pre className="p-5">{header}</pre>
-      <div className="mx-4 border border-gray-200 rounded-lg">
+    <FlowContainer>
+      <pre>{header}</pre>
+      <div className="border border-gray-200 rounded-lg">
         <Hack
           srcDoc={http_content}
           sandbox=""
@@ -50,7 +76,7 @@ function WebFlow({ flow }: { flow: FlowData }) {
           csp="default-src none" // there is a warning here but it actually works, not supported in firefox though :(
         ></Hack>
       </div>
-    </div>
+    </FlowContainer>
   );
 }
 
@@ -66,11 +92,7 @@ function PythonRequestFlow({ flow }: { flow: FlowData }) {
     fetchData().catch((err) => setData(err));
   }, [flow.data]);
 
-  return (
-    <div className="pb-5">
-      <pre className="p-5 overflow-scroll">{data}</pre>
-    </div>
-  );
+  return <FlowContainer copyText={data}>{data}</FlowContainer>;
 }
 
 interface FlowProps {
@@ -103,10 +125,21 @@ function RadioGroup(props: RadioGroupProps) {
   );
 }
 
+function detectType(flow: FlowData) {
+  const firstLine = flow.data.split("\n")[0];
+  if (firstLine.includes("HTTP")) {
+    return "Plain";
+  }
+
+  return "Plain";
+}
+
 function Flow({ flow, delta_time }: FlowProps) {
   const formatted_time = format(new Date(flow.time), "HH:mm:ss:SSS");
   const displayOptions = ["Plain", "Hex", "Web", "PythonRequest"];
-  const [displayOption, setDisplayOption] = useState(displayOptions[0]);
+
+  // Basic type detection, currently unused
+  const [displayOption, setDisplayOption] = useState(detectType(flow));
 
   return (
     <div className=" text-mono">
@@ -189,7 +222,13 @@ export function FlowView() {
       </div>
       {flow?.flow.map((flow_data, i, a) => {
         const delta_time = a[i].time - (a[i - 1]?.time ?? a[i].time);
-        return <Flow flow={flow_data} delta_time={delta_time}></Flow>;
+        return (
+          <Flow
+            flow={flow_data}
+            delta_time={delta_time}
+            key={flow._id.$oid + flow_data.time}
+          ></Flow>
+        );
       })}
     </div>
   );
