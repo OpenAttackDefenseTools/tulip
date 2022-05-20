@@ -84,6 +84,17 @@ class TulipApi {
         const response = await fetch(`${this.API_ENDPOINT}/star/${id}/${star ? "1" : "0"}`);
         return await response.text()
     }
+
+    async toPythonRequest(body: string, tokenize: boolean) {
+        const response = await fetch(`${this.API_ENDPOINT}/to_python_request/${tokenize ? "1" : "0"}`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "text/plain;charset=UTF-8"
+            },
+            body
+        });
+        return await response.text()
+    }
 }
 
 export const api = new TulipApi();

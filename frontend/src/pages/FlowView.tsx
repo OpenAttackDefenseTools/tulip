@@ -54,6 +54,25 @@ function WebFlow({ flow }: { flow: FlowData }) {
   );
 }
 
+function PythonRequestFlow({ flow }: { flow: FlowData }) {
+  const [data, setData] = useState("");
+
+  useEffect(() => {
+    const fetchData = async () => {
+      const data = await api.toPythonRequest(flow.data, true);
+      setData(data);
+    };
+    // TODO proper error handling
+    fetchData().catch((err) => setData(err));
+  }, [flow.data]);
+
+  return (
+    <div className="pb-5">
+      <pre className="p-5 overflow-scroll">{data}</pre>
+    </div>
+  );
+}
+
 interface FlowProps {
   flow: FlowData;
   delta_time: number;
@@ -86,7 +105,7 @@ function RadioGroup(props: RadioGroupProps) {
 
 function Flow({ flow, delta_time }: FlowProps) {
   const formatted_time = format(new Date(flow.time), "HH:mm:ss:SSS");
-  const displayOptions = ["Plain", "Hex", "Web"];
+  const displayOptions = ["Plain", "Hex", "Web", "PythonRequest"];
   const [displayOption, setDisplayOption] = useState(displayOptions[0]);
 
   return (
@@ -124,6 +143,9 @@ function Flow({ flow, delta_time }: FlowProps) {
         {displayOption === "Hex" && <HexFlow flow={flow}></HexFlow>}
         {displayOption === "Plain" && <TextFlow flow={flow}></TextFlow>}
         {displayOption === "Web" && <WebFlow flow={flow}></WebFlow>}
+        {displayOption === "PythonRequest" && (
+          <PythonRequestFlow flow={flow}></PythonRequestFlow>
+        )}
       </div>
     </div>
   );
