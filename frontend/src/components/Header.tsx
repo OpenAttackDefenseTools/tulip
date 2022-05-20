@@ -57,7 +57,7 @@ function TextSearch() {
     <div>
       <input
         type="text"
-        placeholder="search"
+        placeholder="regex"
         value={searchParams.get(FILTER_KEY) || ""}
         onChange={(event) => {
           let textFilter = event.target.value;
@@ -79,8 +79,7 @@ function StartDateSelection() {
   return (
     <div>
       <input
-        type="datetime-local"
-        placeholder="search"
+        type="time"
         value={searchParams.get(FILTER_KEY) ?? undefined}
         onChange={(event) => {
           let textFilter = event.target.value;
@@ -102,8 +101,7 @@ function EndDateSelection() {
   return (
     <div>
       <input
-        type="datetime-local"
-        placeholder="search"
+        type="time"
         value={searchParams.get(FILTER_KEY) ?? undefined}
         onChange={(event) => {
           let textFilter = event.target.value;

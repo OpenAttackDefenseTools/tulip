@@ -12,11 +12,17 @@ import {
 import { format } from "date-fns";
 import classNames from "classnames";
 
+import { hexy } from "hexy";
+
 function HexFlow({ flow }: { flow: FlowData }) {
   const data = flow.hex;
   // make hex view here, use Buffer or maybe not.
   const buffer = Buffer.from(data, "hex");
-  return <pre>TODO hex view :)</pre>;
+  return (
+    <div className="pb-5">
+      <pre className="p-5 overflow-scroll">{hexy(buffer)}</pre>
+    </div>
+  );
 }
 
 function TextFlow({ flow }: { flow: FlowData }) {
