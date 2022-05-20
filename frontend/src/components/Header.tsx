@@ -1,3 +1,4 @@
+import { format, parse } from "date-fns";
 import { useAtom } from "jotai";
 import { atomWithStorage } from "jotai/utils";
 import { Suspense } from "react";
@@ -73,18 +74,36 @@ function TextSearch() {
   );
 }
 
+function unixTimeToTime(unixTime: string | null): string | undefined {
+  if (unixTime === null) {
+    return;
+  }
+  let unixTimeInt = parseInt(unixTime);
+  if (isNaN(unixTimeInt)) {
+    return;
+  }
+  const date = new Date(unixTimeInt);
+  return format(date, "HH:mm");
+}
+
 function StartDateSelection() {
   const FILTER_KEY = START_FILTER_KEY;
   let [searchParams, setSearchParams] = useSearchParams();
+
+  const unixTime = searchParams.get(FILTER_KEY);
+
   return (
     <div>
       <input
         type="time"
-        value={searchParams.get(FILTER_KEY) ?? undefined}
+        value={unixTimeToTime(unixTime)}
         onChange={(event) => {
-          let textFilter = event.target.value;
-          if (textFilter) {
-            searchParams.set(FILTER_KEY, textFilter);
+          let startFilter = event.target.value;
+          if (startFilter) {
+            const unixTime = parse(startFilter, "HH:mm", new Date())
+              .valueOf()
+              .toString();
+            searchParams.set(FILTER_KEY, unixTime);
           } else {
             searchParams.delete(FILTER_KEY);
           }
@@ -98,15 +117,21 @@ function StartDateSelection() {
 function EndDateSelection() {
   const FILTER_KEY = END_FILTER_KEY;
   let [searchParams, setSearchParams] = useSearchParams();
+
+  const unixTime = searchParams.get(FILTER_KEY);
+
   return (
     <div>
       <input
         type="time"
-        value={searchParams.get(FILTER_KEY) ?? undefined}
+        value={unixTimeToTime(unixTime)}
         onChange={(event) => {
-          let textFilter = event.target.value;
-          if (textFilter) {
-            searchParams.set(FILTER_KEY, textFilter);
+          let endFilter = event.target.value;
+          if (endFilter) {
+            const unixTime = parse(endFilter, "HH:mm", new Date())
+              .valueOf()
+              .toString();
+            searchParams.set(FILTER_KEY, unixTime);
           } else {
             searchParams.delete(FILTER_KEY);
           }
