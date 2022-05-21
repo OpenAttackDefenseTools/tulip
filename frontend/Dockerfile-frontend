@@ -1,0 +1,16 @@
+FROM node:17
+
+COPY package.json /app/
+COPY yarn.lock /app/
+
+WORKDIR /app
+
+RUN yarn install
+
+COPY . /app/
+
+RUN yarn run build
+
+EXPOSE 3001
+
+CMD yarn run preview --host --port 3001
