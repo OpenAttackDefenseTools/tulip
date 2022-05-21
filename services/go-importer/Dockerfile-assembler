@@ -1,6 +1,6 @@
 FROM golang:1.16-alpine
 
-COPY ./services/go-importer /app
+COPY . /app
 COPY ./services/test_pcap /test_pcap
 
 WORKDIR /app
@@ -8,7 +8,4 @@ WORKDIR /app
 RUN apk add --no-cache git make build-base libpcap-dev
 
 RUN go mod download
-RUN go build -o /app/go-importer
-
-
-CMD find /test_pcap -name *.pcap -exec /app/go-importer {} \;
+RUN go build ./cmd/assembler -o /app/assembler
