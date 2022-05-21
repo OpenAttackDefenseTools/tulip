@@ -55,6 +55,37 @@ func ConnectMongo(uri string) Database {
 	}
 }
 
+func (db Database) ConfigureIndexes() {
+	// create Index
+	flowCollection := db.client.Database("pcap").Collection("pcap")
+
+	_, err := flowCollection.Indexes().CreateMany(context.Background(), []mongo.IndexModel{
+		// time index (range filtering)
+		{
+			Keys: bson.D{
+				{"time", 1},
+			},
+		},
+		// data index (context filtering)
+		{
+			Keys: bson.D{
+				{"data", "text"},
+			},
+		},
+		// port combo index (traffic correlation)
+		{
+			Keys: bson.D{
+				{"src_port", 1},
+				{"dst_port", 1},
+			},
+		},
+	})
+
+	if err != nil {
+		panic(err)
+	}
+}
+
 // Flows are either coming from a file, in which case we'll dedupe them by pcap file name.
 // If they're coming from a live capture, we can do pretty much the same thing, but we'll
 // just have to come up with a label. (e.g. capture-<epoch>)
@@ -116,7 +147,7 @@ func (db Database) AddSignatureToFlow(flow FlowID, sig Signature, window int) bo
 	}
 
 	info := bson.M{"$set": bson.M{
-		"tag": "fishy",
+		"tag":      "fishy",
 		"suricata": sig,
 	}}
 
