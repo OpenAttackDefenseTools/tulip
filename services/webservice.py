@@ -39,8 +39,11 @@ CORS(application)
 db = DB()
 
 
-def return_response(object):
-    return Response(json_util.dumps(object), mimetype='applicationlication/json')
+def return_json_response(object):
+    return Response(json_util.dumps(object), mimetype='application/json')
+
+def return_text_response(object):
+    return Response(object, mimetype='text/plain')
 
 
 @application.route('/')
@@ -52,7 +55,7 @@ def hello_world():
 def query():
     json = request.get_json()
     result = db.getFlowList(json)
-    return return_response(result)
+    return return_json_response(result)
 
 
 @application.route('/starred', methods=['POST'])
@@ -60,7 +63,7 @@ def getStarred():
     json = request.get_json()
     json["starred"] = 1
     result = db.getFlowList(json)
-    return return_response(result)
+    return return_json_response(result)
 
 
 
@@ -73,12 +76,12 @@ def setStar(flow_id, star_to_set):
 
 @application.route('/services')
 def getServices():
-    return return_response(services)
+    return return_json_response(services)
 
 
 @application.route('/flow/<id>')
 def getFlowDetail(id):
-    to_ret = return_response(db.getFlowDetail(id))
+    to_ret = return_json_response(db.getFlowDetail(id))
     return to_ret
 
 
@@ -86,14 +89,18 @@ def getFlowDetail(id):
 def convertToRequests():
     data = b64decode(request.data)
     tokenize = request.args.get("tokenize", False)
-    converted = convert_http_requests(data, tokenize)
-    return converted
+    use_requests_session = request.args.get("use_requests_session", False)
+    try:
+        converted = convert_http_requests(data, tokenize, use_requests_session)
+    except Exception as ex:
+        return return_text_response("There was an error while converting the request:\n{}: {}".format(type(ex).__name__, ex))
+    return return_text_response(converted)
 
 @application.route('/to_pwn/<id>')
 def confertToPwn(id):
     flow = db.getFlowDetail(id)
     converted = flow2pwn(flow)
-    return converted
+    return return_text_response(converted)
 
 if __name__ == "__main__":
     application.run(host='0.0.0.0',threaded=True)

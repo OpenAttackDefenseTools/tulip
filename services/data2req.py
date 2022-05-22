@@ -24,6 +24,7 @@
 
 from http.server import BaseHTTPRequestHandler
 from io import BytesIO
+import json
 
 #class to parse request informations
 class HTTPRequest(BaseHTTPRequestHandler):
@@ -46,36 +47,84 @@ class HTTPRequest(BaseHTTPRequestHandler):
         self.error_message = message
 
 # tokenize used for automatically fill data param of request
-def convert_http_requests(data, tokenize=True):
-    request = HTTPRequest(data)
-    body = data.split(b"\r\n\r\n", 1)
+def convert_http_requests(raw_request, tokenize=True, use_requests_session=False):
+    request = HTTPRequest(raw_request)
+    body = raw_request.split(b"\r\n\r\n", 1)
 
-    tokens = {}
+    data = {}
     headers = {}
 
-    if tokenize and len(body) > 1:
-        for i in body[1].decode().split("&"):
-            d = i.split("=")
-            tokens[d[0]] = d[1]
-
-    blocked_headers = ["content-length", "accept-encoding", "connection", "accept"]
+    blocked_headers = ["content-length", "accept-encoding", "connection", "accept", "host"]
+    content_type = ""
+    data_param_name = "data"
 
     for i in request.headers:
-        if not i.lower() in blocked_headers:
+        normalized_header = i.lower()
+
+        if normalized_header == "content-type":
+            content_type = request.headers[i]
+        if not normalized_header in blocked_headers:
             headers[i] = request.headers[i]
 
-    return """import sys
+    # if tokenization is enabled and body is not empty, try to decode form body or JSON body
+    if tokenize and len(body) > 1 and body[1].strip():
+        # try to deserialize form data
+        if content_type.startswith("application/x-www-form-urlencoded"):
+            data_param_name = "data"
+            for i in body[1].decode().split("&"):
+                d = i.split("=")
+                data[d[0]] = d[1]
+
+        # try to deserialize json
+        if content_type.startswith("application/json"):
+            data_param_name = "json"
+            data = json.loads(body[1])
+
+        # try to use raw text
+        if content_type.startswith("text/plain"):
+            data_param_name = "data"
+            data = body[1]
+
+        # try to extract files
+        if content_type.startswith("multipart/form-data"):
+            data_param_name = "files"
+            return "Forms with files are not yet implemented"
+
+    # Check if we want to use Python requests.Session()
+    if use_requests_session:
+        return """import os
 import requests
 
-host = sys.argv[1]
+host = os.getenv("TARGET_IP")
+
+s = requests.Session()
+
+s.headers = {}
+
+data = {}
+
+s.{}("http://{{}}{}".format(host), {}=data, headers=headers)""".format(
+        str(dict(headers)),
+        data,
+        request.command.lower(),
+        request.path,
+        data_param_name,
+    )
+
+    else:
+        return """import os
+import requests
+
+host = os.getenv("TARGET_IP")
 
 headers = {}
 
 data = {}
 
-requests.{}("http://{{}}{}".format(host), data=data, headers=headers)""".format(
+requests.{}("http://{{}}{}".format(host), {}=data, headers=headers)""".format(
         str(dict(headers)),
-        tokens,
+        data,
         request.command.lower(),
         request.path,
+        data_param_name,
     )
