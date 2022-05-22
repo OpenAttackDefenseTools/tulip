@@ -38,7 +38,7 @@ class HTTPRequest(BaseHTTPRequestHandler):
         # Data
         try:
             self.data = raw_http_request[raw_http_request.index(
-                b'\n\n')+2:].rstrip()
+                b'\r\n\r\n')+2:].rstrip()
         except ValueError:
             self.data = None
 
@@ -49,15 +49,14 @@ class HTTPRequest(BaseHTTPRequestHandler):
 # tokenize used for automatically fill data param of request
 def convert_http_requests(data, tokenize=True):
     request = HTTPRequest(data)
-    body = data.split(b"\r\n\r\n", 1)
 
-    tokens = {}
+    params = {}
     headers = {}
 
     if tokenize:
         query_dict = parse_qs(urlparse(request.path).query)
         for key, value in query_dict.items():
-            tokens[key] = value
+            params[key] = value[0]
 
     blocked_headers = ["content-length", "accept-encoding", "connection", "accept"]
 
@@ -65,6 +64,9 @@ def convert_http_requests(data, tokenize=True):
         if not i.lower() in blocked_headers:
             headers[i] = request.headers[i]
 
+    # TODO; use proper templates instead of format strings.
+    # This is already a little clunky, since we want to support at least POST/GET in the
+    # same template
     return """import sys
 import requests
 
@@ -72,11 +74,14 @@ host = sys.argv[1]
 
 headers = {}
 
+params = {}
+
 data = {}
 
-requests.{}("http://{{}}{}".format(host), data=data, headers=headers)""".format(
+requests.{}("http://{{}}{}".format(host), params=params, headers=headers, data=data)""".format(
         str(dict(headers)),
-        tokens,
+        params,
+        request.data,
         request.command.lower(),
         request.path,
     )
