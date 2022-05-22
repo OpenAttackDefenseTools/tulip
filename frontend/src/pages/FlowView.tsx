@@ -52,7 +52,8 @@ function HexFlow({ flow }: { flow: FlowData }) {
   const data = flow.hex;
   // make hex view here, use Buffer or maybe not.
   const buffer = Buffer.from(data, "hex");
-  return <FlowContainer>{hexy(buffer)}</FlowContainer>;
+  const hex = hexy(buffer);
+  return <FlowContainer copyText={hex} >{hex}</FlowContainer>;
 }
 
 function TextFlow({ flow }: { flow: FlowData }) {
