@@ -184,6 +184,52 @@ function Flow({ flow, delta_time }: FlowProps) {
   );
 }
 
+function FlowOverview(flow: FullFlow) {
+  const suricata_fields = ["action", "id", "msg"];
+
+  // TODO; type issue?
+  flow = flow.flow;
+  return (
+    <div>
+      {flow.suricata ?
+      <div className="bg-blue-100">
+        <div className="font-extrabold">Suricata</div>
+        <div>
+          <div className="flex">
+            <div>Message: </div>
+            <div className="font-bold">{flow.suricata.msg}</div>
+          </div>
+          <div className="flex">
+            <div>Rule ID: </div>
+            <div className="font-bold">{flow.suricata.id}</div>
+          </div>
+          <div className="flex">
+            <div>Action taken: </div>
+            <div
+              className={
+                flow.suricata.action === "blocked"
+                  ? "font-bold text-red-800"
+                  : "font-bold text-green-800"
+              }
+            >{flow.suricata.action}</div>
+          </div>
+        </div>
+      </div>
+      : undefined
+      }
+      <div className="bg-yellow-100">
+        <div className="font-extrabold">Meta
+        </div>
+          <div>Source: </div>
+          <div className="font-bold">{flow.filename}</div>
+        <div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
 function Header() {}
 
 export function FlowView() {
@@ -220,6 +266,11 @@ export function FlowView() {
           </button>
         </div>
       </div>
+      {
+        flow ?
+        <FlowOverview flow={flow}></FlowOverview>
+        : undefined
+      }
       {flow?.flow.map((flow_data, i, a) => {
         const delta_time = a[i].time - (a[i - 1]?.time ?? a[i].time);
         return (

@@ -47,8 +47,6 @@ class DB:
             sys.exit(1)
 
     def getFlowList(self, filters):
-        #print("parametri iniziali: ")
-        #pprint.pprint(filters)
         f = {}
         if "flow.data" in filters:
             f["flow.data"] = re.compile(filters["flow.data"], re.IGNORECASE)
@@ -60,9 +58,10 @@ class DB:
             f["time"] = {"$gte": int(filters["from_time"]),
                          "$lt": int(filters["to_time"])}
         if "starred" in filters:
-            f["starred"] =  filters["starred"]
+            f["starred"] =  bool(filters["starred"])
+        if "blocked" in filters:
+            f["blocked"] =  bool(filters["blocked"])
 
-        f["blocked"] = False
         print("query:")
         pprint.pprint(f)
 
@@ -72,7 +71,7 @@ class DB:
         return self.pcap_coll.find_one({"_id": ObjectId(id)})
 
     def setStar(self, flow_id, star):
-        self.pcap_coll.find_one_and_update({"_id": ObjectId(flow_id)}, {"$set": {"starred":  1 if star == '1' else 0}})
+        self.pcap_coll.find_one_and_update({"_id": ObjectId(flow_id)}, {"$set": {"starred":  1 if star == True else 0}})
 
     def isFileAlreadyImported(self, file_name):
         return self.file_coll.find({"file_name": file_name}).count() != 0

@@ -23,6 +23,7 @@ import { format } from "date-fns";
 import { atomWithStorage } from "jotai/utils";
 
 const onlyStarred = atomWithStorage("onlyStarred", false);
+const hideBlockedAtom = atomWithStorage("hideBlocked", false);
 
 export function FlowList() {
   let [searchParams] = useSearchParams();
@@ -30,6 +31,7 @@ export function FlowList() {
   const services = useAtomValue(fetchUrlAtom);
   const [flowList, setFlowList] = useState<Flow[]>([]);
   const [starred, setStarred] = useAtom(onlyStarred);
+  const [hideBlocked, setHideBlocked] = useAtom(hideBlockedAtom);
 
   const service_name = searchParams.get(SERVICE_FILTER_KEY) ?? "";
   const service = services.find((s) => s.name == service_name);
@@ -46,7 +48,8 @@ export function FlowList() {
         dst_port: service?.port,
         from_time: from_filter,
         to_time: to_filter,
-        starred: starred ? 1 : undefined,
+        starred: starred ? true : undefined,
+        blocked: hideBlocked ? false : undefined,
       });
       setFlowList(data);
     };
@@ -63,7 +66,8 @@ export function FlowList() {
         dst_port: service?.port,
         from_time: from_filter,
         to_time: to_filter,
-        starred: starred ? 1 : undefined,
+        starred: starred ? true : undefined,
+        blocked: hideBlocked ? false : undefined,
       });
       setFlowList(data);
     },
@@ -76,15 +80,28 @@ export function FlowList() {
         className="sticky top-0 bg-white p-2 border-b-gray-300 border-b shadow-md flex items-center"
         style={{ height: 50 }}
       >
-        <input
-          type="checkbox"
-          className="mr-2"
-          checked={starred}
-          onChange={() => {
-            setStarred(!starred);
-          }}
-        />
-        <label htmlFor="">Show only starred</label>
+        <div>
+          <input
+            type="checkbox"
+            className="mr-2"
+            checked={starred}
+            onChange={() => {
+              setStarred(!starred);
+            }}
+          />
+          <label htmlFor="">Show only starred</label>
+        </div>
+        <div>
+          <input
+            type="checkbox"
+            className="mr-2"
+            checked={hideBlocked}
+            onChange={() => {
+              setHideBlocked(!hideBlocked);
+            }}
+          />
+          <label htmlFor="">Hide blocked flows</label>
+        </div>
       </div>
       <ul className={classes.list_container}>
         {flowList.map((flow) => (
@@ -111,7 +128,12 @@ interface FlowListEntryProps {
 function FlowListEntry({ flow, isActive, onHeartClick }: FlowListEntryProps) {
   const formatted_time = format(new Date(flow.time), "HH:mm:ss:SSS");
   return (
-    <li className={isActive ? classes.active : undefined}>
+    <li className={
+      `${isActive ? classes.active : undefined}
+       ${flow.tag == "fishy" ? classes.fishy : undefined}
+       ${flow.blocked ? classes.blocked : undefined}
+       `
+      }>
       <div className="flex">
         <div
           className="w-5 ml-2 mr-4 self-center"
