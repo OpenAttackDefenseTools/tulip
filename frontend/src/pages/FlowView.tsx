@@ -86,7 +86,7 @@ function PythonRequestFlow({ flow }: { flow: FlowData }) {
 
   useEffect(() => {
     const fetchData = async () => {
-      const data = await api.toPythonRequest(flow.data, true);
+      const data = await api.toPythonRequest(btoa(flow.data), true);
       setData(data);
     };
     // TODO proper error handling

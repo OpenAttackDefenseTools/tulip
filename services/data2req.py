@@ -23,6 +23,7 @@
 # along with Flower.  If not, see <https://www.gnu.org/licenses/>.
 
 from http.server import BaseHTTPRequestHandler
+from urllib.parse import urlparse, parse_qs
 from io import BytesIO
 
 #class to parse request informations
@@ -53,10 +54,10 @@ def convert_http_requests(data, tokenize=True):
     tokens = {}
     headers = {}
 
-    if tokenize and len(body) > 1:
-        for i in body[1].decode().split("&"):
-            d = i.split("=")
-            tokens[d[0]] = d[1]
+    if tokenize:
+        query_dict = parse_qs(urlparse(request.path).query)
+        for key, value in query_dict.items():
+            tokens[key] = value
 
     blocked_headers = ["content-length", "accept-encoding", "connection", "accept"]
 
