@@ -102,6 +102,12 @@ class TulipApi {
         });
         return await response.text()
     }
+
+    async toPwnTools(id: string) {
+        const response = await fetch(`${this.API_ENDPOINT}/to_pwn/${id}`);
+        return await response.text();
+    }
+
 }
 
 export const api = new TulipApi();

@@ -252,6 +252,14 @@ export function FlowView() {
 
   console.log(flow);
 
+  async function copyAsPwn() {
+    if (flow?._id.$oid) {
+      let content = await api.toPwnTools(flow?._id.$oid);
+      navigator.clipboard.writeText(content);
+      // TODO; Show some feedback here?
+    }
+  }
+
   return (
     <div>
       <div
@@ -259,8 +267,10 @@ export function FlowView() {
         style={{ height: 50, zIndex: 100 }}
       >
         <div className="flex  align-middle p-2 gap-3 ml-auto">
-          <button className="bg-gray-700 text-white p-2 text-sm rounded-md">
-            Todo to pwntools
+          <button className="bg-gray-700 text-white p-2 text-sm rounded-md"
+          onClick={copyAsPwn}
+          >
+            Copy as pwntools
           </button>
           <button className="bg-gray-700 text-white p-2 text-sm rounded-md">
             Todo more things here?
