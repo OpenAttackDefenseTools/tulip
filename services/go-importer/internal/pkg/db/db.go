@@ -32,6 +32,7 @@ type FlowEntry struct {
 	Duration int
 	Inx      int
 	Starred  int
+	Blocked  bool
 	Filename string
 	Flow     []FlowItem
 	Tag      string
@@ -146,10 +147,20 @@ func (db Database) AddSignatureToFlow(flow FlowID, sig Signature, window int) bo
 		},
 	}
 
-	info := bson.M{"$set": bson.M{
-		"tag":      "fishy",
-		"suricata": sig,
-	}}
+	var info bson.M
+	// TODO; This can probably be done more elegantly, right?
+	if sig.Action == "blocked" {
+		info = bson.M{"$set": bson.M{
+			"tag":      "fishy",
+			"blocked":  true,
+			"suricata": sig,
+		}}
+	} else {
+		info = bson.M{"$set": bson.M{
+			"tag":      "fishy",
+			"suricata": sig,
+		}}
+	}
 
 	// enrich the flow with suricata information
 	res, err := flowCollection.UpdateOne(context.TODO(), query, info)

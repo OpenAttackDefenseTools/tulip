@@ -10,7 +10,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'http://flower-python:5000',
+        target: 'http://api:5000',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, '')
 

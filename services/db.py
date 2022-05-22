@@ -62,6 +62,7 @@ class DB:
         if "starred" in filters:
             f["starred"] =  filters["starred"]
 
+        f["blocked"] = False
         print("query:")
         pprint.pprint(f)
 
