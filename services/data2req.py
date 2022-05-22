@@ -103,7 +103,7 @@ s.headers = {}
 
 data = {}
 
-s.{}("http://{{}}{}".format(host), {}=data, headers=headers)""".format(
+s.{}("http://{{}}{}".format(host), {}=data)""".format(
         str(dict(headers)),
         data,
         request.command.lower(),
