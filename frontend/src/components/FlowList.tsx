@@ -54,7 +54,7 @@ export function FlowList() {
       setFlowList(data);
     };
     fetchData().catch(console.error);
-  }, [service, text_filter, from_filter, to_filter, starred]);
+  }, [service, text_filter, from_filter, to_filter, starred, hideBlocked]);
 
   const onHeartHandler = useCallback(
     async (flow: Flow) => {
@@ -77,8 +77,8 @@ export function FlowList() {
   return (
     <div className="">
       <div
-        className="sticky top-0 bg-white p-2 border-b-gray-300 border-b shadow-md flex items-center"
-        style={{ height: 50 }}
+        className="sticky top-0 bg-white p-2 border-b-gray-300 border-b shadow-md flex-col items-center"
+        style={{ height: 60 }}
       >
         <div>
           <input

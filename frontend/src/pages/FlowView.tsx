@@ -264,7 +264,7 @@ export function FlowView() {
     <div>
       <div
         className="sticky shadow-md top-0 bg-white overflow-scroll border-b border-b-gray-200 flex"
-        style={{ height: 50, zIndex: 100 }}
+        style={{ height: 60, zIndex: 100 }}
       >
         <div className="flex  align-middle p-2 gap-3 ml-auto">
           <button className="bg-gray-700 text-white p-2 text-sm rounded-md"
