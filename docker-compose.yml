@@ -14,7 +14,7 @@ services:
       dockerfile: Dockerfile-frontend
     image: flower-frontend:latest
     ports:
-      - "3001:3001"
+      - "3000:3000"
     depends_on:
       - mongo
     networks:
