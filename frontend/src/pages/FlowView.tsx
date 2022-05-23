@@ -52,7 +52,8 @@ function HexFlow({ flow }: { flow: FlowData }) {
   const data = flow.hex;
   // make hex view here, use Buffer or maybe not.
   const buffer = Buffer.from(data, "hex");
-  return <FlowContainer>{hexy(buffer)}</FlowContainer>;
+  const hex = hexy(buffer);
+  return <FlowContainer copyText={hex} >{hex}</FlowContainer>;
 }
 
 function TextFlow({ flow }: { flow: FlowData }) {
@@ -85,7 +86,7 @@ function PythonRequestFlow({ flow }: { flow: FlowData }) {
 
   useEffect(() => {
     const fetchData = async () => {
-      const data = await api.toPythonRequest(flow.data, true);
+      const data = await api.toPythonRequest(btoa(flow.data), true);
       setData(data);
     };
     // TODO proper error handling
@@ -184,6 +185,52 @@ function Flow({ flow, delta_time }: FlowProps) {
   );
 }
 
+function FlowOverview(flow: FullFlow) {
+  const suricata_fields = ["action", "id", "msg"];
+
+  // TODO; type issue?
+  flow = flow.flow;
+  return (
+    <div>
+      {flow.suricata ?
+      <div className="bg-blue-100">
+        <div className="font-extrabold">Suricata</div>
+        <div>
+          <div className="flex">
+            <div>Message: </div>
+            <div className="font-bold">{flow.suricata.msg}</div>
+          </div>
+          <div className="flex">
+            <div>Rule ID: </div>
+            <div className="font-bold">{flow.suricata.id}</div>
+          </div>
+          <div className="flex">
+            <div>Action taken: </div>
+            <div
+              className={
+                flow.suricata.action === "blocked"
+                  ? "font-bold text-red-800"
+                  : "font-bold text-green-800"
+              }
+            >{flow.suricata.action}</div>
+          </div>
+        </div>
+      </div>
+      : undefined
+      }
+      <div className="bg-yellow-100">
+        <div className="font-extrabold">Meta
+        </div>
+          <div>Source: </div>
+          <div className="font-bold">{flow.filename}</div>
+        <div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
 function Header() {}
 
 export function FlowView() {
@@ -205,21 +252,36 @@ export function FlowView() {
 
   console.log(flow);
 
+  async function copyAsPwn() {
+    if (flow?._id.$oid) {
+      let content = await api.toPwnTools(flow?._id.$oid);
+      navigator.clipboard.writeText(content);
+      // TODO; Show some feedback here?
+    }
+  }
+
   return (
     <div>
       <div
         className="sticky shadow-md top-0 bg-white overflow-scroll border-b border-b-gray-200 flex"
-        style={{ height: 50, zIndex: 100 }}
+        style={{ height: 60, zIndex: 100 }}
       >
         <div className="flex  align-middle p-2 gap-3 ml-auto">
-          <button className="bg-gray-700 text-white p-2 text-sm rounded-md">
-            Todo to pwntools
+          <button className="bg-gray-700 text-white p-2 text-sm rounded-md"
+          onClick={copyAsPwn}
+          >
+            Copy as pwntools
           </button>
           <button className="bg-gray-700 text-white p-2 text-sm rounded-md">
             Todo more things here?
           </button>
         </div>
       </div>
+      {
+        flow ?
+        <FlowOverview flow={flow}></FlowOverview>
+        : undefined
+      }
       {flow?.flow.map((flow_data, i, a) => {
         const delta_time = a[i].time - (a[i - 1]?.time ?? a[i].time);
         return (

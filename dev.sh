@@ -3,6 +3,5 @@
 # Requires internet
 # docker-compose -f docker-compose.yml.dev up
 
-docker-compose -f docker-compose.yml.dev up -d mongo
-docker-compose -f docker-compose.yml.dev up -d flower-python
-docker-compose -f docker-compose.yml.dev up -d flower-node
+docker-compose up -d mongo
+docker-compose up -d api

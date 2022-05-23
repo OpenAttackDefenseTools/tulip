@@ -11,7 +11,9 @@ export interface Flow {
     duration: number
     inx: number
     starred: number
-    contains_flag: boolean
+    blocked: boolean
+    tag: string
+    suricata: Signature
     filename: string
 }
 
@@ -30,6 +32,11 @@ export interface FlowData {
     time: number
 }
 
+export interface Signature {
+    id: number
+    msg: string
+    action: string
+}
 
 // TODO pagination WTF
 export interface FlowsQuery {
@@ -41,8 +48,8 @@ export interface FlowsQuery {
     dst_port?: number;
     from_time?: string;
     to_time?: string;
-    // todo should be bool
-    starred?: number;
+    starred?: boolean;
+    blocked?: boolean;
 }
 
 export type Service = {
@@ -95,6 +102,12 @@ class TulipApi {
         });
         return await response.text()
     }
+
+    async toPwnTools(id: string) {
+        const response = await fetch(`${this.API_ENDPOINT}/to_pwn/${id}`);
+        return await response.text();
+    }
+
 }
 
 export const api = new TulipApi();

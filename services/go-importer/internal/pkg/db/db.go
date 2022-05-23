@@ -1,4 +1,4 @@
-package main
+package db
 
 import (
 	"context"
@@ -11,10 +11,8 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 )
 
-const WINDOW = 500 // ms
-
 // Added a flow struct
-type flowItem struct {
+type FlowItem struct {
 	/// From: "s" / "c" for server or client
 	From string
 	/// Data, in a somewhat reachable format
@@ -25,7 +23,7 @@ type flowItem struct {
 	Time int
 }
 
-type flowEntry struct {
+type FlowEntry struct {
 	Src_port int
 	Dst_port int
 	Src_ip   string
@@ -34,16 +32,17 @@ type flowEntry struct {
 	Duration int
 	Inx      int
 	Starred  int
+	Blocked  bool
 	Filename string
-	Flow     []flowItem
+	Flow     []FlowItem
 	Tag      string
 }
 
-type database struct {
+type Database struct {
 	client *mongo.Client
 }
 
-func ConnectMongo(uri string) database {
+func ConnectMongo(uri string) Database {
 	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(uri))
 	if err != nil {
 		panic(err)
@@ -52,8 +51,39 @@ func ConnectMongo(uri string) database {
 		panic(err)
 	}
 
-	return database{
+	return Database{
 		client: client,
+	}
+}
+
+func (db Database) ConfigureIndexes() {
+	// create Index
+	flowCollection := db.client.Database("pcap").Collection("pcap")
+
+	_, err := flowCollection.Indexes().CreateMany(context.Background(), []mongo.IndexModel{
+		// time index (range filtering)
+		{
+			Keys: bson.D{
+				{"time", 1},
+			},
+		},
+		// data index (context filtering)
+		{
+			Keys: bson.D{
+				{"data", "text"},
+			},
+		},
+		// port combo index (traffic correlation)
+		{
+			Keys: bson.D{
+				{"src_port", 1},
+				{"dst_port", 1},
+			},
+		},
+	})
+
+	if err != nil {
+		panic(err)
 	}
 }
 
@@ -62,8 +92,8 @@ func ConnectMongo(uri string) database {
 // just have to come up with a label. (e.g. capture-<epoch>)
 // We can always swap this out with something better, but this is how flower currently handles deduping.
 //
-// A single flow is defined by a "flowEntry" struct, containing an array of flowitems and some metadata
-func (db database) InsertFlow(flow flowEntry) {
+// A single flow is defined by a db.FlowEntry" struct, containing an array of flowitems and some metadata
+func (db Database) InsertFlow(flow FlowEntry) {
 	flowCollection := db.client.Database("pcap").Collection("pcap")
 
 	// TODO; use insertMany instead
@@ -77,7 +107,7 @@ func (db database) InsertFlow(flow flowEntry) {
 
 // Insert a new pcap uri, returns true if the pcap was not present yet,
 // otherwise returns false
-func (db database) InsertPcap(uri string) bool {
+func (db Database) InsertPcap(uri string) bool {
 	files := db.client.Database("pcap").Collection("filesImported")
 
 	match := files.FindOne(context.TODO(), bson.M{"file_name": uri})
@@ -88,46 +118,57 @@ func (db database) InsertPcap(uri string) bool {
 	return shouldInsert
 }
 
-type flowID struct {
-	src_port int
-	dst_port int
-	src_ip   string
-	dst_ip   string
-	time     time.Time
+type FlowID struct {
+	Src_port int
+	Dst_port int
+	Src_ip   string
+	Dst_ip   string
+	Time     time.Time
 }
 
-func (db database) AddSignatureToFlow(suricata suricataLog) {
+type Signature struct {
+	ID     int
+	Msg    string
+	Action string
+}
 
+func (db Database) AddSignatureToFlow(flow FlowID, sig Signature, window int) bool {
 	// Find a flow that more or less matches the one we're looking for
-	flow := suricata.flow
 	flowCollection := db.client.Database("pcap").Collection("pcap")
-	epoch := int(flow.time.UnixNano() / 1000000)
-	query := bson.D{
-		{"src_port", flow.src_port},
-		{"dst_port", flow.dst_port},
-		{"src_ip", flow.src_ip},
-		{"dst_ip", flow.dst_ip},
-		{"time", bson.D{
-			{"$gt", epoch - WINDOW},
-			{"$lt", epoch + WINDOW},
-		}},
+	epoch := int(flow.Time.UnixNano() / 1000000)
+	query := bson.M{
+		"src_port": flow.Src_port,
+		"dst_port": flow.Dst_port,
+		"src_ip":   flow.Src_ip,
+		"dst_ip":   flow.Dst_ip,
+		"time": bson.M{
+			"$gt": epoch - window,
+			"$lt": epoch + window,
+		},
 	}
 
-	info := bson.M{"$set": bson.D{
-		{"tag", "fishy"},
-		{"suricata", suricata.signature},
-	}}
+	var info bson.M
+	// TODO; This can probably be done more elegantly, right?
+	if sig.Action == "blocked" {
+		info = bson.M{"$set": bson.M{
+			"tag":      "fishy",
+			"blocked":  true,
+			"suricata": sig,
+		}}
+	} else {
+		info = bson.M{"$set": bson.M{
+			"tag":      "fishy",
+			"suricata": sig,
+		}}
+	}
 
 	// enrich the flow with suricata information
-	// TODO; update many -> update one
-	res, err := flowCollection.UpdateMany(context.TODO(), query, info)
+	res, err := flowCollection.UpdateOne(context.TODO(), query, info)
 
 	if err != nil {
 		log.Println("Error occured while editing record:", err)
-		return
+		return false
 	}
 
-	if res.MatchedCount > 0 {
-		log.Println("Matched suricata signature", suricata.signature)
-	}
+	return res.MatchedCount > 0
 }

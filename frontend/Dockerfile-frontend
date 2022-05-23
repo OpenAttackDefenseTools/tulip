@@ -11,6 +11,6 @@ COPY . /app/
 
 RUN yarn run build
 
-EXPOSE 3001
+EXPOSE 3000
 
-CMD yarn run preview --host --port 3001
+CMD yarn run preview --host --port 3000
