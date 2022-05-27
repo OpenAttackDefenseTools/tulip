@@ -24,6 +24,7 @@
 
 from http.server import BaseHTTPRequestHandler
 from urllib.parse import parse_qs
+from jinja2 import Environment, BaseLoader
 from io import BytesIO
 import json
 
@@ -93,41 +94,25 @@ def convert_http_requests(raw_request, tokenize=True, use_requests_session=False
             data_param_name = "files"
             return "Forms with files are not yet implemented"
 
-    # Check if we want to use Python requests.Session()
-    if use_requests_session:
-        return """import os
+    rtemplate = Environment(loader=BaseLoader()).from_string("""import os
 import requests
 
 host = os.getenv("TARGET_IP")
-
+{% if use_requests_session %}
 s = requests.Session()
 
-s.headers = {}
+s.headers = {{headers}}
+{% else %}
+headers = {{headers}}
+{% endif %}
+data = {{data}}
 
-data = {}
+{% if use_requests_session %}s{% else %}requests{% endif %}.{{request.command.lower()}}("http://{}{{request.path}}".format(host), {{data_param_name}}=data{% if not use_requests_session %}, headers=headers{% endif %})""")
 
-s.{}("http://{{}}{}".format(host), {}=data)""".format(
-        str(dict(headers)),
-        data,
-        request.command.lower(),
-        request.path,
-        data_param_name,
-    )
-
-    else:
-        return """import os
-import requests
-
-host = os.getenv("TARGET_IP")
-
-headers = {}
-
-data = {}
-
-requests.{}("http://{{}}{}".format(host), {}=data, headers=headers)""".format(
-        str(dict(headers)),
-        data,
-        request.command.lower(),
-        request.path,
-        data_param_name,
-    )
+    return rtemplate.render(
+            headers=str(dict(headers)),
+            data=data,
+            request=request,
+            data_param_name=data_param_name,
+            use_requests_session=use_requests_session,
+        )
