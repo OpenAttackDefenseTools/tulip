@@ -23,6 +23,7 @@
 # along with Flower.  If not, see <https://www.gnu.org/licenses/>.
 
 from http.server import BaseHTTPRequestHandler
+from urllib.parse import parse_qs
 from io import BytesIO
 import json
 
@@ -37,10 +38,9 @@ class HTTPRequest(BaseHTTPRequestHandler):
         self.headers = dict(self.headers)
         # Data
         try:
-            self.data = raw_http_request[raw_http_request.index(
-                b'\n\n')+2:].rstrip()
-        except ValueError:
-            self.data = None
+            self.body = raw_http_request.split(b"\r\n\r\n", 1)[1].rstrip()
+        except IndexError:
+            self.body = None
 
     def send_error(self, code, message):
         self.error_code = code
@@ -49,7 +49,6 @@ class HTTPRequest(BaseHTTPRequestHandler):
 # tokenize used for automatically fill data param of request
 def convert_http_requests(raw_request, tokenize=True, use_requests_session=False):
     request = HTTPRequest(raw_request)
-    body = raw_request.split(b"\r\n\r\n", 1)
 
     data = {}
     headers = {}
@@ -57,6 +56,7 @@ def convert_http_requests(raw_request, tokenize=True, use_requests_session=False
     blocked_headers = ["content-length", "accept-encoding", "connection", "accept", "host"]
     content_type = ""
     data_param_name = "data"
+    body = request.body
 
     for i in request.headers:
         normalized_header = i.lower()
@@ -67,23 +67,26 @@ def convert_http_requests(raw_request, tokenize=True, use_requests_session=False
             headers[i] = request.headers[i]
 
     # if tokenization is enabled and body is not empty, try to decode form body or JSON body
-    if tokenize and len(body) > 1 and body[1].strip():
+    if tokenize and body:
         # try to deserialize form data
         if content_type.startswith("application/x-www-form-urlencoded"):
             data_param_name = "data"
-            for i in body[1].decode().split("&"):
-                d = i.split("=")
-                data[d[0]] = d[1]
+            body_dict = parse_qs(body.decode())
+            for key, value in body_dict.items():
+                if len(value) == 1:
+                    data[key] = value[0]
+                else:
+                    data[key] = value
 
         # try to deserialize json
         if content_type.startswith("application/json"):
             data_param_name = "json"
-            data = json.loads(body[1])
+            data = json.loads(body)
 
         # try to use raw text
         if content_type.startswith("text/plain"):
             data_param_name = "data"
-            data = body[1]
+            data = body
 
         # try to extract files
         if content_type.startswith("multipart/form-data"):
