@@ -1,10 +1,12 @@
 FROM python:3.8
 
-COPY ./services /app/services
+COPY ./services/requirements.txt /app/services/requirements.txt
 
 WORKDIR /app
 
 RUN pip install -r services/requirements.txt
+
+COPY ./services /app/services
 
 CMD sleep 3 && \
     python services/webservice.py
