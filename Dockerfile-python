@@ -8,5 +8,4 @@ RUN pip install -r services/requirements.txt
 
 COPY ./services /app/services
 
-CMD sleep 3 && \
-    python services/webservice.py
+CMD python3 services/webservice.py
