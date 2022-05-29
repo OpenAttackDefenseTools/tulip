@@ -1,2 +1,4 @@
-assembler
-enricher
+./assembler
+./enricher
+
+__debug_bin

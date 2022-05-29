@@ -109,13 +109,17 @@ func (db Database) InsertFlow(flow FlowEntry) {
 // otherwise returns false
 func (db Database) InsertPcap(uri string) bool {
 	files := db.client.Database("pcap").Collection("filesImported")
-
-	match := files.FindOne(context.TODO(), bson.M{"file_name": uri})
-	shouldInsert := match.Err() == mongo.ErrNoDocuments
+	shouldInsert := !db.ContainsPcap(uri)
 	if shouldInsert {
 		files.InsertOne(context.TODO(), bson.M{"file_name": uri})
 	}
 	return shouldInsert
+}
+
+func (db Database) ContainsPcap(uri string) bool {
+	files := db.client.Database("pcap").Collection("filesImported")
+	match := files.FindOne(context.TODO(), bson.M{"file_name": uri})
+	return match.Err() != mongo.ErrNoDocuments
 }
 
 type FlowID struct {
