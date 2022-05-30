@@ -45,7 +45,7 @@ proc = remote('{}', {})
 """.format(ip, port)
 
     for message in flow['flow']:
-        if message['from'] == 's':
+        if message['from'] == 'c':
             script += """proc.write(b"{}")\n""".format(convert(message))
 
         else:

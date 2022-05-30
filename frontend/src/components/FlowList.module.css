@@ -10,10 +10,18 @@
     }
 
     li.fishy {
-        @apply bg-red-200;
+        @apply bg-blue-200;
     }
 
     li.blocked {
         @apply bg-purple-200;
+    }
+
+    li.flag_in {
+        @apply bg-green-200;
+    }
+
+    li.flag_out {
+        @apply bg-red-200;
     }
 }

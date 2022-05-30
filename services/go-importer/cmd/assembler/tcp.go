@@ -202,8 +202,6 @@ func (t *tcpStream) ReassemblyComplete(ac reassembly.AssemblerContext) bool {
 	time = t.FlowItems[0].Time
 	duration = t.FlowItems[len(t.FlowItems)-1].Time - time
 
-	tag := ""
-
 	entry := db.FlowEntry{
 		Src_port: int(t.src_port),
 		Dst_port: int(t.dst_port),
@@ -214,7 +212,7 @@ func (t *tcpStream) ReassemblyComplete(ac reassembly.AssemblerContext) bool {
 		Inx:      0,
 		Starred:  0,
 		Blocked:  false,
-		Tag:      tag,
+		Tags:     make([]string, 0),
 		Filename: t.source,
 		Flow:     t.FlowItems,
 	}

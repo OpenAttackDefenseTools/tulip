@@ -7,7 +7,6 @@ import (
 	"go-importer/internal/pkg/db"
 	"io"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"net/http/httputil"
 	"strings"
@@ -35,14 +34,14 @@ func ParseHttpFlow(flow *db.FlowEntry) {
 			// Parse HTTP Response
 			res, err := http.ReadResponse(reader, nil)
 			if err != nil {
-				log.Println("Skipped, not valid http")
 				continue
 			}
 			// Substitute body
 
 			encoding := res.Header["Content-Encoding"]
 			if encoding == nil || len(encoding) == 0 {
-				log.Println("Skipped, no content header")
+				// If we don't find an encoding header, it is either not valid,
+				// or already in plain text. In any case, we don't have to edit anything.
 				continue
 			}
 
@@ -51,7 +50,7 @@ func ParseHttpFlow(flow *db.FlowEntry) {
 			r := bytes.NewBuffer(body)
 			res.Body.Close()
 			if err != nil {
-				log.Println("Skipped, failed to read res")
+				// Failed to fully read the body. Bail out here
 				continue
 			}
 			switch encoding[0] {
@@ -62,10 +61,11 @@ func ParseHttpFlow(flow *db.FlowEntry) {
 				newReader, err = handleBrotili(r)
 				break
 			case "deflate":
+				//TODO; verify this is correct
 				newReader, err = handleGzip(r)
 				break
 			default:
-				log.Println("Skipped, unknown encoding")
+				// Skipped, unknown or identity encoding
 				continue
 			}
 
@@ -75,7 +75,7 @@ func ParseHttpFlow(flow *db.FlowEntry) {
 			res.ContentLength = -1
 			replacement, err := httputil.DumpResponse(res, true)
 			if err != nil {
-				log.Println("Skipped, dumping failed")
+				// HTTPUtil failed us, continue without replacing anything.
 				continue
 			}
 
@@ -96,8 +96,4 @@ func handleBrotili(r io.Reader) (io.ReadCloser, error) {
 	reader := brotli.NewReader(r)
 	ret := ioutil.NopCloser(reader)
 	return ret, nil
-}
-
-func handleDeflate(r io.Reader) (io.ReadCloser, error) {
-	return nil, nil
 }

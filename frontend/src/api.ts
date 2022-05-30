@@ -12,7 +12,7 @@ export interface Flow {
     inx: number
     starred: number
     blocked: boolean
-    tag: string
+    tags: string[]
     suricata: Signature
     filename: string
 }

@@ -1,7 +1,6 @@
 package main
 
 import (
-	//"./go-importer/internal/pkg/db"
 	"go-importer/internal/pkg/db"
 
 	"flag"
@@ -39,7 +38,11 @@ var g_db db.Database
 
 // TODO; FIXME; RDJ; this is kinda gross, but this is PoC level code
 func reassemblyCallback(entry db.FlowEntry) {
+	// Parsing HTTP will decode encodings to a plaintext format
 	ParseHttpFlow(&entry)
+	// Apply flag in / flagout
+	ApplyFlagTags(&entry)
+	// Finally, insert the new entry
 	g_db.InsertFlow(entry)
 }
 

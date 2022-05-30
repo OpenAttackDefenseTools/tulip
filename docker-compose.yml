@@ -6,15 +6,15 @@ services:
       - internal
     restart: always
     ports:
-      - "27017:27017"
+      - "127.0.0.1:27017:27017"
 
   frontend:
     build:
       context: frontend
       dockerfile: Dockerfile-frontend
-    image: flower-frontend:latest
+    image: tulip-frontend:latest
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
     depends_on:
       - mongo
     networks:
@@ -27,9 +27,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile-python
-    image: flower-python:latest
+    image: tulip-api:latest
     ports:
-      - "5000:5000"
+      - "127.0.0.1:5000:5000"
     depends_on:
       - mongo
     networks:
@@ -44,7 +44,7 @@ services:
     build:
       context: services/go-importer
       dockerfile: Dockerfile-assembler
-    image: assembler:latest
+    image: tulip-assembler:latest
     depends_on:
       - mongo
     networks:
@@ -60,7 +60,7 @@ services:
     build:
       context: services/go-importer
       dockerfile: Dockerfile-enricher
-    image: enricher:latest
+    image: tulip-enricher:latest
     depends_on:
       - mongo
     networks:

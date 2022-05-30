@@ -225,6 +225,10 @@ function FlowOverview(flow: FullFlow) {
           <div className="font-bold">{flow.filename}</div>
         <div>
         </div>
+          <div>Tags: </div>
+          <div className="font-bold">[{flow.tags.join(", ")}]</div>
+        <div>
+        </div>
       </div>
     </div>
   );

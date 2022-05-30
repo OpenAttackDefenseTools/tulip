@@ -6,7 +6,7 @@ import {
 } from "react-router-dom";
 import { useCallback, useEffect, useState } from "react";
 import { useAtom, useAtomValue } from "jotai";
-import { api, Flow } from "../api";
+import { api, Flow, FullFlow } from "../api";
 import {
   fetchUrlAtom,
   SERVICE_FILTER_KEY,
@@ -125,15 +125,40 @@ interface FlowListEntryProps {
   onHeartClick: (flow: Flow) => void;
 }
 
+function GetEntryColor(flow: Flow, isActive: boolean) {
+
+  var classname = isActive ? classes.active : ""
+
+  // Blocked flows should always show up as blocked, no matter the other tags
+  if (flow.blocked) {
+    return `${classname} ${classes.blocked}`;
+  }
+
+  // No special tags? just return as-is
+  if (flow.tags.length == 0) {
+    return classname;
+  }
+
+  // TODO if we see a flag in, we'll just assume flag bot for now and return
+  if (flow.tags.includes("flag-in")) {
+    return `${classname} ${classes.flag_in}`;
+  }
+
+  if (flow.tags.includes("flag-out")) {
+    classname = `${classname} ${classes.flag_out}`;
+  }
+
+  if (flow.tags.includes("fishy")) {
+    classname = `${classname} ${classes.fishy}`;
+  }
+
+  return classname;
+}
+
 function FlowListEntry({ flow, isActive, onHeartClick }: FlowListEntryProps) {
   const formatted_time = format(new Date(flow.time), "HH:mm:ss:SSS");
   return (
-    <li className={
-      `${isActive ? classes.active : undefined}
-       ${flow.tag == "fishy" ? classes.fishy : undefined}
-       ${flow.blocked ? classes.blocked : undefined}
-       `
-      }>
+    <li className={GetEntryColor(flow, isActive)}>
       <div className="flex">
         <div
           className="w-5 ml-2 mr-4 self-center"
