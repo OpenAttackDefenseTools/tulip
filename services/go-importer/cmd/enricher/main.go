@@ -4,6 +4,7 @@ import (
 	"go-importer/internal/pkg/db"
 
 	"bufio"
+	"errors"
 	"flag"
 	"log"
 	"os"
@@ -104,19 +105,32 @@ func watchEve(eve_file string) {
 
 // The eve file was just written to, let's parse some logs!
 func updateEve(eve_handle *os.File) {
-
-	// BUG: I'm re-reading the entire file for now, we can probably pin it the last successfully synced log?
-	_, _ = eve_handle.Seek(0, 0)
+	ratchet, _ := eve_handle.Seek(0, 1)
 	scanner := bufio.NewScanner(eve_handle)
 
 	// iterate over each line in the file
 	for scanner.Scan() {
 		line := scanner.Text()
 		// Line parsing failed. Probably incomplete?
-		if !handleEveLine(line) {
-			break
+		applied, err := handleEveLine(line)
+		if err != nil {
+			// parsing this line failed. It may be incomplete for a couple reasons.
+			// * First, we might have caught the file in the middle of a write.
+			//   That's fine, next pass we'll get new data
+			// * The second case is worse, this line may just be corrupt. In that case,
+			//   we need to skip over it, after verifying that we're not in case 1.
+
+			// For now, I'm just gonna solve this by ratchetting to the last successfully
+			// applied rule. This will cause us to rescan a few lines needlessly, but I'm okay with that.
+			if applied {
+				ratchet, _ = eve_handle.Seek(0, 1)
+			}
 		}
 	}
+
+	// Roll the eve handle back to the last successfully applied rule, so it can continue there
+	// next time this function is called.
+	eve_handle.Seek(ratchet, 0)
 }
 
 /*
@@ -155,9 +169,9 @@ type suricataLog struct {
 	signature db.Signature
 }
 
-func handleEveLine(json string) bool {
+func handleEveLine(json string) (bool, error) {
 	if !gjson.Valid(json) {
-		return false
+		return false, errors.New("Invalid json in eve line")
 	}
 
 	// TODO; error check this
@@ -188,6 +202,5 @@ func handleEveLine(json string) bool {
 		Action: sig_action.String(),
 	}
 
-	g_db.AddSignatureToFlow(id, sig, WINDOW)
-	return true
+	return g_db.AddSignatureToFlow(id, sig, WINDOW), nil
 }
