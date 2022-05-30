@@ -1,11 +1,10 @@
 FROM golang:1.15-alpine
 
 COPY . /app
-COPY ./services/test_pcap /test_pcap
 
 WORKDIR /app
 
 RUN apk add --no-cache git make build-base libpcap-dev
 
 RUN go mod download
-RUN go build ./cmd/assembler -o /app/assembler
+RUN go build ./cmd/assembler

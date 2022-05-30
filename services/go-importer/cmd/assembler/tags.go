@@ -8,9 +8,9 @@ import (
 
 var flagRegex *regexp.Regexp
 
-func EnsureRegex() {
+func EnsureRegex(reg *string) {
 	if flagRegex == nil {
-		reg, err := regexp.Compile("SAAR\\{[A-Za-z0-9-_]{32}\\}")
+		reg, err := regexp.Compile(*reg)
 		if err != nil {
 			log.Fatal("Failed to compile flag regex: ", err)
 		} else {
@@ -31,8 +31,8 @@ func containsTag(s []string, e string) bool {
 // Apply flag in/flag out tags to the entire flow.
 // This assumes the `Data` part of the flowItem is already pre-processed, s.t.
 // we can run regex tags over the payload directly
-func ApplyFlagTags(flow *db.FlowEntry) {
-	EnsureRegex()
+func ApplyFlagTags(flow *db.FlowEntry, reg *string) {
+	EnsureRegex(reg)
 
 	for idx := 0; idx < len(flow.Flow); idx++ {
 		flowItem := &flow.Flow[idx]

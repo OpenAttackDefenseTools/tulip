@@ -20,7 +20,8 @@ services:
     networks:
       - internal
     environment:
-      REACT_APP_FLAG_REGEX: "SAAR\\{[A-Za-z0-9-_]{32}\\}"
+      FLAG_REGEX: "SAAR\\{[A-Za-z0-9-_]{32}\\}"
+      TULIP_MONGO: mongo:27017
       REACT_APP_FLOWER_SERVICES: 127.0.0.1
 
   api:
@@ -37,8 +38,8 @@ services:
     volumes:
       - ./shared:/shared
     environment:
-      REACT_APP_FLOWER_MONGO: mongo
-      REACT_APP_FLAG_REGEX: "SAAR\\{[A-Za-z0-9-_]{32}\\}"
+      TULIP_MONGO: mongo:27017
+      FLAG_REGEX: "SAAR\\{[A-Za-z0-9-_]{32}\\}"
 
   assembler:
     build:
@@ -50,11 +51,11 @@ services:
     networks:
       - internal
     volumes:
-      - /traffic:/traffic:ro
+      - /ssd/ICC_DUMP/SAAR/nflog:/traffic:ro
     command: "./assembler -dir /traffic"
     environment:
-      REACT_APP_FLOWER_MONGO: mongo
-      REACT_APP_FLAG_REGEX: "SAAR\\{[A-Za-z0-9-_]{32}\\}"
+      TULIP_MONGO: mongo:27017
+      FLAG_REGEX: "SAAR\\{[A-Za-z0-9-_]{32}\\}"
 
   enricher:
     build:
@@ -66,11 +67,10 @@ services:
     networks:
       - internal
     volumes:
-      - /traffic:/traffic:ro
-    command: "./go-importer -eve /traffic/eve.json"
+      - /ssd/ICC_DUMP/SAAR/nflog:/traffic:ro
+    command: "./enricher -eve /traffic/eve.json"
     environment:
-      REACT_APP_FLOWER_MONGO: mongo
-      REACT_APP_FLAG_REGEX: "SAAR\\{[A-Za-z0-9-_]{32}\\}"
+      TULIP_MONGO: mongo:27017
 
 networks:
   internal:

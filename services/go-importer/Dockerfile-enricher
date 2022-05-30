@@ -5,6 +5,4 @@ COPY . /app
 WORKDIR /app
 
 RUN go mod download
-RUN go build -o /app/enricher
-
-RUN go build ./cmd/enricher -o /app/enricher
+RUN go build ./cmd/enricher

@@ -25,8 +25,8 @@
 import re
 import os
 
-ws_ip = os.getenv("REACT_APP_FLOWER_MONGO", "0.0.0.0")
-mongo_server = 'mongodb://' + ws_ip + ':27017/'
+mongo_host = os.getenv("TULIP_MONGO", "0.0.0.0:27017")
+mongo_server = f'mongodb://{mongo_host}/'
 vm_ip = "192.168.201.2"  # todo put regex
 
 services = [{"ip": vm_ip, "port": 8000, "name": "saarbahn"},

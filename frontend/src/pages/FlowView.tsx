@@ -185,11 +185,8 @@ function Flow({ flow, delta_time }: FlowProps) {
   );
 }
 
-function FlowOverview(flow: FullFlow) {
-  const suricata_fields = ["action", "id", "msg"];
+function FlowOverview({flow}: {flow: FullFlow}) {
 
-  // TODO; type issue?
-  flow = flow.flow;
   return (
     <div>
       {flow.suricata ?

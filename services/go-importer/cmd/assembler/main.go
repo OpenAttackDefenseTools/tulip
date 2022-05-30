@@ -32,7 +32,8 @@ var tstype = ""
 var promisc = true
 
 var watch_dir = flag.String("dir", "", "Directory to watch for new pcaps")
-var mongodb = flag.String("mongo", "mongo:27017", "MongoDB dns name + port (e.g. mongo:27017)")
+var mongodb = flag.String("mongo", "", "MongoDB dns name + port (e.g. mongo:27017)")
+var flag_regex = flag.String("flag", "", "flag regex, used for flag in/out tagging")
 
 var g_db db.Database
 
@@ -41,7 +42,7 @@ func reassemblyCallback(entry db.FlowEntry) {
 	// Parsing HTTP will decode encodings to a plaintext format
 	ParseHttpFlow(&entry)
 	// Apply flag in / flagout
-	ApplyFlagTags(&entry)
+	ApplyFlagTags(&entry, flag_regex)
 	// Finally, insert the new entry
 	g_db.InsertFlow(entry)
 }
@@ -52,6 +53,24 @@ func main() {
 	flag.Parse()
 	if flag.NArg() < 1 && *watch_dir == "" {
 		log.Fatal("Usage: ./go-importer <file0.pcap> ... <fileN.pcap>")
+	}
+
+	// If no mongo DB was supplied, try the env variable
+	if *mongodb == "" {
+		*mongodb = os.Getenv("TULIP_MONGO")
+		// if that didn't work, just guess a reasonable default
+		if *mongodb == "" {
+			*mongodb = "mongo:27017"
+		}
+	}
+
+	// If no flag regex was supplied via cli, check the env
+	if *flag_regex == "" {
+		*flag_regex = os.Getenv("FLAG_REGEX")
+		// if that didn't work, warn the user and continue
+		if *flag_regex == "" {
+			log.Print("WARNING; no flag regex found.")
+		}
 	}
 
 	db_string := "mongodb://" + *mongodb
@@ -150,12 +169,10 @@ func handlePcap(fname string) {
 	}
 	defer handle.Close()
 
-	/* TODO; reenable
 	if g_db.ContainsPcap(fname) {
 		log.Println("Skipped: ", fname)
 		return
 	}
-	*/
 
 	//	linktype := handle.LinkType()
 	source := gopacket.NewPacketSource(handle, layers.LayerTypeIPv4)

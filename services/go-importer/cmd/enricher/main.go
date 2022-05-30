@@ -15,7 +15,7 @@ import (
 )
 
 var eve_file = flag.String("eve", "", "Eve file to watch for suricata's tags")
-var mongodb = flag.String("mongo", "mongo:27017", "MongoDB dns name + port (e.g. mongo:27017)")
+var mongodb = flag.String("mongo", "", "MongoDB dns name + port (e.g. mongo:27017)")
 
 var g_db db.Database
 
@@ -25,6 +25,15 @@ func main() {
 	flag.Parse()
 	if *eve_file == "" {
 		log.Fatal("Usage: ./enricher -eve eve.json")
+	}
+
+	// If no mongo DB was supplied, try the env variable
+	if *mongodb == "" {
+		*mongodb = os.Getenv("TULIP_MONGO")
+		// if that didn't work, just guess a reasonable default
+		if *mongodb == "" {
+			*mongodb = "mongo:27017"
+		}
 	}
 
 	db_string := "mongodb://" + *mongodb
