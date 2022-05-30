@@ -150,7 +150,7 @@ function Flow({ flow, delta_time }: FlowProps) {
       >
         <div className="flex items-center h-6">
           <div className="w-8 px-2">
-            {flow.from === "c" ? (
+            {flow.from === "s" ? (
               <ArrowCircleLeftIcon className="fill-green-700" />
             ) : (
               <ArrowCircleRightIcon className="fill-red-700" />
@@ -169,7 +169,7 @@ function Flow({ flow, delta_time }: FlowProps) {
       </div>
       <div
         className={
-          flow.from === "c"
+          flow.from === "s"
             ? "border-l-8 border-green-300"
             : "border-l-8 border-red-300"
         }

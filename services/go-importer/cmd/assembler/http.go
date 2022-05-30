@@ -11,6 +11,8 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"strings"
+
+	"github.com/andybalholm/brotli"
 )
 
 // Parse and simplify every item in the flow. Items that were not successfuly
@@ -36,7 +38,6 @@ func ParseHttpFlow(flow *db.FlowEntry) {
 				log.Println("Skipped, not valid http")
 				continue
 			}
-			defer res.Body.Close()
 			// Substitute body
 
 			encoding := res.Header["Content-Encoding"]
@@ -48,6 +49,7 @@ func ParseHttpFlow(flow *db.FlowEntry) {
 			var newReader io.ReadCloser
 			body, err := ioutil.ReadAll(res.Body)
 			r := bytes.NewBuffer(body)
+			res.Body.Close()
 			if err != nil {
 				log.Println("Skipped, failed to read res")
 				continue
@@ -56,11 +58,11 @@ func ParseHttpFlow(flow *db.FlowEntry) {
 			case "gzip":
 				newReader, err = handleGzip(r)
 				break
-			case "brTODO":
+			case "br":
 				newReader, err = handleBrotili(r)
 				break
-			case "deflateTODO":
-				newReader, err = handleDeflate(r)
+			case "deflate":
+				newReader, err = handleGzip(r)
 				break
 			default:
 				log.Println("Skipped, unknown encoding")
@@ -68,6 +70,7 @@ func ParseHttpFlow(flow *db.FlowEntry) {
 			}
 
 			res.Body = newReader
+			defer res.Body.Close()
 			// invalidate the content length, since decompressing the body will change its value.
 			res.ContentLength = -1
 			replacement, err := httputil.DumpResponse(res, true)
@@ -77,7 +80,6 @@ func ParseHttpFlow(flow *db.FlowEntry) {
 			}
 
 			flowItem.Data = string(replacement)
-			log.Println(flowItem.Data)
 		}
 	}
 }
@@ -91,8 +93,11 @@ func handleGzip(r io.Reader) (io.ReadCloser, error) {
 }
 
 func handleBrotili(r io.Reader) (io.ReadCloser, error) {
-	return nil, nil
+	reader := brotli.NewReader(r)
+	ret := ioutil.NopCloser(reader)
+	return ret, nil
 }
+
 func handleDeflate(r io.Reader) (io.ReadCloser, error) {
 	return nil, nil
 }
