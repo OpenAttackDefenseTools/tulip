@@ -16,6 +16,7 @@ import (
 	"github.com/fsnotify/fsnotify"
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/examples/util"
+	"github.com/google/gopacket/ip4defrag"
 	"github.com/google/gopacket/layers"
 	"github.com/google/gopacket/pcap"
 	"github.com/google/gopacket/reassembly"
@@ -23,7 +24,6 @@ import (
 
 var decoder = ""
 var lazy = false
-var nodefrag = false
 var checksum = false
 var nohttp = true
 
@@ -174,13 +174,23 @@ func handlePcap(fname string) {
 		return
 	}
 
-	//	linktype := handle.LinkType()
-	source := gopacket.NewPacketSource(handle, layers.LayerTypeIPv4)
+	var source *gopacket.PacketSource
+	nodefrag := false
+	linktype := handle.LinkType()
+	switch linktype {
+	case layers.LinkTypeIPv4:
+		nodefrag = true
+		source = gopacket.NewPacketSource(handle, layers.LayerTypeIPv4)
+		break
+	default:
+		source = gopacket.NewPacketSource(handle, linktype)
+	}
+
 	source.Lazy = lazy
 	source.NoCopy = true
 	count := 0
 	bytes := int64(0)
-	//defragger := ip4defrag.NewIPv4Defragmenter()
+	defragger := ip4defrag.NewIPv4Defragmenter()
 
 	streamFactory := &tcpStreamFactory{source: fname, reassemblyCallback: reassemblyCallback}
 	streamPool := reassembly.NewStreamPool(streamFactory)
@@ -194,33 +204,30 @@ func handlePcap(fname string) {
 		data := packet.Data()
 		bytes += int64(len(data))
 		done := false
-		//	fmt.Println(packet.ErrorLayer().Error())
 
-		/*
-			// defrag the IPv4 packet if required
-			if !nodefrag {
-				ip4Layer := packet.Layer(layers.LayerTypeIPv4)
-				if ip4Layer == nil {
-					continue
-				}
-				ip4 := ip4Layer.(*layers.IPv4)
-				l := ip4.Length
-				newip4, err := defragger.DefragIPv4(ip4)
-				if err != nil {
-					log.Fatalln("Error while de-fragmenting", err)
-				} else if newip4 == nil {
-					continue // packet fragment, we don't have whole packet yet.
-				}
-				if newip4.Length != l {
-					pb, ok := packet.(gopacket.PacketBuilder)
-					if !ok {
-						panic("Not a PacketBuilder")
-					}
-					nextDecoder := newip4.NextLayerType()
-					nextDecoder.Decode(newip4.Payload, pb)
-				}
+		// defrag the IPv4 packet if required
+		if !nodefrag {
+			ip4Layer := packet.Layer(layers.LayerTypeIPv4)
+			if ip4Layer == nil {
+				continue
 			}
-		*/
+			ip4 := ip4Layer.(*layers.IPv4)
+			l := ip4.Length
+			newip4, err := defragger.DefragIPv4(ip4)
+			if err != nil {
+				log.Fatalln("Error while de-fragmenting", err)
+			} else if newip4 == nil {
+				continue // packet fragment, we don't have whole packet yet.
+			}
+			if newip4.Length != l {
+				pb, ok := packet.(gopacket.PacketBuilder)
+				if !ok {
+					panic("Not a PacketBuilder")
+				}
+				nextDecoder := newip4.NextLayerType()
+				nextDecoder.Decode(newip4.Payload, pb)
+			}
+		}
 
 		transport := packet.TransportLayer()
 		if transport == nil {
@@ -236,7 +243,6 @@ func handlePcap(fname string) {
 			assembler.AssembleWithContext(packet.NetworkLayer().NetworkFlow(), tcp, &c)
 			break
 		default:
-			log.Fatalln("uwu2")
 			// pass
 		}
 
