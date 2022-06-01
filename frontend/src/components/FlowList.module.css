@@ -1,0 +1,19 @@
+.list_container {
+    @apply flex flex-col gap-2 m-2 focus:ring-4;
+
+    li {
+        @apply bg-gray-100 p-2 rounded-md;
+    }
+
+    li.active {
+        @apply ring-2 ring-gray-500
+    }
+
+    li.fishy {
+        @apply bg-red-200;
+    }
+
+    li.blocked {
+        @apply bg-purple-200;
+    }
+}

@@ -27,13 +27,13 @@ import os
 
 ws_ip = os.getenv("REACT_APP_FLOWER_MONGO", "0.0.0.0")
 mongo_server = 'mongodb://' + ws_ip + ':27017/'
-vm_ip = "10.10.3.1"  # todo put regex
+vm_ip = "192.168.201.2"  # todo put regex
 
-services = [{"ip": vm_ip, "port": 9876, "name": "cc_market"},
-            {"ip": vm_ip, "port": 80, "name": "maze"},
-            {"ip": vm_ip, "port": 8080, "name": "scadent"},
-            {"ip": vm_ip, "port": 5000, "name": "starchaser"},
-            {"ip": vm_ip, "port": 1883, "name": "scadnet_bin"}]
+services = [{"ip": vm_ip, "port": 8000, "name": "saarbahn"},
+            {"ip": vm_ip, "port": 1984, "name": "bytewarden"},
+            {"ip": vm_ip, "port": 5445, "name": "saarsecvv"},
+            {"ip": vm_ip, "port": 8080, "name": "saarcloud"},
+            {"ip": vm_ip, "port": 11025, "name": "saarloop"}]
 
 
 def containsFlag(text):

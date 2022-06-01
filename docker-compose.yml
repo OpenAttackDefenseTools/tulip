@@ -1,34 +1,29 @@
 version: "3.2"
 services:
-
   mongo:
     image: mongo:5
     networks:
       - internal
     restart: always
-    # TODO; REMOVE; super hecking insecure
-    # Just for dev purposes
     ports:
       - "27017:27017"
 
-  flower-node:
+  frontend:
     build:
-      context: .
-      dockerfile: Dockerfile-node
-    image: flower-node:latest
+      context: frontend
+      dockerfile: Dockerfile-frontend
+    image: flower-frontend:latest
     ports:
       - "3000:3000"
     depends_on:
       - mongo
     networks:
       - internal
-    command: "yarn start"
     environment:
-      REACT_APP_FLOWER_MONGO: mongo
-      REACT_APP_FLAG_REGEX: "FLG[0-9a-f]{29}"
+      REACT_APP_FLAG_REGEX: "SAAR\\{[A-Za-z0-9-_]{32}\\}"
       REACT_APP_FLOWER_SERVICES: 127.0.0.1
 
-  flower-python:
+  api:
     build:
       context: .
       dockerfile: Dockerfile-python
@@ -43,22 +38,39 @@ services:
       - ./shared:/shared
     environment:
       REACT_APP_FLOWER_MONGO: mongo
-      REACT_APP_FLAG_REGEX: "FLG[0-9a-f]{29}"
+      REACT_APP_FLAG_REGEX: "SAAR\\{[A-Za-z0-9-_]{32}\\}"
 
-  flower-importer:
+  assembler:
     build:
-      context: .
-      dockerfile: Dockerfile-golang
-    image: flower-importer:latest
+      context: services/go-importer
+      dockerfile: Dockerfile-assembler
+    image: assembler:latest
     depends_on:
       - mongo
     networks:
       - internal
     volumes:
-      - ./shared:/shared
+      - /traffic:/traffic:ro
+    command: "./assembler -dir /traffic"
     environment:
       REACT_APP_FLOWER_MONGO: mongo
-      REACT_APP_FLAG_REGEX: "FLG[0-9a-f]{29}"
+      REACT_APP_FLAG_REGEX: "SAAR\\{[A-Za-z0-9-_]{32}\\}"
+
+  enricher:
+    build:
+      context: services/go-importer
+      dockerfile: Dockerfile-enricher
+    image: enricher:latest
+    depends_on:
+      - mongo
+    networks:
+      - internal
+    volumes:
+      - /traffic:/traffic:ro
+    command: "./go-importer -eve /traffic/eve.json"
+    environment:
+      REACT_APP_FLOWER_MONGO: mongo
+      REACT_APP_FLAG_REGEX: "SAAR\\{[A-Za-z0-9-_]{32}\\}"
 
 networks:
   internal:
