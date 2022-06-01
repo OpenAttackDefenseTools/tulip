@@ -8,19 +8,18 @@ import (
 	"flag"
 	"log"
 	"os"
-	"os/signal"
 	"time"
 
-	"github.com/fsnotify/fsnotify"
 	"github.com/tidwall/gjson"
 )
 
 var eve_file = flag.String("eve", "", "Eve file to watch for suricata's tags")
 var mongodb = flag.String("mongo", "", "MongoDB dns name + port (e.g. mongo:27017)")
+var rescan_period = flag.Int("t", 30, "rescan period (in seconds).")
 
 var g_db db.Database
 
-const WINDOW = 500 // ms
+const WINDOW = 5000 // ms
 
 func main() {
 	flag.Parse()
@@ -53,67 +52,59 @@ func watchEve(eve_file string) {
 		log.Fatal("eve file is not a file")
 	}
 
-	watcher, err := fsnotify.NewWatcher()
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer watcher.Close()
-
-	// Open a handle to the eve file
-	eve_handle, err := os.Open(eve_file)
-	if err != nil {
-		log.Fatal(err)
-	}
 
 	// Do the initial scan
 	log.Println("Parsing initial eve contents...")
-	updateEve(eve_handle)
+	ratchet := updateEve(eve_file, 0)
 
 	log.Println("Monitoring eve file: ", eve_file)
+	prevSize := stat.Size()
 
-	signalChan := make(chan os.Signal, 1)
-	signal.Notify(signalChan, os.Interrupt)
-	// Keep running until Interrupt
-	go func() {
-		for {
-			select {
-			case event, ok := <-watcher.Events:
-				if !ok {
-					return
-				}
-				if event.Op&fsnotify.Write != 0 {
-					log.Println("Eve file was updated", event.Name, event.Op.String())
-					updateEve(eve_handle)
-				}
-			case err, ok := <-watcher.Errors:
-				if !ok {
-					return
-				}
-				log.Println("watcher error:", err)
-			}
+	for {
+		time.Sleep(time.Duration(*rescan_period) * time.Second)
+
+		new_stat, err := os.Stat(eve_file)
+		if err != nil {
+			log.Println("Failed to open the eve file with error: ", err)
+			continue;
 		}
-	}()
 
-	err = watcher.Add(eve_file)
-	if err != nil {
-		log.Fatal(err)
+		if new_stat.Size() > prevSize {
+			log.Println("Eve file was updated. New size:, ", new_stat.Size())
+			ratchet = updateEve(eve_file, ratchet)
+		}
+		prevSize = new_stat.Size();
+
 	}
-	<-signalChan
-	log.Println("Watcher stopped")
 
 }
 
 // The eve file was just written to, let's parse some logs!
-func updateEve(eve_handle *os.File) {
-	ratchet, _ := eve_handle.Seek(0, 1)
-	scanner := bufio.NewScanner(eve_handle)
+func updateEve(eve_file string, ratchet int64) int64 {
+
+	// Open a handle to the eve file
+	eve_handle, err := os.Open(eve_file)
+	if err != nil {
+		log.Println("Failed to open the eve file")
+		return ratchet
+	}
+	eve_handle.Seek(ratchet, 0)
+	eve_reader := bufio.NewReader(eve_handle)
+	defer eve_handle.Close()
+
+	log.Println("Start scanning eve file @ ", ratchet)
 
 	// iterate over each line in the file
-	for scanner.Scan() {
-		line := scanner.Text()
+	for {
+		line, err := eve_reader.ReadString('\n')
+		if err != nil {
+			// This is most likely to be EOF, which is fine
+			// TODO; check the error code and log if it is something else
+			break
+		}
 		// Line parsing failed. Probably incomplete?
 		applied, err := handleEveLine(line)
-		if err != nil {
+		if err == nil {
 			// parsing this line failed. It may be incomplete for a couple reasons.
 			// * First, we might have caught the file in the middle of a write.
 			//   That's fine, next pass we'll get new data
@@ -123,14 +114,14 @@ func updateEve(eve_handle *os.File) {
 			// For now, I'm just gonna solve this by ratchetting to the last successfully
 			// applied rule. This will cause us to rescan a few lines needlessly, but I'm okay with that.
 			if applied {
-				ratchet, _ = eve_handle.Seek(0, 1)
+				ratchet += int64(len(line))
 			}
 		}
 	}
 
 	// Roll the eve handle back to the last successfully applied rule, so it can continue there
 	// next time this function is called.
-	eve_handle.Seek(ratchet, 0)
+	return ratchet
 }
 
 /*
@@ -196,11 +187,22 @@ func handleEveLine(json string) (bool, error) {
 		Time:     start_time_obj,
 	}
 
+	id_rev := db.FlowID{
+		Dst_port: int(src_port.Int()),
+		Dst_ip:   src_ip.String(),
+		Src_port: int(dst_port.Int()),
+		Src_ip:   dst_ip.String(),
+		Time:     start_time_obj,
+	}
+
 	sig := db.Signature{
 		ID:     int(sig_id.Int()),
 		Msg:    sig_msg.String(),
 		Action: sig_action.String(),
 	}
 
-	return g_db.AddSignatureToFlow(id, sig, WINDOW), nil
+	// TODO; use one, sensible query instead of just trying both cases
+	ret := g_db.AddSignatureToFlow(id, sig, WINDOW)
+	ret = ret || g_db.AddSignatureToFlow(id_rev, sig, WINDOW)
+	return ret, nil
 }

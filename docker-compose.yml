@@ -1,12 +1,12 @@
 version: "3.2"
 services:
   mongo:
-    image: mongo:5
+    image: mongo:4
     networks:
       - internal
     restart: always
     ports:
-      - "127.0.0.1:27017:27017"
+      - "27017:27017"
 
   frontend:
     build:
@@ -14,15 +14,15 @@ services:
       dockerfile: Dockerfile-frontend
     image: tulip-frontend:latest
     ports:
-      - "127.0.0.1:3000:3000"
+      - "3000:3000"
     depends_on:
       - mongo
     networks:
       - internal
     environment:
-      FLAG_REGEX: "SAAR\\{[A-Za-z0-9-_]{32}\\}"
+      FLAG_REGEX: "[A-Z0-9]{31}="
       TULIP_MONGO: mongo:27017
-      REACT_APP_FLOWER_SERVICES: 127.0.0.1
+      REACT_APP_FLOWER_SERVICES: 192.168.178.202
 
   api:
     build:
@@ -30,7 +30,7 @@ services:
       dockerfile: Dockerfile-python
     image: tulip-api:latest
     ports:
-      - "127.0.0.1:5000:5000"
+      - "5000:5000"
     depends_on:
       - mongo
     networks:
@@ -39,7 +39,7 @@ services:
       - ./shared:/shared
     environment:
       TULIP_MONGO: mongo:27017
-      FLAG_REGEX: "SAAR\\{[A-Za-z0-9-_]{32}\\}"
+      FLAG_REGEX: "[A-Z0-9]{31}="
 
   assembler:
     build:
@@ -51,11 +51,11 @@ services:
     networks:
       - internal
     volumes:
-      - /ssd/ICC_DUMP/SAAR/nflog:/traffic:ro
+      - /traffic:/traffic:ro
     command: "./assembler -dir /traffic"
     environment:
       TULIP_MONGO: mongo:27017
-      FLAG_REGEX: "SAAR\\{[A-Za-z0-9-_]{32}\\}"
+      FLAG_REGEX: "[A-Z0-9]{31}="
 
   enricher:
     build:
@@ -67,7 +67,7 @@ services:
     networks:
       - internal
     volumes:
-      - /ssd/ICC_DUMP/SAAR/nflog:/traffic:ro
+      - /traffic:/traffic:ro
     command: "./enricher -eve /traffic/eve.json"
     environment:
       TULIP_MONGO: mongo:27017
