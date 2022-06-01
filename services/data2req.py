@@ -23,8 +23,10 @@
 # along with Flower.  If not, see <https://www.gnu.org/licenses/>.
 
 from http.server import BaseHTTPRequestHandler
-from urllib.parse import urlparse, parse_qs
+from urllib.parse import parse_qs
+from jinja2 import Environment, BaseLoader
 from io import BytesIO
+import json
 
 #class to parse request informations
 class HTTPRequest(BaseHTTPRequestHandler):
@@ -37,51 +39,80 @@ class HTTPRequest(BaseHTTPRequestHandler):
         self.headers = dict(self.headers)
         # Data
         try:
-            self.data = raw_http_request[raw_http_request.index(
-                b'\r\n\r\n')+2:].rstrip()
-        except ValueError:
-            self.data = None
+            self.body = raw_http_request.split(b"\r\n\r\n", 1)[1].rstrip()
+        except IndexError:
+            self.body = None
 
     def send_error(self, code, message):
         self.error_code = code
         self.error_message = message
 
 # tokenize used for automatically fill data param of request
-def convert_http_requests(data, tokenize=True):
-    request = HTTPRequest(data)
+def convert_http_requests(raw_request, tokenize=True, use_requests_session=False):
+    request = HTTPRequest(raw_request)
 
-    params = {}
+    data = {}
     headers = {}
 
-    if tokenize:
-        query_dict = parse_qs(urlparse(request.path).query)
-        for key, value in query_dict.items():
-            params[key] = value[0]
-
-    blocked_headers = ["content-length", "accept-encoding", "connection", "accept"]
+    blocked_headers = ["content-length", "accept-encoding", "connection", "accept", "host"]
+    content_type = ""
+    data_param_name = "data"
+    body = request.body
 
     for i in request.headers:
-        if not i.lower() in blocked_headers:
+        normalized_header = i.lower()
+
+        if normalized_header == "content-type":
+            content_type = request.headers[i]
+        if not normalized_header in blocked_headers:
             headers[i] = request.headers[i]
 
-    # TODO; use proper templates instead of format strings.
-    # This is already a little clunky, since we want to support at least POST/GET in the
-    # same template
-    return """import sys
+    # if tokenization is enabled and body is not empty, try to decode form body or JSON body
+    if tokenize and body:
+        # try to deserialize form data
+        if content_type.startswith("application/x-www-form-urlencoded"):
+            data_param_name = "data"
+            body_dict = parse_qs(body.decode())
+            for key, value in body_dict.items():
+                if len(value) == 1:
+                    data[key] = value[0]
+                else:
+                    data[key] = value
+
+        # try to deserialize json
+        if content_type.startswith("application/json"):
+            data_param_name = "json"
+            data = json.loads(body)
+
+        # try to use raw text
+        if content_type.startswith("text/plain"):
+            data_param_name = "data"
+            data = body
+
+        # try to extract files
+        if content_type.startswith("multipart/form-data"):
+            data_param_name = "files"
+            return "Forms with files are not yet implemented"
+
+    rtemplate = Environment(loader=BaseLoader()).from_string("""import os
 import requests
 
-host = sys.argv[1]
+host = os.getenv("TARGET_IP")
+{% if use_requests_session %}
+s = requests.Session()
 
-headers = {}
+s.headers = {{headers}}
+{% else %}
+headers = {{headers}}
+{% endif %}
+data = {{data}}
 
-params = {}
+{% if use_requests_session %}s{% else %}requests{% endif %}.{{request.command.lower()}}("http://{}{{request.path}}".format(host), {{data_param_name}}=data{% if not use_requests_session %}, headers=headers{% endif %})""")
 
-data = {}
-
-requests.{}("http://{{}}{}".format(host), params=params, headers=headers, data=data)""".format(
-        str(dict(headers)),
-        params,
-        request.data,
-        request.command.lower(),
-        request.path,
-    )
+    return rtemplate.render(
+            headers=str(dict(headers)),
+            data=data,
+            request=request,
+            data_param_name=data_param_name,
+            use_requests_session=use_requests_session,
+        )
