@@ -21,6 +21,7 @@ import { HeartIcon as EmptyHeartIcon } from "@heroicons/react/outline";
 import classes from "./FlowList.module.css";
 import { format } from "date-fns";
 import { atomWithStorage } from "jotai/utils";
+import useDebounce from "../hooks/useDebounce";
 
 const onlyStarred = atomWithStorage("onlyStarred", false);
 const hideBlockedAtom = atomWithStorage("hideBlocked", false);
@@ -40,10 +41,12 @@ export function FlowList() {
   const from_filter = searchParams.get(START_FILTER_KEY) ?? undefined;
   const to_filter = searchParams.get(END_FILTER_KEY) ?? undefined;
 
+  const debounced_text_filter = useDebounce(text_filter, 500);
+
   useEffect(() => {
     const fetchData = async () => {
       const data = await api.getFlows({
-        "flow.data": text_filter,
+        "flow.data": debounced_text_filter,
         dst_ip: service?.ip,
         dst_port: service?.port,
         from_time: from_filter,
@@ -54,14 +57,21 @@ export function FlowList() {
       setFlowList(data);
     };
     fetchData().catch(console.error);
-  }, [service, text_filter, from_filter, to_filter, starred, hideBlocked]);
+  }, [
+    service,
+    debounced_text_filter,
+    from_filter,
+    to_filter,
+    starred,
+    hideBlocked,
+  ]);
 
   const onHeartHandler = useCallback(
     async (flow: Flow) => {
       const star_res = await api.starFlow(flow._id.$oid, !flow.starred);
       // todo error handling star res
       const data = await api.getFlows({
-        "flow.data": text_filter,
+        "flow.data": debounced_text_filter,
         dst_ip: service?.ip,
         dst_port: service?.port,
         from_time: from_filter,
@@ -71,7 +81,7 @@ export function FlowList() {
       });
       setFlowList(data);
     },
-    [service, text_filter, from_filter, to_filter, starred]
+    [service, debounced_text_filter, from_filter, to_filter, starred]
   );
 
   return (
@@ -105,7 +115,10 @@ export function FlowList() {
       </div>
       <ul className={classes.list_container}>
         {flowList.map((flow) => (
-          <Link to={`/flow/${flow._id.$oid}?${searchParams}`} key={flow._id.$oid}>
+          <Link
+            to={`/flow/${flow._id.$oid}?${searchParams}`}
+            key={flow._id.$oid}
+          >
             <FlowListEntry
               key={flow._id.$oid}
               flow={flow}
@@ -126,8 +139,7 @@ interface FlowListEntryProps {
 }
 
 function GetEntryColor(flow: Flow, isActive: boolean) {
-
-  var classname = isActive ? classes.active : ""
+  var classname = isActive ? classes.active : "";
 
   // Blocked flows should always show up as blocked, no matter the other tags
   if (flow.blocked) {
