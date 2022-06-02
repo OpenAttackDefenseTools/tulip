@@ -57,6 +57,10 @@ def query():
     result = db.getFlowList(json)
     return return_json_response(result)
 
+@application.route('/signature/<id>')
+def signature(id):
+    result = db.getSignature(int(id))
+    return return_json_response(result)
 
 @application.route('/starred', methods=['POST'])
 def getStarred():

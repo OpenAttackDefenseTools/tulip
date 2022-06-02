@@ -41,6 +41,7 @@ class DB:
             self.db = self.client.pcap
             self.pcap_coll = self.db.pcap
             self.file_coll = self.db.filesImported
+            self.signature_coll = self.db.signatures
 
         except ServerSelectionTimeoutError as err:
             sys.stderr.write("MongoDB server not active on %s\n%s" % (mongo_server,err))
@@ -67,8 +68,17 @@ class DB:
 
         return self.pcap_coll.find(f, {"flow": 0}).sort("time", -1).limit(2000)
 
+    def getSignature(self, id):
+        f = {"_id"}
+        print("query:")
+        return self.signature_coll.find_one({"_id": id})
+
     def getFlowDetail(self, id):
-        return self.pcap_coll.find_one({"_id": ObjectId(id)})
+        ret = self.pcap_coll.find_one({"_id": ObjectId(id)})
+        ret["signatures"] = []
+        for sig_id in ret["suricata"]:
+            ret["signatures"].append(self.signature_coll.find_one({"_id": sig_id}))
+        return ret
 
     def setStar(self, flow_id, star):
         self.pcap_coll.find_one_and_update({"_id": ObjectId(flow_id)}, {"$set": {"starred":  star}})

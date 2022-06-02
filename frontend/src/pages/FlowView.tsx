@@ -185,46 +185,54 @@ function Flow({ flow, delta_time }: FlowProps) {
   );
 }
 
-function FlowOverview({flow}: {flow: FullFlow}) {
+function FlowOverview({ flow }: { flow: FullFlow }) {
 
   return (
     <div>
-      {flow.suricata ?
-      <div className="bg-blue-100">
-        <div className="font-extrabold">Suricata</div>
-        <div>
-          <div className="flex">
-            <div>Message: </div>
-            <div className="font-bold">{flow.suricata.msg}</div>
-          </div>
-          <div className="flex">
-            <div>Rule ID: </div>
-            <div className="font-bold">{flow.suricata.id}</div>
-          </div>
-          <div className="flex">
-            <div>Action taken: </div>
-            <div
-              className={
-                flow.suricata.action === "blocked"
-                  ? "font-bold text-red-800"
-                  : "font-bold text-green-800"
-              }
-            >{flow.suricata.action}</div>
+      {flow.signatures?.length > 0 ?
+        <div className="bg-blue-100">
+          <div className="font-extrabold">Suricata</div>
+          <div className="pl-2">
+            {flow.signatures.map(sig => {
+              return (
+                <div className="py-1">
+                  <div className="flex">
+                    <div>Message: </div>
+                    <div className="font-bold">{sig.msg}</div>
+                  </div>
+                  <div className="flex">
+                    <div>Rule ID: </div>
+                    <div className="font-bold">{sig._id}</div>
+                  </div>
+                  <div className="flex">
+                    <div>Action taken: </div>
+                    <div
+                      className={
+                        sig.action === "blocked"
+                          ? "font-bold text-red-800"
+                          : "font-bold text-green-800"
+                      }
+                    >{sig.action}</div>
+                  </div>
+                </div>
+              )
+            })}
           </div>
         </div>
-      </div>
-      : undefined
+        : undefined
       }
       <div className="bg-yellow-100">
         <div className="font-extrabold">Meta
         </div>
+        <div className="pl-2">
           <div>Source: </div>
           <div className="font-bold">{flow.filename}</div>
-        <div>
-        </div>
+          <div>
+          </div>
           <div>Tags: </div>
           <div className="font-bold">[{flow.tags.join(", ")}]</div>
-        <div>
+          <div>
+          </div>
         </div>
       </div>
     </div>
@@ -232,7 +240,7 @@ function FlowOverview({flow}: {flow: FullFlow}) {
 }
 
 
-function Header() {}
+function Header() { }
 
 export function FlowView() {
   const params = useParams();
@@ -269,7 +277,7 @@ export function FlowView() {
       >
         <div className="flex  align-middle p-2 gap-3 ml-auto">
           <button className="bg-gray-700 text-white p-2 text-sm rounded-md"
-          onClick={copyAsPwn}
+            onClick={copyAsPwn}
           >
             Copy as pwntools
           </button>
@@ -280,8 +288,8 @@ export function FlowView() {
       </div>
       {
         flow ?
-        <FlowOverview flow={flow}></FlowOverview>
-        : undefined
+          <FlowOverview flow={flow}></FlowOverview>
+          : undefined
       }
       {flow?.flow.map((flow_data, i, a) => {
         const delta_time = a[i].time - (a[i - 1]?.time ?? a[i].time);

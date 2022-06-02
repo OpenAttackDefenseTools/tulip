@@ -34,6 +34,7 @@ type FlowEntry struct {
 	Starred  bool
 	Blocked  bool
 	Filename string
+	Suricata []int
 	Flow     []FlowItem
 	Tags     []string
 }
@@ -136,7 +137,21 @@ type Signature struct {
 	Action string
 }
 
+func (db Database) AddSignature(sig Signature) {
+	sigCollection := db.client.Database("pcap").Collection("signatures")
+
+	sig_entry := bson.M{
+		"_id":    sig.ID,
+		"msg":    sig.Msg,
+		"action": sig.Action,
+	}
+	sigCollection.InsertOne(context.TODO(), sig_entry)
+}
+
 func (db Database) AddSignatureToFlow(flow FlowID, sig Signature, window int) bool {
+	// Add the signature to the collection
+	db.AddSignature(sig)
+
 	// Find a flow that more or less matches the one we're looking for
 	flowCollection := db.client.Database("pcap").Collection("pcap")
 	epoch := int(flow.Time.UnixNano() / 1000000)
@@ -156,17 +171,19 @@ func (db Database) AddSignatureToFlow(flow FlowID, sig Signature, window int) bo
 	if sig.Action == "blocked" {
 		info = bson.M{
 			"$set": bson.M{
-				"blocked":   true,
-				"suricata":  sig,
+				"blocked": true,
 			},
-			"$addToSet": bson.M{"tags": "fishy"},
+			"$addToSet": bson.M{
+				"tags":     "fishy",
+				"suricata": sig.ID,
+			},
 		}
 	} else {
 		info = bson.M{
-			"$set": bson.M{
-				"suricata":  sig,
+			"$addToSet": bson.M{
+				"tags":     "fishy",
+				"suricata": sig.ID,
 			},
-			"$addToSet": bson.M{"tags": "fishy"},
 		}
 	}
 
