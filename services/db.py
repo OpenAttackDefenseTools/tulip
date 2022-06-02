@@ -71,7 +71,7 @@ class DB:
         return self.pcap_coll.find_one({"_id": ObjectId(id)})
 
     def setStar(self, flow_id, star):
-        self.pcap_coll.find_one_and_update({"_id": ObjectId(flow_id)}, {"$set": {"starred":  1 if star == True else 0}})
+        self.pcap_coll.find_one_and_update({"_id": ObjectId(flow_id)}, {"$set": {"starred":  star}})
 
     def isFileAlreadyImported(self, file_name):
         return self.file_coll.find({"file_name": file_name}).count() != 0

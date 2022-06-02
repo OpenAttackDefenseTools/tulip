@@ -150,7 +150,7 @@ function Flow({ flow, delta_time }: FlowProps) {
       >
         <div className="flex items-center h-6">
           <div className="w-8 px-2">
-            {flow.from === "c" ? (
+            {flow.from === "s" ? (
               <ArrowCircleLeftIcon className="fill-green-700" />
             ) : (
               <ArrowCircleRightIcon className="fill-red-700" />
@@ -169,7 +169,7 @@ function Flow({ flow, delta_time }: FlowProps) {
       </div>
       <div
         className={
-          flow.from === "c"
+          flow.from === "s"
             ? "border-l-8 border-green-300"
             : "border-l-8 border-red-300"
         }
@@ -185,11 +185,8 @@ function Flow({ flow, delta_time }: FlowProps) {
   );
 }
 
-function FlowOverview(flow: FullFlow) {
-  const suricata_fields = ["action", "id", "msg"];
+function FlowOverview({flow}: {flow: FullFlow}) {
 
-  // TODO; type issue?
-  flow = flow.flow;
   return (
     <div>
       {flow.suricata ?
@@ -223,6 +220,10 @@ function FlowOverview(flow: FullFlow) {
         </div>
           <div>Source: </div>
           <div className="font-bold">{flow.filename}</div>
+        <div>
+        </div>
+          <div>Tags: </div>
+          <div className="font-bold">[{flow.tags.join(", ")}]</div>
         <div>
         </div>
       </div>

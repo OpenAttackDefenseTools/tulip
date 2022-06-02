@@ -31,11 +31,11 @@ type FlowEntry struct {
 	Time     int
 	Duration int
 	Inx      int
-	Starred  int
+	Starred  bool
 	Blocked  bool
 	Filename string
 	Flow     []FlowItem
-	Tag      string
+	Tags     []string
 }
 
 type Database struct {
@@ -109,13 +109,17 @@ func (db Database) InsertFlow(flow FlowEntry) {
 // otherwise returns false
 func (db Database) InsertPcap(uri string) bool {
 	files := db.client.Database("pcap").Collection("filesImported")
-
-	match := files.FindOne(context.TODO(), bson.M{"file_name": uri})
-	shouldInsert := match.Err() == mongo.ErrNoDocuments
+	shouldInsert := !db.ContainsPcap(uri)
 	if shouldInsert {
 		files.InsertOne(context.TODO(), bson.M{"file_name": uri})
 	}
 	return shouldInsert
+}
+
+func (db Database) ContainsPcap(uri string) bool {
+	files := db.client.Database("pcap").Collection("filesImported")
+	match := files.FindOne(context.TODO(), bson.M{"file_name": uri})
+	return match.Err() != mongo.ErrNoDocuments
 }
 
 type FlowID struct {
@@ -150,16 +154,20 @@ func (db Database) AddSignatureToFlow(flow FlowID, sig Signature, window int) bo
 	var info bson.M
 	// TODO; This can probably be done more elegantly, right?
 	if sig.Action == "blocked" {
-		info = bson.M{"$set": bson.M{
-			"tag":      "fishy",
-			"blocked":  true,
-			"suricata": sig,
-		}}
+		info = bson.M{
+			"$set": bson.M{
+				"blocked":   true,
+				"suricata":  sig,
+			},
+			"$addToSet": bson.M{"tags": "fishy"},
+		}
 	} else {
-		info = bson.M{"$set": bson.M{
-			"tag":      "fishy",
-			"suricata": sig,
-		}}
+		info = bson.M{
+			"$set": bson.M{
+				"suricata":  sig,
+			},
+			"$addToSet": bson.M{"tags": "fishy"},
+		}
 	}
 
 	// enrich the flow with suricata information

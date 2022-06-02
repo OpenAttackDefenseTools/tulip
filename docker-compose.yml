@@ -12,7 +12,7 @@ services:
     build:
       context: frontend
       dockerfile: Dockerfile-frontend
-    image: flower-frontend:latest
+    image: tulip-frontend:latest
     ports:
       - "3000:3000"
     depends_on:
@@ -20,14 +20,14 @@ services:
     networks:
       - internal
     environment:
-      REACT_APP_FLAG_REGEX: "SAAR\\{[A-Za-z0-9-_]{32}\\}"
-      REACT_APP_FLOWER_SERVICES: 127.0.0.1
+      FLAG_REGEX: "[A-Z0-9]{31}="
+      TULIP_MONGO: mongo:27017
 
   api:
     build:
       context: .
       dockerfile: Dockerfile-python
-    image: flower-python:latest
+    image: tulip-api:latest
     ports:
       - "5000:5000"
     depends_on:
@@ -37,14 +37,14 @@ services:
     volumes:
       - ./shared:/shared
     environment:
-      REACT_APP_FLOWER_MONGO: mongo
-      REACT_APP_FLAG_REGEX: "SAAR\\{[A-Za-z0-9-_]{32}\\}"
+      TULIP_MONGO: mongo:27017
+      FLAG_REGEX: "[A-Z0-9]{31}="
 
   assembler:
     build:
       context: services/go-importer
       dockerfile: Dockerfile-assembler
-    image: assembler:latest
+    image: tulip-assembler:latest
     depends_on:
       - mongo
     networks:
@@ -53,24 +53,23 @@ services:
       - /traffic:/traffic:ro
     command: "./assembler -dir /traffic"
     environment:
-      REACT_APP_FLOWER_MONGO: mongo
-      REACT_APP_FLAG_REGEX: "SAAR\\{[A-Za-z0-9-_]{32}\\}"
+      TULIP_MONGO: mongo:27017
+      FLAG_REGEX: "[A-Z0-9]{31}="
 
   enricher:
     build:
       context: services/go-importer
       dockerfile: Dockerfile-enricher
-    image: enricher:latest
+    image: tulip-enricher:latest
     depends_on:
       - mongo
     networks:
       - internal
     volumes:
       - /traffic:/traffic:ro
-    command: "./go-importer -eve /traffic/eve.json"
+    command: "./enricher -eve /traffic/eve.json"
     environment:
-      REACT_APP_FLOWER_MONGO: mongo
-      REACT_APP_FLAG_REGEX: "SAAR\\{[A-Za-z0-9-_]{32}\\}"
+      TULIP_MONGO: mongo:27017
 
 networks:
   internal:
