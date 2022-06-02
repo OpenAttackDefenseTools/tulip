@@ -58,7 +58,7 @@ def query():
 @application.route('/starred', methods=['POST'])
 def getStarred():
     json = request.get_json()
-    json["starred"] = 1
+    json["starred"] = True
     result = db.getFlowList(json)
     return return_response(result)
 

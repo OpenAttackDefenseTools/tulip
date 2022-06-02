@@ -31,7 +31,7 @@ type FlowEntry struct {
 	Time     int
 	Duration int
 	Inx      int
-	Starred  int
+	Starred  bool
 	Blocked  bool
 	Filename string
 	Flow     []FlowItem

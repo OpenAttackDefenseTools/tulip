@@ -210,7 +210,7 @@ func (t *tcpStream) ReassemblyComplete(ac reassembly.AssemblerContext) bool {
 		Time:     time,
 		Duration: duration,
 		Inx:      0,
-		Starred:  0,
+		Starred:  false,
 		Blocked:  false,
 		Tags:     make([]string, 0),
 		Filename: t.source,
