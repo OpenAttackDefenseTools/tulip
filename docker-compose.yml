@@ -1,7 +1,7 @@
 version: "3.2"
 services:
   mongo:
-    image: mongo:4
+    image: mongo:5
     networks:
       - internal
     restart: always
@@ -22,7 +22,6 @@ services:
     environment:
       FLAG_REGEX: "[A-Z0-9]{31}="
       TULIP_MONGO: mongo:27017
-      REACT_APP_FLOWER_SERVICES: 192.168.178.202
 
   api:
     build:
