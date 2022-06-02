@@ -129,7 +129,11 @@ function GetEntryColor(flow: Flow, isActive: boolean) {
 
   var classname = isActive ? classes.active : ""
 
-  // Blocked flows should always show up as blocked, no matter the other tags
+  // TODO; use a suricata tag instead of a magic rule ID
+  if (flow.suricata.includes(1000000)) {
+    return `${classname} ${classes.blocked_interesting}`;
+  }
+
   if (flow.blocked) {
     return `${classname} ${classes.blocked}`;
   }
