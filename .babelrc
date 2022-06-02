@@ -1,4 +1,0 @@
-{
-  "presets": ["@babel/preset-flow", "@babel/preset-react"],
-  "plugins": ["@babel/proposal-class-properties"]
-}
