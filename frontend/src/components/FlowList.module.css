@@ -1,8 +1,9 @@
 .list_container {
-    @apply flex flex-col gap-2 m-2 focus:ring-4;
+
+    @apply flex flex-col gap-2;
 
     li {
-        @apply bg-gray-100 p-2 rounded-md;
+        @apply bg-gray-100 p-2 rounded-md focus:ring-4 m-2 list-none;
     }
 
     li.active {

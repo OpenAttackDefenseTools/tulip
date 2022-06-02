@@ -22,6 +22,7 @@ import classes from "./FlowList.module.css";
 import { format } from "date-fns";
 import { atomWithStorage } from "jotai/utils";
 import useDebounce from "../hooks/useDebounce";
+import { Virtuoso } from "react-virtuoso";
 
 const onlyStarred = atomWithStorage("onlyStarred", false);
 const hideBlockedAtom = atomWithStorage("hideBlocked", false);
@@ -41,7 +42,7 @@ export function FlowList() {
   const from_filter = searchParams.get(START_FILTER_KEY) ?? undefined;
   const to_filter = searchParams.get(END_FILTER_KEY) ?? undefined;
 
-  const debounced_text_filter = useDebounce(text_filter, 500);
+  const debounced_text_filter = useDebounce(text_filter, 300);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -85,7 +86,7 @@ export function FlowList() {
   );
 
   return (
-    <div className="">
+    <div className="h-full">
       <div
         className="sticky top-0 bg-white p-2 border-b-gray-300 border-b shadow-md flex-col items-center"
         style={{ height: 60 }}
@@ -113,8 +114,10 @@ export function FlowList() {
           <label htmlFor="">Hide blocked flows</label>
         </div>
       </div>
-      <ul className={classes.list_container}>
-        {flowList.map((flow) => (
+      <Virtuoso
+        className={classes.list_container}
+        data={flowList}
+        itemContent={(index, flow) => (
           <Link
             to={`/flow/${flow._id.$oid}?${searchParams}`}
             key={flow._id.$oid}
@@ -126,8 +129,8 @@ export function FlowList() {
               onHeartClick={onHeartHandler}
             />
           </Link>
-        ))}
-      </ul>
+        )}
+      />
     </div>
   );
 }
