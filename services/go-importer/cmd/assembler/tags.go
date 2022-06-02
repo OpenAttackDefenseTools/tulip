@@ -34,6 +34,11 @@ func containsTag(s []string, e string) bool {
 func ApplyFlagTags(flow *db.FlowEntry, reg *string) {
 	EnsureRegex(reg)
 
+	// If the regex is not valid, bail here
+	if flagRegex == nil {
+		return
+	}
+
 	for idx := 0; idx < len(flow.Flow); idx++ {
 		flowItem := &flow.Flow[idx]
 		if flagRegex.MatchString(flowItem.Data) {

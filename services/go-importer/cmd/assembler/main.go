@@ -42,7 +42,9 @@ func reassemblyCallback(entry db.FlowEntry) {
 	// Parsing HTTP will decode encodings to a plaintext format
 	ParseHttpFlow(&entry)
 	// Apply flag in / flagout
-	ApplyFlagTags(&entry, flag_regex)
+	if *flag_regex != "" {
+		ApplyFlagTags(&entry, flag_regex)
+	}
 	// Finally, insert the new entry
 	g_db.InsertFlow(entry)
 }
@@ -69,7 +71,7 @@ func main() {
 		*flag_regex = os.Getenv("FLAG_REGEX")
 		// if that didn't work, warn the user and continue
 		if *flag_regex == "" {
-			log.Print("WARNING; no flag regex found.")
+			log.Print("WARNING; no flag regex found. No flag-in or flag-out tags will be applied.")
 		}
 	}
 
