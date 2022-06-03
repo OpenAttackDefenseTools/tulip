@@ -23,6 +23,7 @@ import { format } from "date-fns";
 import { atomWithStorage } from "jotai/utils";
 import useDebounce from "../hooks/useDebounce";
 import { Virtuoso } from "react-virtuoso";
+import classNames from "classnames";
 
 const onlyStarred = atomWithStorage("onlyStarred", false);
 const hideBlockedAtom = atomWithStorage("hideBlocked", false);
@@ -86,9 +87,9 @@ export function FlowList() {
   );
 
   return (
-    <div className="h-full">
+    <div className="flex flex-col h-full">
       <div
-        className="sticky top-0 bg-white p-2 border-b-gray-300 border-b shadow-md flex-col items-center"
+        className="bg-white p-2 border-b-gray-300 border-b shadow-md flex-col items-center"
         style={{ height: 60 }}
       >
         <div>
@@ -115,12 +116,13 @@ export function FlowList() {
         </div>
       </div>
       <Virtuoso
-        className={classes.list_container}
+        className={classNames([classes.list_container, "flex-1"])}
         data={flowList}
         itemContent={(index, flow) => (
           <Link
             to={`/flow/${flow._id.$oid}?${searchParams}`}
             key={flow._id.$oid}
+            className="focus-visible:rounded-md"
           >
             <FlowListEntry
               key={flow._id.$oid}
