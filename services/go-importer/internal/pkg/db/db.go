@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"log"
+	"strings"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -189,6 +190,12 @@ func (db Database) AddSignatureToFlow(flow FlowID, sig Signature, window int) bo
 		},
 	}
 
+	tags := []string{"fishy"}
+	// TODO; pull this from metadata
+	if strings.Contains(sig.Msg, "stolen flag") {
+		tags = append(tags, "steal")
+	}
+
 	var info bson.M
 	// TODO; This can probably be done more elegantly, right?
 	if sig.Action == "blocked" {
@@ -197,14 +204,18 @@ func (db Database) AddSignatureToFlow(flow FlowID, sig Signature, window int) bo
 				"blocked": true,
 			},
 			"$addToSet": bson.M{
-				"tags":     "fishy",
+				"tags": bson.M{
+					"$each": tags,
+				},
 				"suricata": sig_id,
 			},
 		}
 	} else {
 		info = bson.M{
 			"$addToSet": bson.M{
-				"tags":     "fishy",
+				"tags": bson.M{
+					"$each": tags,
+				},
 				"suricata": sig_id,
 			},
 		}

@@ -146,8 +146,7 @@ interface FlowListEntryProps {
 function GetEntryColor(flow: Flow, isActive: boolean) {
   var classname = isActive ? classes.active : "";
 
-  // TODO; use a suricata tag instead of a magic rule ID
-  if (flow.suricata.includes(1000000)) {
+  if (flow.tags.includes("steal")) {
     return `${classname} ${classes.blocked_interesting}`;
   }
 
