@@ -74,7 +74,7 @@ def getStarred():
 
 @application.route('/star/<flow_id>/<star_to_set>')
 def setStar(flow_id, star_to_set):
-    db.setStar(flow_id, bool(star_to_set))
+    db.setStar(flow_id, star_to_set != "0")
     return "ok!"
 
 
