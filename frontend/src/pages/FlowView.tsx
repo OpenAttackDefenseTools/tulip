@@ -1,8 +1,6 @@
 import { useParams } from "react-router-dom";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { api, FlowData, FullFlow } from "../api";
-import { showHexAtom } from "../components/Header";
-import { useAtom } from "jotai";
 import { Buffer } from "buffer";
 
 import {
@@ -14,17 +12,62 @@ import classNames from "classnames";
 
 import { hexy } from "hexy";
 
+//https://stackoverflow.com/questions/51805395/navigator-clipboard-is-undefined
+function copyToClipboard(textToCopy: string) {
+  // navigator clipboard api needs a secure context (https)
+  if (navigator.clipboard && window.isSecureContext) {
+    // navigator clipboard api method'
+    return navigator.clipboard.writeText(textToCopy);
+  } else {
+    // text area method
+    let textArea = document.createElement("textarea");
+    textArea.value = textToCopy;
+    // make the textarea out of viewport
+    textArea.style.position = "fixed";
+    textArea.style.left = "-999999px";
+    textArea.style.top = "-999999px";
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    return new Promise<void>((res, rej) => {
+      // here the magic happens
+      document.execCommand("copy") ? res() : rej();
+      textArea.remove();
+    });
+  }
+}
+
+type CopyState = "failed" | "copied" | "copying" | "default";
+
+const copyStateToText: Record<CopyState, string> = {
+  copied: "Copied",
+  default: "Copy",
+  failed: "Copy failed",
+  copying: "Copying",
+};
+
 function CopyButton({ copyText }: { copyText?: string }) {
+  const [copyState, setCopyState] = useState<CopyState>("default");
+
+  const onClick = useCallback(() => {
+    setCopyState("copying");
+    copyToClipboard(copyText ?? "")
+      .then(() => {
+        setCopyState("copied");
+        setTimeout(() => setCopyState("default"), 2000);
+      })
+      .catch(() => setCopyState("failed"));
+  }, [copyText, setCopyState]);
+
   return (
     <>
       {copyText && (
         <button
           className="p-2 text-sm text-blue-500"
-          onClick={() => {
-            navigator.clipboard.writeText(copyText);
-          }}
+          onClick={onClick}
+          disabled={!copyState}
         >
-          Copy
+          {copyStateToText[copyState]}
         </button>
       )}
     </>
@@ -53,7 +96,7 @@ function HexFlow({ flow }: { flow: FlowData }) {
   // make hex view here, use Buffer or maybe not.
   const buffer = Buffer.from(data, "hex");
   const hex = hexy(buffer);
-  return <FlowContainer copyText={hex} >{hex}</FlowContainer>;
+  return <FlowContainer copyText={hex}>{hex}</FlowContainer>;
 }
 
 function TextFlow({ flow }: { flow: FlowData }) {
@@ -239,8 +282,7 @@ function FlowOverview({ flow }: { flow: FullFlow }) {
   );
 }
 
-
-function Header() { }
+function Header() {}
 
 export function FlowView() {
   const params = useParams();
@@ -276,7 +318,8 @@ export function FlowView() {
         style={{ height: 60, zIndex: 100 }}
       >
         <div className="flex  align-middle p-2 gap-3 ml-auto">
-          <button className="bg-gray-700 text-white p-2 text-sm rounded-md"
+          <button
+            className="bg-gray-700 text-white p-2 text-sm rounded-md"
             onClick={copyAsPwn}
           >
             Copy as pwntools
@@ -286,11 +329,7 @@ export function FlowView() {
           </button>
         </div>
       </div>
-      {
-        flow ?
-          <FlowOverview flow={flow}></FlowOverview>
-          : undefined
-      }
+      {flow ? <FlowOverview flow={flow}></FlowOverview> : undefined}
       {flow?.flow.map((flow_data, i, a) => {
         const delta_time = a[i].time - (a[i - 1]?.time ?? a[i].time);
         return (

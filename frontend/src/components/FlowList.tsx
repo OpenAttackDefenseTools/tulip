@@ -21,6 +21,9 @@ import { HeartIcon as EmptyHeartIcon } from "@heroicons/react/outline";
 import classes from "./FlowList.module.css";
 import { format } from "date-fns";
 import { atomWithStorage } from "jotai/utils";
+import useDebounce from "../hooks/useDebounce";
+import { Virtuoso } from "react-virtuoso";
+import classNames from "classnames";
 
 const onlyStarred = atomWithStorage("onlyStarred", false);
 const hideBlockedAtom = atomWithStorage("hideBlocked", false);
@@ -40,10 +43,12 @@ export function FlowList() {
   const from_filter = searchParams.get(START_FILTER_KEY) ?? undefined;
   const to_filter = searchParams.get(END_FILTER_KEY) ?? undefined;
 
+  const debounced_text_filter = useDebounce(text_filter, 300);
+
   useEffect(() => {
     const fetchData = async () => {
       const data = await api.getFlows({
-        "flow.data": text_filter,
+        "flow.data": debounced_text_filter,
         dst_ip: service?.ip,
         dst_port: service?.port,
         from_time: from_filter,
@@ -54,14 +59,21 @@ export function FlowList() {
       setFlowList(data);
     };
     fetchData().catch(console.error);
-  }, [service, text_filter, from_filter, to_filter, starred, hideBlocked]);
+  }, [
+    service,
+    debounced_text_filter,
+    from_filter,
+    to_filter,
+    starred,
+    hideBlocked,
+  ]);
 
   const onHeartHandler = useCallback(
     async (flow: Flow) => {
       const star_res = await api.starFlow(flow._id.$oid, !flow.starred);
       // todo error handling star res
       const data = await api.getFlows({
-        "flow.data": text_filter,
+        "flow.data": debounced_text_filter,
         dst_ip: service?.ip,
         dst_port: service?.port,
         from_time: from_filter,
@@ -71,13 +83,13 @@ export function FlowList() {
       });
       setFlowList(data);
     },
-    [service, text_filter, from_filter, to_filter, starred]
+    [service, debounced_text_filter, from_filter, to_filter, starred]
   );
 
   return (
-    <div className="">
+    <div className="flex flex-col h-full">
       <div
-        className="sticky top-0 bg-white p-2 border-b-gray-300 border-b shadow-md flex-col items-center"
+        className="bg-white p-2 border-b-gray-300 border-b shadow-md flex-col items-center"
         style={{ height: 60 }}
       >
         <div>
@@ -103,9 +115,15 @@ export function FlowList() {
           <label htmlFor="">Hide blocked flows</label>
         </div>
       </div>
-      <ul className={classes.list_container}>
-        {flowList.map((flow) => (
-          <Link to={`/flow/${flow._id.$oid}?${searchParams}`} key={flow._id.$oid}>
+      <Virtuoso
+        className={classNames([classes.list_container, "flex-1"])}
+        data={flowList}
+        itemContent={(index, flow) => (
+          <Link
+            to={`/flow/${flow._id.$oid}?${searchParams}`}
+            key={flow._id.$oid}
+            className="focus-visible:rounded-md"
+          >
             <FlowListEntry
               key={flow._id.$oid}
               flow={flow}
@@ -113,8 +131,8 @@ export function FlowList() {
               onHeartClick={onHeartHandler}
             />
           </Link>
-        ))}
-      </ul>
+        )}
+      />
     </div>
   );
 }
@@ -126,8 +144,7 @@ interface FlowListEntryProps {
 }
 
 function GetEntryColor(flow: Flow, isActive: boolean) {
-
-  var classname = isActive ? classes.active : ""
+  var classname = isActive ? classes.active : "";
 
   // TODO; use a suricata tag instead of a magic rule ID
   if (flow.suricata.includes(1000000)) {
