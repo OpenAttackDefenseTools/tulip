@@ -18,8 +18,12 @@
         @apply bg-purple-200;
     }
 
+    li.blocked_interesting {
+        @apply bg-yellow-200;
+    }
+
     li.flag_in {
-        @apply bg-green-200;
+        @apply bg-gray-300;
     }
 
     li.flag_out {

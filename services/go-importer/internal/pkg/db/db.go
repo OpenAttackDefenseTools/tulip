@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
@@ -34,6 +35,7 @@ type FlowEntry struct {
 	Starred  bool
 	Blocked  bool
 	Filename string
+	Suricata []int
 	Flow     []FlowItem
 	Tags     []string
 }
@@ -131,12 +133,48 @@ type FlowID struct {
 }
 
 type Signature struct {
-	ID     int
-	Msg    string
-	Action string
+	MongoID primitive.ObjectID `bson:"_id,omitempty"`
+	ID      int
+	Msg     string
+	Action  string
+}
+
+func (db Database) AddSignature(sig Signature) string {
+	sigCollection := db.client.Database("pcap").Collection("signatures")
+
+	// TODO; there's a bit of a race here, but I'm also racing to get this code working in time
+	// for the next demo, so it all evens out.
+
+	query := bson.M{
+		"id":     sig.ID,
+		"msg":    sig.Msg,
+		"action": sig.Action,
+	}
+
+	var existing_sig Signature
+	err := sigCollection.FindOne(context.TODO(), query).Decode(&existing_sig)
+	if err != nil {
+		// The signature does not appear in the DB yet. Let's add it.
+		res, err := sigCollection.InsertOne(context.TODO(), query)
+		if err != nil {
+			log.Println("Rule add failed with error: ", err)
+			return ""
+		}
+		ret := res.InsertedID.(primitive.ObjectID)
+		return ret.Hex()
+	} else {
+		// The signature _does_ appear in the db. Let's return it's ID directly!
+		return existing_sig.MongoID.Hex()
+	}
 }
 
 func (db Database) AddSignatureToFlow(flow FlowID, sig Signature, window int) bool {
+	// Add the signature to the collection
+	sig_id := db.AddSignature(sig)
+	if sig_id == "" {
+		return false
+	}
+
 	// Find a flow that more or less matches the one we're looking for
 	flowCollection := db.client.Database("pcap").Collection("pcap")
 	epoch := int(flow.Time.UnixNano() / 1000000)
@@ -156,17 +194,19 @@ func (db Database) AddSignatureToFlow(flow FlowID, sig Signature, window int) bo
 	if sig.Action == "blocked" {
 		info = bson.M{
 			"$set": bson.M{
-				"blocked":   true,
-				"suricata":  sig,
+				"blocked": true,
 			},
-			"$addToSet": bson.M{"tags": "fishy"},
+			"$addToSet": bson.M{
+				"tags":     "fishy",
+				"suricata": sig_id,
+			},
 		}
 	} else {
 		info = bson.M{
-			"$set": bson.M{
-				"suricata":  sig,
+			"$addToSet": bson.M{
+				"tags":     "fishy",
+				"suricata": sig_id,
 			},
-			"$addToSet": bson.M{"tags": "fishy"},
 		}
 	}
 

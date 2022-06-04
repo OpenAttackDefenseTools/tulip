@@ -213,6 +213,7 @@ func (t *tcpStream) ReassemblyComplete(ac reassembly.AssemblerContext) bool {
 		Starred:  false,
 		Blocked:  false,
 		Tags:     make([]string, 0),
+		Suricata: make([]int, 0),
 		Filename: t.source,
 		Flow:     t.FlowItems,
 	}

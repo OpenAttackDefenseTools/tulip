@@ -13,11 +13,12 @@ export interface Flow {
     starred: number
     blocked: boolean
     tags: string[]
-    suricata: Signature
+    suricata: number[]
     filename: string
 }
 
 export interface FullFlow extends Flow {
+    signatures: Signature[]
     flow: FlowData[]
 }
 
@@ -79,6 +80,11 @@ class TulipApi {
             body: JSON.stringify(query),
         });
         return (await response.json()) as Flow[];
+    }
+
+    async getSignature(id: number) {
+        const response = await fetch(`${this.API_ENDPOINT}/signature/${id}`);
+        return (await response.json()) as Signature;
     }
 
     async getFlow(id: string) {

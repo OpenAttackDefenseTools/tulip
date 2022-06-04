@@ -229,43 +229,54 @@ function Flow({ flow, delta_time }: FlowProps) {
 }
 
 function FlowOverview({ flow }: { flow: FullFlow }) {
+
   return (
     <div>
-      {flow.suricata ? (
-        <div className="bg-blue-100">
+      {flow.signatures?.length > 0 ?
+        <div className="bg-blue-200">
           <div className="font-extrabold">Suricata</div>
-          <div>
-            <div className="flex">
-              <div>Message: </div>
-              <div className="font-bold">{flow.suricata.msg}</div>
-            </div>
-            <div className="flex">
-              <div>Rule ID: </div>
-              <div className="font-bold">{flow.suricata.id}</div>
-            </div>
-            <div className="flex">
-              <div>Action taken: </div>
-              <div
-                className={
-                  flow.suricata.action === "blocked"
-                    ? "font-bold text-red-800"
-                    : "font-bold text-green-800"
-                }
-              >
-                {flow.suricata.action}
-              </div>
-            </div>
+          <div className="pl-2">
+            {flow.signatures.map(sig => {
+              return (
+                <div className="py-1">
+                  <div className="flex">
+                    <div>Message: </div>
+                    <div className="font-bold">{sig.msg}</div>
+                  </div>
+                  <div className="flex">
+                    <div>Rule ID: </div>
+                    <div className="font-bold">{sig.id}</div>
+                  </div>
+                  <div className="flex">
+                    <div>Action taken: </div>
+                    <div
+                      className={
+                        sig.action === "blocked"
+                          ? "font-bold text-red-800"
+                          : "font-bold text-green-800"
+                      }
+                    >{sig.action}</div>
+                  </div>
+                </div>
+              )
+            })}
           </div>
         </div>
-      ) : undefined}
-      <div className="bg-yellow-100">
-        <div className="font-extrabold">Meta</div>
-        <div>Source: </div>
-        <div className="font-bold">{flow.filename}</div>
-        <div></div>
-        <div>Tags: </div>
-        <div className="font-bold">[{flow.tags.join(", ")}]</div>
-        <div></div>
+        : undefined
+      }
+      <div className="bg-yellow-200">
+        <div className="font-extrabold">Meta
+        </div>
+        <div className="pl-2">
+          <div>Source: </div>
+          <div className="font-bold">{flow.filename}</div>
+          <div>
+          </div>
+          <div>Tags: </div>
+          <div className="font-bold">[{flow.tags.join(", ")}]</div>
+          <div>
+          </div>
+        </div>
       </div>
     </div>
   );
