@@ -77,7 +77,9 @@ class DB:
         ret = self.pcap_coll.find_one({"_id": ObjectId(id)})
         ret["signatures"] = []
         for sig_id in ret["suricata"]:
-            ret["signatures"].append(self.signature_coll.find_one({"_id": sig_id}))
+            tmp = self.signature_coll.find_one({"_id": ObjectId(sig_id)})
+            if tmp:
+                ret["signatures"].append(tmp)
         return ret
 
     def setStar(self, flow_id, star):

@@ -34,7 +34,7 @@ export interface FlowData {
 }
 
 export interface Signature {
-    _id: number
+    id: number
     msg: string
     action: string
 }

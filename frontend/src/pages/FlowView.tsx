@@ -202,7 +202,7 @@ function FlowOverview({ flow }: { flow: FullFlow }) {
                   </div>
                   <div className="flex">
                     <div>Rule ID: </div>
-                    <div className="font-bold">{sig._id}</div>
+                    <div className="font-bold">{sig.id}</div>
                   </div>
                   <div className="flex">
                     <div>Action taken: </div>
