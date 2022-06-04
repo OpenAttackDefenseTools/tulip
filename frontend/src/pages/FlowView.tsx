@@ -44,7 +44,7 @@ function FlowContainer({
       <div className="ml-auto">
         <CopyButton copyText={copyText}></CopyButton>
       </div>
-      <pre className="p-5 overflow-scroll">{children}</pre>
+      <pre className="p-5 overflow-auto">{children}</pre>
     </div>
   );
 }
@@ -146,7 +146,7 @@ function Flow({ flow, delta_time }: FlowProps) {
   return (
     <div className=" text-mono">
       <div
-        className="sticky shadow-md bg-white overflow-scroll py-1 border-y"
+        className="sticky shadow-md bg-white overflow-auto py-1 border-y"
         style={{ top: 50 }}
       >
         <div className="flex items-center h-6">
@@ -187,14 +187,13 @@ function Flow({ flow, delta_time }: FlowProps) {
 }
 
 function FlowOverview({ flow }: { flow: FullFlow }) {
-
   return (
     <div>
-      {flow.signatures?.length > 0 ?
+      {flow.signatures?.length > 0 ? (
         <div className="bg-blue-200">
           <div className="font-extrabold">Suricata</div>
           <div className="pl-2">
-            {flow.signatures.map(sig => {
+            {flow.signatures.map((sig) => {
               return (
                 <div className="py-1">
                   <div className="flex">
@@ -213,27 +212,25 @@ function FlowOverview({ flow }: { flow: FullFlow }) {
                           ? "font-bold text-red-800"
                           : "font-bold text-green-800"
                       }
-                    >{sig.action}</div>
+                    >
+                      {sig.action}
+                    </div>
                   </div>
                 </div>
-              )
+              );
             })}
           </div>
         </div>
-        : undefined
-      }
+      ) : undefined}
       <div className="bg-yellow-200">
-        <div className="font-extrabold">Meta
-        </div>
+        <div className="font-extrabold">Meta</div>
         <div className="pl-2">
           <div>Source: </div>
           <div className="font-bold">{flow.filename}</div>
-          <div>
-          </div>
+          <div></div>
           <div>Tags: </div>
           <div className="font-bold">[{flow.tags.join(", ")}]</div>
-          <div>
-          </div>
+          <div></div>
         </div>
       </div>
     </div>
@@ -282,7 +279,7 @@ export function FlowView() {
   return (
     <div>
       <div
-        className="sticky shadow-md top-0 bg-white overflow-scroll border-b border-b-gray-200 flex"
+        className="sticky shadow-md top-0 bg-white overflow-auto border-b border-b-gray-200 flex"
         style={{ height: 60, zIndex: 100 }}
       >
         <div className="flex  align-middle p-2 gap-3 ml-auto">
