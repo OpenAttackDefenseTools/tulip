@@ -11,63 +11,21 @@ import { format } from "date-fns";
 import classNames from "classnames";
 
 import { hexy } from "hexy";
-
-//https://stackoverflow.com/questions/51805395/navigator-clipboard-is-undefined
-function copyToClipboard(textToCopy: string) {
-  // navigator clipboard api needs a secure context (https)
-  if (navigator.clipboard && window.isSecureContext) {
-    // navigator clipboard api method'
-    return navigator.clipboard.writeText(textToCopy);
-  } else {
-    // text area method
-    let textArea = document.createElement("textarea");
-    textArea.value = textToCopy;
-    // make the textarea out of viewport
-    textArea.style.position = "fixed";
-    textArea.style.left = "-999999px";
-    textArea.style.top = "-999999px";
-    document.body.appendChild(textArea);
-    textArea.focus();
-    textArea.select();
-    return new Promise<void>((res, rej) => {
-      // here the magic happens
-      document.execCommand("copy") ? res() : rej();
-      textArea.remove();
-    });
-  }
-}
-
-type CopyState = "failed" | "copied" | "copying" | "default";
-
-const copyStateToText: Record<CopyState, string> = {
-  copied: "Copied",
-  default: "Copy",
-  failed: "Copy failed",
-  copying: "Copying",
-};
+import { useCopy } from "../hooks/useCopy";
 
 function CopyButton({ copyText }: { copyText?: string }) {
-  const [copyState, setCopyState] = useState<CopyState>("default");
-
-  const onClick = useCallback(() => {
-    setCopyState("copying");
-    copyToClipboard(copyText ?? "")
-      .then(() => {
-        setCopyState("copied");
-        setTimeout(() => setCopyState("default"), 2000);
-      })
-      .catch(() => setCopyState("failed"));
-  }, [copyText, setCopyState]);
-
+  const { statusText, copy, copyState } = useCopy({
+    getText: async () => copyText ?? "",
+  });
   return (
     <>
       {copyText && (
         <button
           className="p-2 text-sm text-blue-500"
-          onClick={onClick}
-          disabled={!copyState}
+          onClick={copy}
+          disabled={!copyText}
         >
-          {copyStateToText[copyState]}
+          {statusText}
         </button>
       )}
     </>
@@ -306,10 +264,20 @@ export function FlowView() {
   async function copyAsPwn() {
     if (flow?._id.$oid) {
       let content = await api.toPwnTools(flow?._id.$oid);
-      navigator.clipboard.writeText(content);
-      // TODO; Show some feedback here?
+      return content;
     }
+    return "";
   }
+
+  const { statusText, copy, copyState } = useCopy({
+    getText: copyAsPwn,
+    copyStateToText: {
+      copied: "Copied",
+      default: "Copy as pwntools",
+      failed: "Failed",
+      copying: "Generating payload",
+    },
+  });
 
   return (
     <div>
@@ -320,9 +288,9 @@ export function FlowView() {
         <div className="flex  align-middle p-2 gap-3 ml-auto">
           <button
             className="bg-gray-700 text-white p-2 text-sm rounded-md"
-            onClick={copyAsPwn}
+            onClick={copy}
           >
-            Copy as pwntools
+            {statusText}
           </button>
           <button className="bg-gray-700 text-white p-2 text-sm rounded-md">
             Todo more things here?
