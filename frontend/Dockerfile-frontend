@@ -5,7 +5,7 @@ COPY yarn.lock /app/
 
 WORKDIR /app
 
-RUN yarn install
+RUN yarn
 
 COPY . /app/
 

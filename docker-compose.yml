@@ -20,8 +20,7 @@ services:
     networks:
       - internal
     environment:
-      FLAG_REGEX: "[A-Z0-9]{31}="
-      TULIP_MONGO: mongo:27017
+      API_SERVER_ENDPOINT: http://api:5000/
 
   api:
     build:
