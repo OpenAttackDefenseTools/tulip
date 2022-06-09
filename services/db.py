@@ -63,6 +63,10 @@ class DB:
             f["starred"] =  bool(filters["starred"])
         if "blocked" in filters:
             f["blocked"] =  bool(filters["blocked"])
+        if "tags" in filters:
+            f["tags"] = {
+                "$all": [str(elem) for elem in filters["tags"]]
+            }
 
         print("query:")
         pprint.pprint(f)
