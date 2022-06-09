@@ -12,7 +12,6 @@ import (
 	"encoding/hex"
 	"go-importer/internal/pkg/db"
 
-	//	"fmt"
 	"sync"
 	"time"
 
@@ -21,9 +20,6 @@ import (
 	"github.com/google/gopacket/reassembly"
 )
 
-var maxcount = -1
-var nooptcheck = true
-var ignorefsmerr = true
 var allowmissinginit = true
 var verbose = false
 var debug = false
@@ -45,7 +41,7 @@ type tcpStreamFactory struct {
 
 func (factory *tcpStreamFactory) New(net, transport gopacket.Flow, tcp *layers.TCP, ac reassembly.AssemblerContext) reassembly.Stream {
 	fsmOptions := reassembly.TCPSimpleFSMOptions{
-		SupportMissingEstablishment: allowmissinginit,
+		SupportMissingEstablishment: *nonstrict,
 	}
 	stream := &tcpStream{
 		net:                net,
@@ -80,8 +76,6 @@ func (c *Context) GetCaptureInfo() gopacket.CaptureInfo {
  * TCP stream
  */
 
-/*
-
 /* It's a connection (bidirectional) */
 type tcpStream struct {
 	tcpstate       *reassembly.TCPSimpleFSM
@@ -103,21 +97,19 @@ func (t *tcpStream) Accept(tcp *layers.TCP, ci gopacket.CaptureInfo, dir reassem
 		if !t.fsmerr {
 			t.fsmerr = true
 		}
-		if !ignorefsmerr {
+		if !*nonstrict {
 			return false
 		}
 	}
 	// Options
 	err := t.optchecker.Accept(tcp, ci, dir, nextSeq, start)
 	if err != nil {
-		if !nooptcheck {
+		if !*nonstrict {
 			return false
 		}
 	}
-	// We just ignore the `Checksum` for now
-	accept := true
-
-	return accept
+	// We just ignore the Checksum
+	return true
 }
 
 // ReassembledSG is called zero or more times.
