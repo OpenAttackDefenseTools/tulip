@@ -59,6 +59,13 @@ func ConnectMongo(uri string) Database {
 	}
 }
 
+func (db Database) ConfigureDatabase() {
+	db.InsertTag("fishy")
+	db.InsertTag("steal")
+	db.InsertTag("blocked")
+	db.ConfigureIndexes()
+}
+
 func (db Database) ConfigureIndexes() {
 	// create Index
 	flowCollection := db.client.Database("pcap").Collection("pcap")
@@ -138,6 +145,7 @@ type Signature struct {
 	ID      int
 	Msg     string
 	Action  string
+	Tag     string `bson:"omitempty"`
 }
 
 func (db Database) AddSignature(sig Signature) string {
@@ -196,6 +204,12 @@ func (db Database) AddSignatureToFlow(flow FlowID, sig Signature, window int) bo
 		tags = append(tags, "steal")
 	}
 
+	// A tag from the signature if it contained one
+	if sig.Tag != "" {
+		db.InsertTag(sig.Tag)
+		tags = append(tags, sig.Tag)
+	}
+
 	var info bson.M
 	// TODO; This can probably be done more elegantly, right?
 	if sig.Action == "blocked" {
@@ -205,7 +219,7 @@ func (db Database) AddSignatureToFlow(flow FlowID, sig Signature, window int) bo
 			},
 			"$addToSet": bson.M{
 				"tags": bson.M{
-					"$each": tags,
+					"$each": append(tags, "blocked"),
 				},
 				"suricata": sig_id,
 			},
@@ -230,4 +244,10 @@ func (db Database) AddSignatureToFlow(flow FlowID, sig Signature, window int) bo
 	}
 
 	return res.MatchedCount > 0
+}
+
+func (db Database) InsertTag(tag string) {
+	tagCollection := db.client.Database("pcap").Collection("tags")
+	// Yeah this will err... A lot.... Two more dev days till Athens, this will do.
+	tagCollection.InsertOne(context.TODO(), bson.M{"_id": tag})
 }

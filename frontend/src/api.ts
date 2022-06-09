@@ -84,6 +84,11 @@ class TulipApi {
 
     async getSignature(id: number) {
         const response = await fetch(`${this.API_ENDPOINT}/signature/${id}`);
+        return (await response.json()) as string[];
+    }
+
+    async getTags() {
+        const response = await fetch(`${this.API_ENDPOINT}/tags`);
         return (await response.json()) as Signature;
     }
 

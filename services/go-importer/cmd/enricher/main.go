@@ -52,7 +52,6 @@ func watchEve(eve_file string) {
 		log.Fatal("eve file is not a file")
 	}
 
-
 	// Do the initial scan
 	log.Println("Parsing initial eve contents...")
 	ratchet := updateEve(eve_file, 0)
@@ -66,14 +65,14 @@ func watchEve(eve_file string) {
 		new_stat, err := os.Stat(eve_file)
 		if err != nil {
 			log.Println("Failed to open the eve file with error: ", err)
-			continue;
+			continue
 		}
 
 		if new_stat.Size() > prevSize {
 			log.Println("Eve file was updated. New size:, ", new_stat.Size())
 			ratchet = updateEve(eve_file, ratchet)
 		}
-		prevSize = new_stat.Size();
+		prevSize = new_stat.Size()
 
 	}
 
@@ -175,6 +174,11 @@ func handleEveLine(json string) (bool, error) {
 	sig_msg := gjson.Get(json, "alert.signature")
 	sig_id := gjson.Get(json, "alert.signature_id")
 	sig_action := gjson.Get(json, "alert.action")
+	tag := ""
+	jtag := gjson.Get(json, "alert.metadata.tag.0")
+	if jtag.Exists() {
+		tag = jtag.String()
+	}
 
 	// TODO; Double check this, might be broken for non-UTC?
 	start_time_obj, _ := time.Parse("2006-01-02T15:04:05.999999999-0700", start_time.String())
@@ -199,6 +203,7 @@ func handleEveLine(json string) (bool, error) {
 		ID:     int(sig_id.Int()),
 		Msg:    sig_msg.String(),
 		Action: sig_action.String(),
+		Tag:    tag,
 	}
 
 	// TODO; use one, sensible query instead of just trying both cases
