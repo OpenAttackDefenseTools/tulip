@@ -10,7 +10,7 @@ export interface Flow {
     time: number
     duration: number
     inx: number
-    starred: number
+    starred: boolean
     blocked: boolean
     tags: string[]
     suricata: number[]
@@ -49,8 +49,7 @@ export interface FlowsQuery {
     dst_port?: number;
     from_time?: string;
     to_time?: string;
-    starred?: boolean;
-    blocked?: boolean;
+    tags: string[];
 }
 
 export type Service = {
@@ -70,6 +69,18 @@ class TulipApi {
     }
 
     async getFlows(query: FlowsQuery) {
+        // HACK
+
+        const starred = query.tags.includes("starred");
+        let tags = query.tags.filter(tag => tag !== "starred")
+        const hacky_query = {
+            ...query,
+            tags: tags.length > 0 ? tags : undefined,
+            starred
+        }
+
+        // END HACK
+
         // todo rename this endpoint
         const response = await fetch(`${this.API_ENDPOINT}/query`, {
             method: "POST",
@@ -77,19 +88,26 @@ class TulipApi {
                 Accept: "application/json",
                 "Content-Type": "application/json"
             },
-            body: JSON.stringify(query),
+            body: JSON.stringify(hacky_query),
         });
         return (await response.json()) as Flow[];
     }
 
     async getSignature(id: number) {
         const response = await fetch(`${this.API_ENDPOINT}/signature/${id}`);
-        return (await response.json()) as string[];
+        return (await response.json()) as Signature[];
     }
 
     async getTags() {
         const response = await fetch(`${this.API_ENDPOINT}/tags`);
-        return (await response.json()) as Signature;
+        const tags = await response.json();
+
+        // HACK
+        tags.push("starred")
+        // END HACK
+
+
+        return tags;
     }
 
     async getFlow(id: string) {
