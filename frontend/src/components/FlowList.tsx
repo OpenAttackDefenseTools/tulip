@@ -160,42 +160,20 @@ interface FlowListEntryProps {
   onHeartClick: (flow: Flow) => void;
 }
 
-function GetEntryColor(flow: Flow, isActive: boolean) {
-  var classname = isActive ? classes.active : "";
-
-  if (flow.tags.includes("steal")) {
-    return `${classname} ${classes.blocked_interesting}`;
-  }
-
-  if (flow.blocked) {
-    return `${classname} ${classes.blocked}`;
-  }
-
-  // No special tags? just return as-is
-  if (flow.tags.length == 0) {
-    return classname;
-  }
-
-  // TODO if we see a flag in, we'll just assume flag bot for now and return
-  if (flow.tags.includes("flag-in")) {
-    return `${classname} ${classes.flag_in}`;
-  }
-
-  if (flow.tags.includes("flag-out")) {
-    classname = `${classname} ${classes.flag_out}`;
-  }
-
-  if (flow.tags.includes("fishy")) {
-    classname = `${classname} ${classes.fishy}`;
-  }
-
-  return classname;
-}
-
 function FlowListEntry({ flow, isActive, onHeartClick }: FlowListEntryProps) {
-  const formatted_time = format(new Date(flow.time), "HH:mm:ss:SSS");
+  const formatted_time_h_m_s = format(new Date(flow.time), "HH:mm:ss.SSS");
+  const formatted_time_ms = format(new Date(flow.time), ".SSS");
+
+  const isStarred = flow.tags.includes("starred");
+  // Filter tag list for tags that are handled specially
+  const filtered_tag_list = flow.tags.filter((t) => !["starred"].includes(t));
+
   return (
-    <li className={GetEntryColor(flow, isActive)}>
+    <li
+      className={classNames({
+        [classes.active]: isActive,
+      })}
+    >
       <div className="flex">
         <div
           className="w-5 ml-2 mr-4 self-center"
@@ -210,20 +188,17 @@ function FlowListEntry({ flow, isActive, onHeartClick }: FlowListEntryProps) {
           )}
         </div>
         <div className="flex-1">
-          <div className="flex justify-between">
+          <div className="flex justify-between ">
             <div>
-              {" "}
-              <span>{flow.src_ip}</span>:
-              <span className="font-bold">{flow.src_port}</span>
+              <span className="text-gray-500">{formatted_time_h_m_s}</span>
+              <span className="text-gray-300">{formatted_time_ms}</span>
             </div>
-            <div>
-              <span>{flow.dst_ip}</span>:
-              <span className="font-bold">{flow.dst_port}</span>
-            </div>
+            <div className="text-gray-500">{flow.duration}ms</div>
           </div>
-          <div className="flex justify-between text-gray-500">
-            <div>{formatted_time}</div>
-            <div>{flow.duration}ms</div>
+          <div className="flex h-5 gap-2">
+            {filtered_tag_list.map((tag) => (
+              <Tag key={tag} tag={tag}></Tag>
+            ))}
           </div>
         </div>
       </div>

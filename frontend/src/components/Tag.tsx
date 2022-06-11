@@ -8,8 +8,15 @@ const computeColorFromString = (str: string) => {
   );
   return Color(`hsl(${hue}, 100%, 50%)`).hex();
 };
+
 // Hardcode colors here
-const tagColorMap = {} as Record<string, string>;
+const tagColorMap: Record<string, string> = {
+  fishy: "rgb(191, 219, 254)",
+  blocked: "rgb(233, 213, 255)",
+  flag_out: "rgb(254, 204, 204)",
+  flag_in: "rgb(209, 213, 219)",
+};
+
 export function tagToColor(tag: string) {
   return tagColorMap[tag] ?? computeColorFromString(tag);
 }

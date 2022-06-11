@@ -233,6 +233,19 @@ function FlowOverview({ flow }: { flow: FullFlow }) {
           <div>Tags: </div>
           <div className="font-bold">[{flow.tags.join(", ")}]</div>
           <div></div>
+          <div>Source - Target: </div>
+          <div className="flex items-center gap-1">
+            <div>
+              {" "}
+              <span>{flow.src_ip}</span>:
+              <span className="font-bold">{flow.src_port}</span>
+            </div>
+            <div>-</div>
+            <div>
+              <span>{flow.dst_ip}</span>:
+              <span className="font-bold">{flow.dst_port}</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -276,13 +289,17 @@ export function FlowView() {
     },
   });
 
+  if (flow === undefined) {
+    return <div>Loading...</div>;
+  }
+
   return (
     <div>
       <div
         className="sticky shadow-md top-0 bg-white overflow-auto border-b border-b-gray-200 flex"
         style={{ height: SECONDARY_NAVBAR_HEIGHT, zIndex: 100 }}
       >
-        <div className="flex  align-middle p-2 gap-3 ml-auto">
+        <div className="flex align-middle p-2 gap-3 ml-auto">
           <button
             className="bg-gray-700 text-white px-2 text-sm rounded-md"
             onClick={copy}

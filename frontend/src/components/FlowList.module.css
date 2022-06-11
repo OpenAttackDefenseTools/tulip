@@ -10,23 +10,4 @@
         @apply ring-2 ring-gray-500
     }
 
-    li.fishy {
-        @apply bg-blue-200;
-    }
-
-    li.blocked {
-        @apply bg-purple-200;
-    }
-
-    li.blocked_interesting {
-        @apply bg-yellow-200;
-    }
-
-    li.flag_in {
-        @apply bg-gray-300;
-    }
-
-    li.flag_out {
-        @apply bg-red-200;
-    }
 }
