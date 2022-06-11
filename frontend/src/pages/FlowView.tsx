@@ -1,6 +1,6 @@
 import { useParams } from "react-router-dom";
-import React, { useCallback, useEffect, useState } from "react";
-import { api, FlowData, FullFlow } from "../api";
+import React, { useEffect, useState } from "react";
+import { useTulip, FlowData, FullFlow } from "../api";
 import { Buffer } from "buffer";
 
 import {
@@ -86,6 +86,8 @@ function WebFlow({ flow }: { flow: FlowData }) {
 
 function PythonRequestFlow({ flow }: { flow: FlowData }) {
   const [data, setData] = useState("");
+
+  const { api } = useTulip();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -259,6 +261,8 @@ export function FlowView() {
   const [flow, setFlow] = useState<FullFlow>();
 
   const id = params.id;
+
+  const { api } = useTulip();
 
   useEffect(() => {
     const fetchData = async () => {

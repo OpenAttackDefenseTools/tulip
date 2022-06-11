@@ -6,9 +6,8 @@ import {
 } from "react-router-dom";
 import { useCallback, useEffect, useState } from "react";
 import { useAtom, useAtomValue } from "jotai";
-import { api, Flow, FullFlow } from "../api";
+import { Flow, FullFlow, useTulip } from "../api";
 import {
-  fetchUrlAtom,
   SERVICE_FILTER_KEY,
   TEXT_FILTER_KEY,
   START_FILTER_KEY,
@@ -31,7 +30,9 @@ import { Tag } from "./Tag";
 export function FlowList() {
   let [searchParams] = useSearchParams();
   let params = useParams();
-  const services = useAtomValue(fetchUrlAtom);
+
+  const { services, api, getFlows } = useTulip();
+
   const [flowList, setFlowList] = useState<Flow[]>([]);
 
   const service_name = searchParams.get(SERVICE_FILTER_KEY) ?? "";
@@ -60,12 +61,13 @@ export function FlowList() {
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
-      const data = await api.getFlows({
+      const data = await getFlows({
         "flow.data": debounced_text_filter,
         dst_ip: service?.ip,
         dst_port: service?.port,
         from_time: from_filter,
         to_time: to_filter,
+        service: "", // FIXME
         tags: selectedTags,
       });
       setFlowList(data);
@@ -161,12 +163,19 @@ interface FlowListEntryProps {
 }
 
 function FlowListEntry({ flow, isActive, onHeartClick }: FlowListEntryProps) {
-  const formatted_time_h_m_s = format(new Date(flow.time), "HH:mm:ss.SSS");
+  const formatted_time_h_m_s = format(new Date(flow.time), "HH:mm:ss");
   const formatted_time_ms = format(new Date(flow.time), ".SSS");
 
   const isStarred = flow.tags.includes("starred");
   // Filter tag list for tags that are handled specially
   const filtered_tag_list = flow.tags.filter((t) => !["starred"].includes(t));
+
+  const duration =
+    flow.duration > 10000 ? (
+      <div className="text-red-500">&gt;10s</div>
+    ) : (
+      <div>{flow.duration}ms</div>
+    );
 
   return (
     <li
@@ -176,7 +185,7 @@ function FlowListEntry({ flow, isActive, onHeartClick }: FlowListEntryProps) {
     >
       <div className="flex">
         <div
-          className="w-5 ml-2 mr-4 self-center"
+          className="w-5 ml-2 mr-4 self-center shrink-0"
           onClick={() => {
             onHeartClick(flow);
           }}
@@ -187,13 +196,20 @@ function FlowListEntry({ flow, isActive, onHeartClick }: FlowListEntryProps) {
             <EmptyHeartIcon />
           )}
         </div>
-        <div className="flex-1">
-          <div className="flex justify-between ">
-            <div>
+        <div className="flex-1 shrink">
+          <div className="flex">
+            <div className="shrink-0">
+              <span className="text-gray-700 font-bold overflow-ellipsis overflow-hidden ">
+                {flow.service_tag}
+              </span>
+              <span className="text-gray-500">:{flow.dst_port}</span>
+            </div>
+
+            <div className="ml-2">
               <span className="text-gray-500">{formatted_time_h_m_s}</span>
               <span className="text-gray-300">{formatted_time_ms}</span>
             </div>
-            <div className="text-gray-500">{flow.duration}ms</div>
+            <div className="text-gray-500 ml-auto">{duration}</div>
           </div>
           <div className="flex h-5 gap-2">
             {filtered_tag_list.map((tag) => (
