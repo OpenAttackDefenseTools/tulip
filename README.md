@@ -1,22 +1,24 @@
 # Tulip
 
 Tulip is a flow analyzer meant for use during Attack / Defence CTF competitions. It is originally based on [flower](https://github.com/secgroup/flower), but it contains quite some changes:
-* New front-end (typescript /react / tailwind)
+* New front-end (typescript / react / tailwind)
 * New ingestor code, based on gopacket
+* Vastly improved filter and tagging system.
+* Deep link support
+* Added an http decoding pass for compressed data
 * Added ability to correlate flows with suricata alerts
 
+## Screenshots
+![](./demo_images/demo1.png)
 
 ## Configuration
 Before starting the stack, edit `services/configurations.py`:
 
 ```
-vm_ip = "10.10.3.1"
-
-services = [{"ip": vm_ip, "port": 9876, "name": "cc_market"},
-            {"ip": vm_ip, "port": 80, "name": "maze"},
-            {"ip": vm_ip, "port": 8080, "name": "scadent"},
-            {"ip": vm_ip, "port": 5000, "name": "starchaser"},
-            {"ip": vm_ip, "port": 1883, "name": "scadnet_bin"}]
+vm_ip = "10.60.4.1"
+services = [{"ip": vm_ip, "port": 18080, "name": "BIOMarkt"},
+            {"ip": vm_ip, "port": 5555, "name": "SaaS"},
+]
 ```
 
 
