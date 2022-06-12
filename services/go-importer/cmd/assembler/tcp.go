@@ -101,13 +101,7 @@ func (t *tcpStream) Accept(tcp *layers.TCP, ci gopacket.CaptureInfo, dir reassem
 			return false
 		}
 	}
-	// Options
-	err := t.optchecker.Accept(tcp, ci, dir, nextSeq, start)
-	if err != nil {
-		if !*nonstrict {
-			return false
-		}
-	}
+
 	// We just ignore the Checksum
 	return true
 }
