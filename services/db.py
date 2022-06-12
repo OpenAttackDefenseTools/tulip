@@ -42,6 +42,7 @@ class DB:
             self.pcap_coll = self.db.pcap
             self.file_coll = self.db.filesImported
             self.signature_coll = self.db.signatures
+            self.tag_col = self.db.tags
 
         except ServerSelectionTimeoutError as err:
             sys.stderr.write("MongoDB server not active on %s\n%s" % (mongo_server,err))
@@ -62,11 +63,19 @@ class DB:
             f["starred"] =  bool(filters["starred"])
         if "blocked" in filters:
             f["blocked"] =  bool(filters["blocked"])
+        if "tags" in filters:
+            f["tags"] = {
+                "$all": [str(elem) for elem in filters["tags"]]
+            }
 
         print("query:")
         pprint.pprint(f)
 
         return self.pcap_coll.find(f, {"flow": 0}).sort("time", -1).limit(2000)
+
+    def getTagList(self):
+        a = [i["_id"] for i in self.tag_col.find()]
+        return a
 
     def getSignature(self, id):
         f = {"_id"}

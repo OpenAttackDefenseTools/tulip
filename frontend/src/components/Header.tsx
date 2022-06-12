@@ -2,16 +2,16 @@ import { format, parse } from "date-fns";
 import { useAtom } from "jotai";
 import { atomWithStorage } from "jotai/utils";
 import { Suspense } from "react";
-import { useSearchParams } from "react-router-dom";
-import { Service } from "../api";
+import { Link, useSearchParams } from "react-router-dom";
+import { Service, useTulip } from "../api";
 
 import {
   END_FILTER_KEY,
   SERVICE_FILTER_KEY,
   START_FILTER_KEY,
   TEXT_FILTER_KEY,
-  fetchUrlAtom,
 } from "../App";
+import { useCTF } from "../pages/Home";
 
 export const showHexAtom = atomWithStorage("showHex", false);
 
@@ -19,7 +19,9 @@ function ServiceSelection() {
   const FILTER_KEY = SERVICE_FILTER_KEY;
 
   // TODO add all, maybe user react-select
-  const [services] = useAtom(fetchUrlAtom);
+
+  const { api, services } = useTulip();
+
   const service_select = [
     {
       ip: "",
@@ -75,40 +77,73 @@ function TextSearch() {
   );
 }
 
-function unixTimeToTime(unixTime: string | null): string | undefined {
-  if (unixTime === null) {
-    return;
+function useMessyTimeStuff() {
+  let [searchParams, setSearchParams] = useSearchParams();
+
+  const { startDate, tickLength } = useCTF();
+
+  function setTimeParam(startTick: string, param: string) {
+    const parsedTick = startTick === "" ? undefined : parseInt(startTick);
+    const unixTime = tickToUnixTime(parsedTick);
+    if (unixTime) {
+      searchParams.set(param, unixTime.toString());
+    } else {
+      searchParams.delete(param);
+    }
+    setSearchParams(searchParams);
   }
-  let unixTimeInt = parseInt(unixTime);
-  if (isNaN(unixTimeInt)) {
-    return;
+
+  const startTimeParamUnix = searchParams.get(START_FILTER_KEY);
+  const endTimeParamUnix = searchParams.get(END_FILTER_KEY);
+
+  function unixTimeToTick(unixTime: string | null): number | undefined {
+    if (unixTime === null) {
+      return;
+    }
+    let unixTimeInt = parseInt(unixTime);
+    if (isNaN(unixTimeInt)) {
+      return;
+    }
+    const tick = Math.floor(
+      (unixTimeInt - new Date(startDate).valueOf()) / tickLength
+    );
+
+    return tick;
   }
-  const date = new Date(unixTimeInt);
-  return format(date, "HH:mm");
+
+  function tickToUnixTime(tick?: number) {
+    if (!tick) {
+      return;
+    }
+    const unixTime = new Date(startDate).valueOf() + tickLength * tick;
+    return unixTime;
+  }
+
+  const startTick = unixTimeToTick(startTimeParamUnix);
+  const endTick = unixTimeToTick(endTimeParamUnix);
+
+  return {
+    unixTimeToTick,
+    startDate,
+    tickLength,
+    setTimeParam,
+    startTick,
+    endTick,
+  };
 }
 
 function StartDateSelection() {
-  const FILTER_KEY = START_FILTER_KEY;
-  let [searchParams, setSearchParams] = useSearchParams();
-
-  const unixTime = searchParams.get(FILTER_KEY);
+  const { setTimeParam, startTick } = useMessyTimeStuff();
 
   return (
     <div>
       <input
-        type="time"
-        value={unixTimeToTime(unixTime)}
+        className="w-20"
+        type="number"
+        placeholder="from"
+        value={startTick}
         onChange={(event) => {
-          let startFilter = event.target.value;
-          if (startFilter) {
-            const unixTime = parse(startFilter, "HH:mm", new Date())
-              .valueOf()
-              .toString();
-            searchParams.set(FILTER_KEY, unixTime);
-          } else {
-            searchParams.delete(FILTER_KEY);
-          }
-          setSearchParams(searchParams);
+          setTimeParam(event.target.value, START_FILTER_KEY);
         }}
       ></input>
     </div>
@@ -116,27 +151,17 @@ function StartDateSelection() {
 }
 
 function EndDateSelection() {
-  const FILTER_KEY = END_FILTER_KEY;
-  let [searchParams, setSearchParams] = useSearchParams();
-
-  const unixTime = searchParams.get(FILTER_KEY);
+  const { setTimeParam, endTick } = useMessyTimeStuff();
 
   return (
     <div>
       <input
-        type="time"
-        value={unixTimeToTime(unixTime)}
+        className="w-20"
+        type="number"
+        placeholder="to"
+        value={endTick}
         onChange={(event) => {
-          let endFilter = event.target.value;
-          if (endFilter) {
-            const unixTime = parse(endFilter, "HH:mm", new Date())
-              .valueOf()
-              .toString();
-            searchParams.set(FILTER_KEY, unixTime);
-          } else {
-            searchParams.delete(FILTER_KEY);
-          }
-          setSearchParams(searchParams);
+          setTimeParam(event.target.value, END_FILTER_KEY);
         }}
       ></input>
     </div>
@@ -162,9 +187,13 @@ function ShowHexToggle() {
 }
 
 export function Header() {
+  let [searchParams] = useSearchParams();
+
   return (
     <>
-      <div className="header-icon">🌷</div>
+      <Link to={`/?${searchParams}`}>
+        <div className="header-icon">🌷</div>
+      </Link>
       <div>
         <TextSearch></TextSearch>
       </div>

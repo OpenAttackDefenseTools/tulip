@@ -1,10 +1,8 @@
-import ReactDOM from "react-dom/client";
 import { BrowserRouter, Routes, Route, Outlet } from "react-router-dom";
 import { Suspense } from "react";
-import { atom, Provider, useAtom } from "jotai";
+import { Provider } from "jotai";
 
 import "./App.css";
-import { api, Service } from "./api";
 import { Header } from "./components/Header";
 import { Home } from "./pages/Home";
 import { FlowList } from "./components/FlowList";
@@ -14,11 +12,6 @@ export const TEXT_FILTER_KEY = "text";
 export const SERVICE_FILTER_KEY = "service";
 export const START_FILTER_KEY = "start";
 export const END_FILTER_KEY = "end";
-
-export const fetchUrlAtom = atom(async (get) => {
-  console.log("Fetching services");
-  return await api.getServices();
-});
 
 function App() {
   return (

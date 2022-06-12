@@ -1,6 +1,6 @@
 import { useParams } from "react-router-dom";
-import React, { useCallback, useEffect, useState } from "react";
-import { api, FlowData, FullFlow } from "../api";
+import React, { useEffect, useState } from "react";
+import { useTulip, FlowData, FullFlow } from "../api";
 import { Buffer } from "buffer";
 
 import {
@@ -12,6 +12,8 @@ import classNames from "classnames";
 
 import { hexy } from "hexy";
 import { useCopy } from "../hooks/useCopy";
+
+const SECONDARY_NAVBAR_HEIGHT = 50;
 
 function CopyButton({ copyText }: { copyText?: string }) {
   const { statusText, copy, copyState } = useCopy({
@@ -85,6 +87,8 @@ function WebFlow({ flow }: { flow: FlowData }) {
 function PythonRequestFlow({ flow }: { flow: FlowData }) {
   const [data, setData] = useState("");
 
+  const { api } = useTulip();
+
   useEffect(() => {
     const fetchData = async () => {
       const data = await api.toPythonRequest(btoa(flow.data), true);
@@ -147,7 +151,7 @@ function Flow({ flow, delta_time }: FlowProps) {
     <div className=" text-mono">
       <div
         className="sticky shadow-md bg-white overflow-auto py-1 border-y"
-        style={{ top: 50 }}
+        style={{ top: SECONDARY_NAVBAR_HEIGHT }}
       >
         <div className="flex items-center h-6">
           <div className="w-8 px-2">
@@ -231,6 +235,19 @@ function FlowOverview({ flow }: { flow: FullFlow }) {
           <div>Tags: </div>
           <div className="font-bold">[{flow.tags.join(", ")}]</div>
           <div></div>
+          <div>Source - Target: </div>
+          <div className="flex items-center gap-1">
+            <div>
+              {" "}
+              <span>{flow.src_ip}</span>:
+              <span className="font-bold">{flow.src_port}</span>
+            </div>
+            <div>-</div>
+            <div>
+              <span>{flow.dst_ip}</span>:
+              <span className="font-bold">{flow.dst_port}</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -245,6 +262,8 @@ export function FlowView() {
 
   const id = params.id;
 
+  const { api } = useTulip();
+
   useEffect(() => {
     const fetchData = async () => {
       if (id === undefined) {
@@ -256,8 +275,6 @@ export function FlowView() {
     fetchData().catch(console.error);
   }, [id]);
 
-  console.log(flow);
-
   async function copyAsPwn() {
     if (flow?._id.$oid) {
       let content = await api.toPwnTools(flow?._id.$oid);
@@ -266,7 +283,7 @@ export function FlowView() {
     return "";
   }
 
-  const { statusText, copy, copyState } = useCopy({
+  const { statusText, copy } = useCopy({
     getText: copyAsPwn,
     copyStateToText: {
       copied: "Copied",
@@ -276,21 +293,22 @@ export function FlowView() {
     },
   });
 
+  if (flow === undefined) {
+    return <div>Loading...</div>;
+  }
+
   return (
     <div>
       <div
         className="sticky shadow-md top-0 bg-white overflow-auto border-b border-b-gray-200 flex"
-        style={{ height: 60, zIndex: 100 }}
+        style={{ height: SECONDARY_NAVBAR_HEIGHT, zIndex: 100 }}
       >
-        <div className="flex  align-middle p-2 gap-3 ml-auto">
+        <div className="flex align-middle p-2 gap-3 ml-auto">
           <button
-            className="bg-gray-700 text-white p-2 text-sm rounded-md"
+            className="bg-gray-700 text-white px-2 text-sm rounded-md"
             onClick={copy}
           >
             {statusText}
-          </button>
-          <button className="bg-gray-700 text-white p-2 text-sm rounded-md">
-            Todo more things here?
           </button>
         </div>
       </div>

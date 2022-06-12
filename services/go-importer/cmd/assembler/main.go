@@ -78,7 +78,7 @@ func main() {
 
 	db_string := "mongodb://" + *mongodb
 	g_db = db.ConnectMongo(db_string)
-	g_db.ConfigureIndexes()
+	g_db.ConfigureDatabase()
 
 	// Pass positional arguments to the pcap handler
 	handlePcaps(flag.Args())

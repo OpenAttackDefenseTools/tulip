@@ -1,0 +1,55 @@
+import classNames from "classnames";
+import Color from "color";
+
+const computeColorFromString = (str: string) => {
+  const hue = Array.from(str).reduce(
+    (hash, char) => 0 | (31 * hash + char.charCodeAt(0)),
+    0
+  );
+  return Color(`hsl(${hue}, 100%, 50%)`).hex();
+};
+
+// Hardcode colors here
+const tagColorMap: Record<string, string> = {
+  fishy: "rgb(191, 219, 254)",
+  blocked: "rgb(233, 213, 255)",
+  flag_out: "rgb(254, 204, 204)",
+  flag_in: "rgb(209, 213, 219)",
+};
+
+export function tagToColor(tag: string) {
+  return tagColorMap[tag] ?? computeColorFromString(tag);
+}
+interface TagProps {
+  tag: string;
+  color?: string;
+  disabled?: boolean;
+  onClick?: () => void;
+}
+export const Tag = ({ tag, color, disabled = false, onClick }: TagProps) => {
+  const tagBackgroundColor = disabled ? "#eee" : color ?? tagToColor(tag);
+
+  const tagTextColor = disabled
+    ? "#bbb"
+    : Color(tagBackgroundColor).isDark()
+    ? "#fff"
+    : "#000";
+
+  return (
+    <div
+      onClick={onClick}
+      className={classNames({
+        "bg-gray-300": disabled,
+        "cursor-pointer": !disabled,
+        "px-2 rounded-md uppercase text-xs h-5 text-center flex items-center ":
+          true,
+      })}
+      style={{
+        backgroundColor: tagBackgroundColor,
+        color: tagTextColor,
+      }}
+    >
+      <span>{tag}</span>
+    </div>
+  );
+};
