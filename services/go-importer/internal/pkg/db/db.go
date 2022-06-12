@@ -60,6 +60,8 @@ func ConnectMongo(uri string) Database {
 }
 
 func (db Database) ConfigureDatabase() {
+	db.InsertTag("flag-in")
+	db.InsertTag("flag-out")
 	db.InsertTag("fishy")
 	db.InsertTag("steal")
 	db.InsertTag("blocked")
