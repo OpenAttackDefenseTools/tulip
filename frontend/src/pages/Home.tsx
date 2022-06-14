@@ -3,8 +3,8 @@ import { atomWithStorage } from "jotai/utils";
 
 const tickLengthInMs = atomWithStorage<number>("tickLengthInMs", 2 * 60 * 1000);
 const ctfStartTime = atomWithStorage<string>(
-  "ctfStartTime",
-  "2022-05-21T00:58"
+  "ctfStartTime2",
+  "2022-07-16T09:00+03:00"
 );
 
 // Abstraction so we can maybe get this data from the server in the future
