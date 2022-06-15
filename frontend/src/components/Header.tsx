@@ -1,5 +1,5 @@
 import { format, parse } from "date-fns";
-import { useAtom } from "jotai";
+import { atom, useAtom } from "jotai";
 import { atomWithStorage } from "jotai/utils";
 import { Suspense } from "react";
 import { Link, useSearchParams } from "react-router-dom";
@@ -14,6 +14,9 @@ import {
 import { useCTF } from "../pages/Home";
 
 export const showHexAtom = atomWithStorage("showHex", false);
+
+// Hack to force refres sidebar
+export const lastRefreshAtom = atom(Date.now());
 
 function ServiceSelection() {
   const FILTER_KEY = SERVICE_FILTER_KEY;
@@ -121,6 +124,14 @@ function useMessyTimeStuff() {
 
   const startTick = unixTimeToTick(startTimeParamUnix);
   const endTick = unixTimeToTick(endTimeParamUnix);
+  const currentTick = unixTimeToTick(new Date().valueOf().toString());
+
+  function setToLastnTicks(n: number) {
+    const startTick = (currentTick ?? 0) - n;
+    const endTick = (currentTick ?? 0) + 1; // to be sure
+    setTimeParam(startTick.toString(), START_FILTER_KEY);
+    setTimeParam(endTick.toString(), END_FILTER_KEY);
+  }
 
   return {
     unixTimeToTick,
@@ -129,6 +140,8 @@ function useMessyTimeStuff() {
     setTimeParam,
     startTick,
     endTick,
+    currentTick,
+    setToLastnTicks,
   };
 }
 
@@ -188,6 +201,9 @@ function ShowHexToggle() {
 
 export function Header() {
   let [searchParams] = useSearchParams();
+  const { setToLastnTicks, currentTick } = useMessyTimeStuff();
+
+  const [lastRefresh, setLastRefresh] = useAtom(lastRefreshAtom);
 
   return (
     <>
@@ -208,6 +224,18 @@ export function Header() {
       <div>
         <EndDateSelection></EndDateSelection>
       </div>
+      <div>
+        <button
+          className=" bg-amber-100 text-gray-800 rounded-md px-2 py-1"
+          onClick={() => {
+            setToLastnTicks(5);
+            setLastRefresh(Date.now());
+          }}
+        >
+          Last 5 ticks
+        </button>
+      </div>
+      <div className="ml-auto mr-4">Current: {currentTick}</div>
 
       {/* <div className="ml-auto">
         <ShowHexToggle></ShowHexToggle>

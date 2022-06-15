@@ -26,6 +26,7 @@ import useDebounce from "../hooks/useDebounce";
 import { Virtuoso } from "react-virtuoso";
 import classNames from "classnames";
 import { Tag } from "./Tag";
+import { lastRefreshAtom } from "./Header";
 
 export function FlowList() {
   let [searchParams] = useSearchParams();
@@ -48,6 +49,8 @@ export function FlowList() {
   const [availableTags, setAvailableTags] = useState<string[]>([]);
 
   const [loading, setLoading] = useState(false);
+
+  const [lastRefresh, setLastRefresh] = useAtom(lastRefreshAtom);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -74,7 +77,14 @@ export function FlowList() {
       setLoading(false);
     };
     fetchData().catch(console.error);
-  }, [service, debounced_text_filter, from_filter, to_filter, selectedTags]);
+  }, [
+    service,
+    debounced_text_filter,
+    from_filter,
+    to_filter,
+    selectedTags,
+    lastRefresh,
+  ]);
 
   const onHeartHandler = useCallback(async (flow: Flow) => {
     await api.starFlow(flow._id.$oid, !flow.starred);
