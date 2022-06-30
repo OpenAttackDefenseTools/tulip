@@ -2,6 +2,7 @@ package main
 
 import (
 	"go-importer/internal/pkg/db"
+	"net"
 
 	"bufio"
 	"errors"
@@ -180,22 +181,29 @@ func handleEveLine(json string) (bool, error) {
 		tag = jtag.String()
 	}
 
+	// canonicalize the IP address notation to make sure it matches what the assembler entered
+	// into the database.
+	// TODO; just assuming these are all valid for now. Should be fine, since this is coming from
+	// suricata and is not _really_ user controlled. Might panic in some obscure case though.
+	src_ip_str := net.ParseIP(src_ip.String()).String()
+	dst_ip_str := net.ParseIP(dst_ip.String()).String()
+
 	// TODO; Double check this, might be broken for non-UTC?
 	start_time_obj, _ := time.Parse("2006-01-02T15:04:05.999999999-0700", start_time.String())
 
 	id := db.FlowID{
 		Src_port: int(src_port.Int()),
-		Src_ip:   src_ip.String(),
+		Src_ip:   src_ip_str,
 		Dst_port: int(dst_port.Int()),
-		Dst_ip:   dst_ip.String(),
+		Dst_ip:   dst_ip_str,
 		Time:     start_time_obj,
 	}
 
 	id_rev := db.FlowID{
 		Dst_port: int(src_port.Int()),
-		Dst_ip:   src_ip.String(),
+		Dst_ip:   src_ip_str,
 		Src_port: int(dst_port.Int()),
-		Src_ip:   dst_ip.String(),
+		Src_ip:   dst_ip_str,
 		Time:     start_time_obj,
 	}
 
