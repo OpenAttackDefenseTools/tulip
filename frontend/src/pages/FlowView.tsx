@@ -190,6 +190,12 @@ function Flow({ flow, delta_time }: FlowProps) {
   );
 }
 
+// Helper function to format the IP for display. If the IP contains ":",
+// assume it is an ipv6 address and surround it in square brackets
+function formatIP(ip: string) {
+  return ip.includes(":") ? `[${ip}]` : ip;
+}
+
 function FlowOverview({ flow }: { flow: FullFlow }) {
   return (
     <div>
@@ -239,12 +245,12 @@ function FlowOverview({ flow }: { flow: FullFlow }) {
           <div className="flex items-center gap-1">
             <div>
               {" "}
-              <span>{flow.src_ip}</span>:
+              <span>{formatIP(flow.src_ip)}</span>:
               <span className="font-bold">{flow.src_port}</span>
             </div>
             <div>-</div>
             <div>
-              <span>{flow.dst_ip}</span>:
+              <span>{formatIP(flow.dst_ip)}</span>:
               <span className="font-bold">{flow.dst_port}</span>
             </div>
           </div>
