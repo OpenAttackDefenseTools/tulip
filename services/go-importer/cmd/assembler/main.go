@@ -182,7 +182,6 @@ func handlePcap(fname string) {
 	linktype := handle.LinkType()
 	switch linktype {
 	case layers.LinkTypeIPv4:
-		nodefrag = true
 		source = gopacket.NewPacketSource(handle, layers.LayerTypeIPv4)
 		break
 	default:
@@ -209,11 +208,9 @@ func handlePcap(fname string) {
 		done := false
 
 		// defrag the IPv4 packet if required
-		if !nodefrag {
-			ip4Layer := packet.Layer(layers.LayerTypeIPv4)
-			if ip4Layer == nil {
-				continue
-			}
+		// (TODO; IPv6 will not be defragged)
+		ip4Layer := packet.Layer(layers.LayerTypeIPv4)
+		if !nodefrag && ip4Layer != nil {
 			ip4 := ip4Layer.(*layers.IPv4)
 			l := ip4.Length
 			newip4, err := defragger.DefragIPv4(ip4)
