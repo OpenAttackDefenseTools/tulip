@@ -181,6 +181,11 @@ func handleEveLine(json string) (bool, error) {
 		tag = jtag.String()
 	}
 
+	// If no action was taken, there's no need for us to do anything with this line.
+	if !sig_action.Exists() {
+		return false, nil
+	}
+
 	// canonicalize the IP address notation to make sure it matches what the assembler entered
 	// into the database.
 	// TODO; just assuming these are all valid for now. Should be fine, since this is coming from
