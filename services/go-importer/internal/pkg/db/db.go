@@ -159,6 +159,7 @@ func (db Database) AddSignature(sig Signature) string {
 		"id":     sig.ID,
 		"msg":    sig.Msg,
 		"action": sig.Action,
+		"tag":    sig.Tag,
 	}
 
 	var existing_sig Signature
