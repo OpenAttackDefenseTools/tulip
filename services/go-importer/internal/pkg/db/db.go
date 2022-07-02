@@ -62,9 +62,8 @@ func ConnectMongo(uri string) Database {
 func (db Database) ConfigureDatabase() {
 	db.InsertTag("flag-in")
 	db.InsertTag("flag-out")
-	db.InsertTag("fishy")
-	db.InsertTag("steal")
 	db.InsertTag("blocked")
+	db.InsertTag("suricata")
 	db.ConfigureIndexes()
 }
 
@@ -200,11 +199,7 @@ func (db Database) AddSignatureToFlow(flow FlowID, sig Signature, window int) bo
 		},
 	}
 
-	tags := []string{"fishy"}
-	// TODO; pull this from metadata
-	if strings.Contains(sig.Msg, "stolen flag") {
-		tags = append(tags, "steal")
-	}
+	tags := []string{"suricata"}
 
 	// A tag from the signature if it contained one
 	if sig.Tag != "" {
