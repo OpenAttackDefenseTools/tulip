@@ -3,7 +3,6 @@ package db
 import (
 	"context"
 	"log"
-	"strings"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -62,9 +61,8 @@ func ConnectMongo(uri string) Database {
 func (db Database) ConfigureDatabase() {
 	db.InsertTag("flag-in")
 	db.InsertTag("flag-out")
-	db.InsertTag("fishy")
-	db.InsertTag("steal")
 	db.InsertTag("blocked")
+	db.InsertTag("suricata")
 	db.ConfigureIndexes()
 }
 
@@ -160,6 +158,7 @@ func (db Database) AddSignature(sig Signature) string {
 		"id":     sig.ID,
 		"msg":    sig.Msg,
 		"action": sig.Action,
+		"tag":    sig.Tag,
 	}
 
 	var existing_sig Signature
@@ -200,11 +199,7 @@ func (db Database) AddSignatureToFlow(flow FlowID, sig Signature, window int) bo
 		},
 	}
 
-	tags := []string{"fishy"}
-	// TODO; pull this from metadata
-	if strings.Contains(sig.Msg, "stolen flag") {
-		tags = append(tags, "steal")
-	}
+	tags := []string{"suricata"}
 
 	// A tag from the signature if it contained one
 	if sig.Tag != "" {
