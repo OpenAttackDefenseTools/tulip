@@ -8,7 +8,7 @@ Tulip was developed by Team Europe for use in the first International Cyber Secu
 * New ingestor code, based on gopacket
 * IPv6 support
 * Vastly improved filter and tagging system.
-* Deep links for easy collaberation
+* Deep links for easy collaboration
 * Added an http decoding pass for compressed data
 * Synchronized with Suricata.
 
@@ -80,4 +80,4 @@ Sessions with matched alerts will be highlighted in the front-end and include wh
 Similar to [flower](https://github.com/secgroup/flower), the default docker-compose.yml file **does not prevent anyone from connecting to your mongo instance and dropping/stealing all of your data**. Either disable the exposed port in the compose file or make sure you firewall it on the host.
 
 # Credits
-Tulip was written by [@RickdeJager](https://github.com/rickdejager) and [@Bazumo](https://github.com/bazumo), with additional help from [@Sijisu](https://github.com/sijisu). Thanks to our fellow Team Europe players and coaches for testing, feedback and sugestions. Finally, thanks the team behind [flower](https://github.com/secgroup/flower) for opensourcing their tooling.
+Tulip was written by [@RickdeJager](https://github.com/rickdejager) and [@Bazumo](https://github.com/bazumo), with additional help from [@Sijisu](https://github.com/sijisu). Thanks to our fellow Team Europe players and coaches for testing, feedback and suggestions. Finally, thanks the team behind [flower](https://github.com/secgroup/flower) for opensourcing their tooling.
