@@ -1,4 +1,4 @@
-# Tulip
+# 🌷 Tulip
 
 Tulip is a flow analyzer meant for use during Attack / Defence CTF competitions. It allows players to easily find some traffic related to their service, and automatically generates python snippets to replicates attacks.
 
@@ -10,7 +10,7 @@ Tulip was developed by Team Europe for use in the first International Cyber Secu
 * Vastly improved filter and tagging system.
 * Deep links for easy collaberation
 * Added an http decoding pass for compressed data
-* Synchronizated with Suricata.
+* Synchronized with Suricata.
 
 ## Screenshots
 ![](./demo_images/demo1.png)
@@ -39,7 +39,7 @@ docker-compose up -d --build
 To ingest traffic, it is recommended to create a shared bind mount with the docker-compose. One convenient way to set this up is as follows:
 1. On the vulnbox, start a rotating packet sniffer (e.g. tcpdump, suricata, ...)
 1. Using rsync, copy complete captures to the machine running tulip (e.g. to /traffic)
-1. Add a bind to flower-importer so it can read /traffic
+1. Add a bind to the assembler service so it can read /traffic
 
 The ingestor will use inotify to watch for new pcap's and suricata logs. No need to set a chron job.
 
