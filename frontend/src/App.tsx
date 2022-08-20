@@ -8,6 +8,7 @@ import { Home } from "./pages/Home";
 import { FlowList } from "./components/FlowList";
 import { FlowView } from "./pages/FlowView";
 import { DiffView } from "./pages/DiffView";
+import { Corrie } from "./components/Corrie";
 
 export const TEXT_FILTER_KEY = "text";
 export const SERVICE_FILTER_KEY = "service";
@@ -36,6 +37,14 @@ function App() {
               element={
                 <Suspense>
                   <DiffView />
+                </Suspense>
+              }
+            />
+            <Route
+              path="corrie/"
+              element={
+                <Suspense>
+                  <Corrie />
                 </Suspense>
               }
             />
