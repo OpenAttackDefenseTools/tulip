@@ -103,7 +103,18 @@ export const Corrie = () => {
             },
             xaxis: {
                 type: 'datetime', // FIXME: Timezone is not displayed correctly
-            }
+            },
+            labels: flowList, // FIXME: Right now we're passing flowList as 'labels' to the chart. There should be a proper React way.
+            chart: {
+                events: {
+                    dataPointSelection: (event, chartContext, config) => {
+                        // Retrieve flowList from chart's labels. This is hacky, refer to FIXME above.
+                        const flowList = config.w.config.labels;
+                        const flow = flowList[config.dataPointIndex];
+                        window.location.href = `/flow/${flow._id.$oid}?${searchParams}`;
+                    }
+                }
+            },
         },
     };
     return (
