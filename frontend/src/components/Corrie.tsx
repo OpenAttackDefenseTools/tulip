@@ -14,6 +14,8 @@ import {
 import useDebounce from "../hooks/useDebounce";
 import { lastRefreshAtom } from "./Header";
 
+import Chart from "react-apexcharts";
+
 export const Corrie = () => {
     let [searchParams] = useSearchParams();
     let params = useParams();
@@ -73,14 +75,45 @@ export const Corrie = () => {
     ]);
 
     console.log(flowList);
+
+    let state = {
+
+        series: [{
+            name: 'Flows',
+            data: flowList.map((flow) => {
+                return [flow.time, flow.duration]
+            })
+        },
+        ],
+        options: {
+            dataLabels: {
+                enabled: false
+            },
+            grid: {
+                xaxis: {
+                    lines: {
+                        show: true
+                    }
+                },
+                yaxis: {
+                    lines: {
+                        show: true
+                    }
+                },
+            },
+            xaxis: {
+                type: 'datetime', // FIXME: Timezone is not displayed correctly
+            }
+        },
+    };
     return (
         <div>
-            <div>Corrie data:</div>
-            <table>
-                {JSON.stringify(flowList.map((flow) => {
-                    return { time: flow.time, id: flow._id.$oid, duration: flow.duration }
-                }))}
-            </table>
+            {/* <div>Corrie data:</div> */}
+            <Chart
+                options={state.options}
+                series={state.series}
+                type="scatter"
+            />
         </div>
     );
 }
