@@ -16,6 +16,13 @@ import { lastRefreshAtom } from "./Header";
 
 import Chart from "react-apexcharts";
 
+import ReactDOMServer from "react-dom/server";
+
+import { FlowListEntry } from "./FlowList";
+
+import classes from "./FlowList.module.css";
+import classNames from "classnames";
+
 export const Corrie = () => {
     let [searchParams] = useSearchParams();
     let params = useParams();
@@ -115,6 +122,27 @@ export const Corrie = () => {
                     }
                 }
             },
+            tooltip: {
+                followCursor: true,
+                custom: function ({ dataPointIndex, w }) {
+                    // Display corresponding flow like in the sidebar
+                    const flowList = w.config.labels;
+                    const flow = flowList[dataPointIndex];
+                    const element = (
+                        <div className={classNames({
+                            [classes.list_container]: true,
+                        })}>
+                            <FlowListEntry
+                                key={flow._id.$oid}
+                                flow={flow}
+                                isActive={flow._id.$oid === params.id}
+                                onHeartClick={() => { }}
+                            />
+                        </div>
+                    );
+                    return ReactDOMServer.renderToString(element);;
+                },
+            }
         },
     };
     return (
