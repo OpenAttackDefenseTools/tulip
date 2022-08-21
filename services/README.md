@@ -21,8 +21,7 @@ Each document will have:
         "starred": //if the flow is starred
         "flow": [
             {
-                "data": "...", //printable data
-                "hex": //original data encoded in hex
+                "data": "...", // session data (capped at 15 MB)
                 "from": "c" // "c" for client, "s" for server
                 "time": //timestamp
             }, 

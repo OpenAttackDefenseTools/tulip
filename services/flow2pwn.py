@@ -25,13 +25,14 @@
 import string
 
 def escape(i):
+    i = ord(i)
     ret = chr(i) if 0x20 <= i and i < 0x7f else f'\\x{i:02x}'
     if ret in '\\"':
         ret = '\\' + ret
     return ret
 
 def convert(message):
-    data = bytes.fromhex(message["hex"])
+    data = message["data"]
     return ''.join([escape(i) for i in data])
 
 #convert a flow into pwn script

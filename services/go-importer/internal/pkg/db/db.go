@@ -16,10 +16,8 @@ import (
 type FlowItem struct {
 	/// From: "s" / "c" for server or client
 	From string
-	/// Data, in a somewhat reachable format
+	/// Data, in a somewhat readable format
 	Data string
-	/// Data, as hex string
-	Hex string
 	/// Timestamp of the first packet in the flow (Epoch / ms)
 	Time int
 }
@@ -35,7 +33,7 @@ type FlowEntry struct {
 	Starred  bool
 	Blocked  bool
 	Filename string
-	Suricata []int
+	Suricata []string
 	Flow     []FlowItem
 	Tags     []string
 }

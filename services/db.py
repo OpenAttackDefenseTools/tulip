@@ -30,6 +30,7 @@ from pymongo.errors import ServerSelectionTimeoutError
 import sys
 import pprint
 from configurations import mongo_server
+import gridfs
 
 
 class DB:
@@ -39,6 +40,7 @@ class DB:
                 mongo_server, serverSelectionTimeoutMS=200, unicode_decode_error_handler='ignore')
             self.client.server_info()
             self.db = self.client.pcap
+            self.fs = gridfs.GridFS(self.db)
             self.pcap_coll = self.db.pcap
             self.file_coll = self.db.filesImported
             self.signature_coll = self.db.signatures
@@ -89,7 +91,15 @@ class DB:
             tmp = self.signature_coll.find_one({"_id": ObjectId(sig_id)})
             if tmp:
                 ret["signatures"].append(tmp)
+        
         return ret
+
+    def getRawFile(self, raw_id):
+        print("raw id was", raw_id)
+        res = self.fs.get(ObjectId(raw_id))
+        if res:
+            return res.read()
+        return None
 
     def setStar(self, flow_id, star):
         self.pcap_coll.find_one_and_update({"_id": ObjectId(flow_id)}, {"$set": {"starred":  star}})

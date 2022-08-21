@@ -33,7 +33,6 @@ export interface Id {
 export interface FlowData {
     from: string
     data: string
-    hex: string
     time: number
 }
 
