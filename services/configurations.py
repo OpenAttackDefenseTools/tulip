@@ -27,14 +27,17 @@ import os
 
 mongo_host = os.getenv("TULIP_MONGO", "0.0.0.0:27017")
 mongo_server = f'mongodb://{mongo_host}/'
-vm_ip = "192.168.201.2"  # todo put regex
+vm_ip = "10.60.4.1"  # todo put regex
 
-services = [{"ip": vm_ip, "port": -1, "name": "unknown"},
-            {"ip": vm_ip, "port": 8000, "name": "saarbahn"},
-            {"ip": vm_ip, "port": 1984, "name": "bytewarden"},
-            {"ip": vm_ip, "port": 5445, "name": "saarsecvv"},
-            {"ip": vm_ip, "port": 8080, "name": "saarcloud"},
-            {"ip": vm_ip, "port": 11025, "name": "saarloop"}]
+services = [{"ip": vm_ip, "port": 5000, "name": "Trademark-500"},
+            {"ip": vm_ip, "port": 1337, "name": "RPN-1337"},
+            {"ip": vm_ip, "port": 3003, "name": "closedsea-3003"},
+            {"ip": vm_ip, "port": 3004, "name": "closedseaMinter-3004"},
+            {"ip": vm_ip, "port": 1234, "name": "CyberUniAuth-1234"},
+            {"ip": vm_ip, "port": 1235, "name": "ExamNotes-1235"},
+            {"ip": vm_ip, "port": 1236, "name": "EncryptedNotes-1236"},
+            {"ip": vm_ip, "port": 1237, "name": "ExamPortal-1237"},
+]
 
 
 def containsFlag(text):
