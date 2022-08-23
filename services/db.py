@@ -59,10 +59,6 @@ class DB:
         if "from_time" in filters and "to_time" in filters:
             f["time"] = {"$gte": int(filters["from_time"]),
                          "$lt": int(filters["to_time"])}
-        if "starred" in filters:
-            f["starred"] =  bool(filters["starred"])
-        if "blocked" in filters:
-            f["blocked"] =  bool(filters["blocked"])
         if "tags" in filters:
             f["tags"] = {
                 "$all": [str(elem) for elem in filters["tags"]]
@@ -92,7 +88,10 @@ class DB:
         return ret
 
     def setStar(self, flow_id, star):
-        self.pcap_coll.find_one_and_update({"_id": ObjectId(flow_id)}, {"$set": {"starred":  star}})
+        if star:
+            self.pcap_coll.find_one_and_update({"_id": ObjectId(flow_id)}, {"$push": {"tags": "starred"}})
+        else:
+            self.pcap_coll.find_one_and_update({"_id": ObjectId(flow_id)}, {"$pull": {"tags": "starred"}})
 
     def isFileAlreadyImported(self, file_name):
         return self.file_coll.find({"file_name": file_name}).count() != 0

@@ -1,4 +1,4 @@
-import { useParams } from "react-router-dom";
+import { useSearchParams, Link, useParams } from "react-router-dom";
 import React, { useEffect, useState } from "react";
 import { useTulip, FlowData, FullFlow } from "../api";
 import { Buffer } from "buffer";
@@ -84,14 +84,14 @@ function WebFlow({ flow }: { flow: FlowData }) {
   );
 }
 
-function PythonRequestFlow({ flow }: { flow: FlowData }) {
+function PythonRequestFlow({ full_flow, flow }: {full_flow:FullFlow, flow: FlowData }) {
   const [data, setData] = useState("");
 
   const { api } = useTulip();
 
   useEffect(() => {
     const fetchData = async () => {
-      const data = await api.toPythonRequest(btoa(flow.data), true);
+      const data = await api.toPythonRequest(btoa(flow.data), full_flow._id.$oid,true);
       setData(data);
     };
     // TODO proper error handling
@@ -102,6 +102,7 @@ function PythonRequestFlow({ flow }: { flow: FlowData }) {
 }
 
 interface FlowProps {
+  full_flow: FullFlow;
   flow: FlowData;
   delta_time: number;
 }
@@ -140,7 +141,7 @@ function detectType(flow: FlowData) {
   return "Plain";
 }
 
-function Flow({ flow, delta_time }: FlowProps) {
+function Flow({ full_flow, flow, delta_time }: FlowProps) {
   const formatted_time = format(new Date(flow.time), "HH:mm:ss:SSS");
   const displayOptions = ["Plain", "Hex", "Web", "PythonRequest"];
 
@@ -183,7 +184,7 @@ function Flow({ flow, delta_time }: FlowProps) {
         {displayOption === "Plain" && <TextFlow flow={flow}></TextFlow>}
         {displayOption === "Web" && <WebFlow flow={flow}></WebFlow>}
         {displayOption === "PythonRequest" && (
-          <PythonRequestFlow flow={flow}></PythonRequestFlow>
+          <PythonRequestFlow flow={flow} full_flow={full_flow}></PythonRequestFlow>
         )}
       </div>
     </div>
@@ -263,6 +264,7 @@ function FlowOverview({ flow }: { flow: FullFlow }) {
 function Header() {}
 
 export function FlowView() {
+  let [searchParams] = useSearchParams();
   const params = useParams();
   const [flow, setFlow] = useState<FullFlow>();
 
@@ -318,6 +320,12 @@ export function FlowView() {
           </button>
         </div>
       </div>
+      {flow?.parent_id?.$oid != "000000000000000000000000"? <Link
+            to={`/flow/${flow.parent_id.$oid}?${searchParams}`}
+            key={flow.parent_id.$oid}
+            className="focus-visible:rounded-md"
+          >Parent</Link>: undefined}
+
       {flow ? <FlowOverview flow={flow}></FlowOverview> : undefined}
       {flow?.flow.map((flow_data, i, a) => {
         const delta_time = a[i].time - (a[i - 1]?.time ?? a[i].time);
@@ -325,10 +333,17 @@ export function FlowView() {
           <Flow
             flow={flow_data}
             delta_time={delta_time}
+            full_flow={flow}
             key={flow._id.$oid + " " + i}
           ></Flow>
         );
       })}
+
+      {flow?.child_id?.$oid != "000000000000000000000000" ? <Link
+            to={`/flow/${flow.child_id.$oid}?${searchParams}`}
+            key={flow.child_id.$oid}
+            className="focus-visible:rounded-md"
+          >Child</Link>: undefined}
     </div>
   );
 }

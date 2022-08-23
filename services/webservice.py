@@ -67,16 +67,6 @@ def signature(id):
     result = db.getSignature(int(id))
     return return_json_response(result)
 
-@application.route('/starred', methods=['POST'])
-def getStarred():
-    json = request.get_json()
-    json["starred"] = True
-    result = db.getFlowList(json)
-    return return_json_response(result)
-
-
-
-
 @application.route('/star/<flow_id>/<star_to_set>')
 def setStar(flow_id, star_to_set):
     db.setStar(flow_id, star_to_set != "0")
@@ -96,11 +86,18 @@ def getFlowDetail(id):
 
 @application.route('/to_python_request', methods=['POST'])
 def convertToRequests():
+    flow_id = request.args.get("id", "")
+    if flow_id == "":
+        return return_text_response("There was an error while converting the request:\n{}: {}".format("No flow id", "No flow id param"))
+    #TODO check flow null or what
+    flow = db.getFlowDetail(flow_id)
+    if not flow:
+        return return_text_response("There was an error while converting the request:\n{}: {}".format("Invalid flow", "Invalid flow id"))
     data = b64decode(request.data)
     tokenize = request.args.get("tokenize", False)
     use_requests_session = request.args.get("use_requests_session", False)
     try:
-        converted = convert_http_requests(data, tokenize, use_requests_session)
+        converted = convert_http_requests(data, flow, tokenize, use_requests_session)
     except Exception as ex:
         return return_text_response("There was an error while converting the request:\n{}: {}".format(type(ex).__name__, ex))
     return return_text_response(converted)

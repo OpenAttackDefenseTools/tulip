@@ -48,7 +48,7 @@ class HTTPRequest(BaseHTTPRequestHandler):
         self.error_message = message
 
 # tokenize used for automatically fill data param of request
-def convert_http_requests(raw_request, tokenize=True, use_requests_session=False):
+def convert_http_requests(raw_request, flow, tokenize=True, use_requests_session=False):
     request = HTTPRequest(raw_request)
 
     data = {}
@@ -96,8 +96,9 @@ def convert_http_requests(raw_request, tokenize=True, use_requests_session=False
 
     rtemplate = Environment(loader=BaseLoader()).from_string("""import os
 import requests
+import sys
 
-host = os.getenv("TARGET_IP")
+host = sys.argv[1]
 {% if use_requests_session %}
 s = requests.Session()
 
@@ -107,7 +108,7 @@ headers = {{headers}}
 {% endif %}
 data = {{data}}
 
-{% if use_requests_session %}s{% else %}requests{% endif %}.{{request.command.lower()}}("http://{}{{request.path}}".format(host), {{data_param_name}}=data{% if not use_requests_session %}, headers=headers{% endif %})""")
+{% if use_requests_session %}s{% else %}requests{% endif %}.{{request.command.lower()}}("http://{}:{{port}}{{request.path}}".format(host), {{data_param_name}}=data{% if not use_requests_session %}, headers=headers{% endif %})""")
 
     return rtemplate.render(
             headers=str(dict(headers)),
@@ -115,4 +116,5 @@ data = {{data}}
             request=request,
             data_param_name=data_param_name,
             use_requests_session=use_requests_session,
+            port=flow["dst_port"]
         )

@@ -65,7 +65,7 @@ services:
     networks:
       - internal
     volumes:
-      - /traffic:/traffic:ro
+      - /home/qyn/tulip/traffic:/traffic:ro
     command: "./enricher -eve /traffic/eve.json"
     environment:
       TULIP_MONGO: mongo:27017

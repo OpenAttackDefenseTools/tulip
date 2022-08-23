@@ -4,7 +4,7 @@ import {
   useParams,
   useNavigate,
 } from "react-router-dom";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useRef } from "react";
 import { useAtom, useAtomValue } from "jotai";
 import { Flow, FullFlow, useTulip } from "../api";
 import {
@@ -14,7 +14,7 @@ import {
   END_FILTER_KEY,
 } from "../App";
 
-import { HeartIcon, FilterIcon } from "@heroicons/react/solid";
+import { HeartIcon, FilterIcon, LinkIcon } from "@heroicons/react/solid";
 import {
   HeartIcon as EmptyHeartIcon,
   FilterIcon as EmptyFilterIcon,
@@ -23,7 +23,7 @@ import {
 import classes from "./FlowList.module.css";
 import { format } from "date-fns";
 import useDebounce from "../hooks/useDebounce";
-import { Virtuoso } from "react-virtuoso";
+import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
 import classNames from "classnames";
 import { Tag } from "./Tag";
 import { lastRefreshAtom } from "./Header";
@@ -35,6 +35,11 @@ export function FlowList() {
   const { services, api, getFlows } = useTulip();
 
   const [flowList, setFlowList] = useState<Flow[]>([]);
+
+  // Set default flowIndex to Infinity, so that initialTopMostItemIndex != 0 and therefore scrolledToInitialItem != true
+  const [flowIndex, setFlowIndex] = useState<number>(Infinity);
+
+  const virtuoso = useRef<VirtuosoHandle>(null);
 
   const service_name = searchParams.get(SERVICE_FILTER_KEY) ?? "";
   const service = services.find((s) => s.name == service_name);
@@ -73,8 +78,13 @@ export function FlowList() {
         service: "", // FIXME
         tags: selectedTags,
       });
+      data.forEach((flow, index)=>  {
+        if(flow._id.$oid === params.id){ setFlowIndex(index)}
+      })
+
       setFlowList(data);
       setLoading(false);
+      
     };
     fetchData().catch(console.error);
   }, [
@@ -84,12 +94,14 @@ export function FlowList() {
     to_filter,
     selectedTags,
     lastRefresh,
+    params,
+    virtuoso
   ]);
 
   const onHeartHandler = useCallback(async (flow: Flow) => {
-    await api.starFlow(flow._id.$oid, !flow.starred);
+    await api.starFlow(flow._id.$oid, !flow.tags.includes("starred"));
     // optimistic update
-    const newFlow = { ...flow, starred: !flow.starred };
+    const newFlow = { ...flow};
     setFlowList((prev) =>
       prev.map((f) => (f._id.$oid === flow._id.$oid ? newFlow : f))
     );
@@ -147,6 +159,8 @@ export function FlowList() {
           "sidebar-loading": loading,
         })}
         data={flowList}
+        ref={virtuoso}
+        initialTopMostItemIndex={flowIndex}
         itemContent={(index, flow) => (
           <Link
             to={`/flow/${flow._id.$oid}?${searchParams}`}
@@ -178,7 +192,7 @@ function FlowListEntry({ flow, isActive, onHeartClick }: FlowListEntryProps) {
 
   const isStarred = flow.tags.includes("starred");
   // Filter tag list for tags that are handled specially
-  const filtered_tag_list = flow.tags.filter((t) => !["starred"].includes(t));
+  const filtered_tag_list = flow.tags.filter((t) => t != "starred");
 
   const duration =
     flow.duration > 10000 ? (
@@ -186,7 +200,6 @@ function FlowListEntry({ flow, isActive, onHeartClick }: FlowListEntryProps) {
     ) : (
       <div>{flow.duration}ms</div>
     );
-
   return (
     <li
       className={classNames({
@@ -195,16 +208,22 @@ function FlowListEntry({ flow, isActive, onHeartClick }: FlowListEntryProps) {
     >
       <div className="flex">
         <div
-          className="w-5 ml-2 mr-4 self-center shrink-0"
+          className="w-5 ml-1 mr-1 self-center shrink-0"
           onClick={() => {
             onHeartClick(flow);
           }}
         >
-          {flow.starred ? (
+          {flow.tags.includes("starred") ? (
             <HeartIcon className="text-red-500" />
           ) : (
             <EmptyHeartIcon />
           )}
+        </div>
+
+        <div className="w-5 mr-2 self-center shrink-0">
+          {flow.child_id.$oid != "000000000000000000000000" || flow.parent_id.$oid != "000000000000000000000000" ? (
+            <LinkIcon className="text-blue-500" />
+          ) : undefined}
         </div>
         <div className="flex-1 shrink">
           <div className="flex">
