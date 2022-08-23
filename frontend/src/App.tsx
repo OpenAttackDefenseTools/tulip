@@ -7,11 +7,14 @@ import { Header } from "./components/Header";
 import { Home } from "./pages/Home";
 import { FlowList } from "./components/FlowList";
 import { FlowView } from "./pages/FlowView";
+import { DiffView } from "./pages/DiffView";
 
 export const TEXT_FILTER_KEY = "text";
 export const SERVICE_FILTER_KEY = "service";
 export const START_FILTER_KEY = "start";
 export const END_FILTER_KEY = "end";
+export const FIRST_DIFF_KEY = "first";
+export const SECOND_DIFF_KEY = "second";
 
 function App() {
   return (
@@ -25,6 +28,14 @@ function App() {
               element={
                 <Suspense>
                   <FlowView />
+                </Suspense>
+              }
+            />
+            <Route
+              path="diff/:id"
+              element={
+                <Suspense>
+                  <DiffView />
                 </Suspense>
               }
             />

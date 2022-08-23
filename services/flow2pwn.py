@@ -32,8 +32,7 @@ def escape(i):
     return ret
 
 def convert(message):
-    data = message["data"]
-    return ''.join([escape(i) for i in data])
+    return ''.join([escape(i) for i in message])
 
 #convert a flow into pwn script
 def flow2pwn(flow):
@@ -49,11 +48,11 @@ proc = remote(host, {})
 
     for message in flow['flow']:
         if message['from'] == 'c':
-            script += """proc.write(b"{}")\n""".format(convert(message))
+            script += """proc.write(b"{}")\n""".format(convert(message["data"]))
 
         else:
             for m in range(len(message['data'])):
-                script += """proc.recvuntil(b"{}")\n""".format(convert(message)[-20:].replace("\n","\\n"))
+                script += """proc.recvuntil(b"{}")\n""".format(convert(message["data"][-10:]).replace("\n","\\n"))
                 break
 
     return script

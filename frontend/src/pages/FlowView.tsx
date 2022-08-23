@@ -12,6 +12,7 @@ import classNames from "classnames";
 
 import { hexy } from "hexy";
 import { useCopy } from "../hooks/useCopy";
+import {RadioGroup, RadioGroupProps} from "../components/RadioGroup"
 
 const SECONDARY_NAVBAR_HEIGHT = 50;
 
@@ -88,7 +89,7 @@ function PythonRequestFlow({ full_flow, flow }: {full_flow:FullFlow, flow: FlowD
 
   useEffect(() => {
     const fetchData = async () => {
-      const data = await api.toSinglePythonRequest(btoa(flow.data), full_flow._id.$oid,true);
+      const data = await api.toSinglePythonRequest(btoa(flow.data), full_flow._id.$oid, true);
       setData(data);
     };
     // TODO proper error handling
@@ -102,31 +103,6 @@ interface FlowProps {
   full_flow: FullFlow;
   flow: FlowData;
   delta_time: number;
-}
-
-interface RadioGroupProps {
-  options: string[];
-  value: string;
-  onChange: (option: string) => void;
-}
-
-function RadioGroup(props: RadioGroupProps) {
-  return (
-    <div className="flex gap-2 text-gray-800 text-sm ml-auto mr-4">
-      {props.options.map((option) => (
-        <div
-          key={option}
-          onClick={() => props.onChange(option)}
-          className={classNames({
-            "bg-gray-200": option === props.value,
-            "px-1 rounded-sm": true,
-          })}
-        >
-          {option}
-        </div>
-      ))}
-    </div>
-  );
 }
 
 function detectType(flow: FlowData) {
@@ -163,10 +139,14 @@ function Flow({ full_flow, flow, delta_time }: FlowProps) {
             {formatted_time}
             <span className="text-gray-400 pl-3">{delta_time}ms</span>
           </div>
+          <button className="bg-gray-200 px-1 rounded-sm text-sm" onClick={() => {
+            window.open("https://gchq.github.io/CyberChef/#input=" + encodeURIComponent(btoa(flow.data)))
+          }}>Open in cyberchef</button>
           <RadioGroup
             options={displayOptions}
             value={displayOption}
             onChange={setDisplayOption}
+            className="flex gap-2 text-gray-800 text-sm mr-4 ml-auto"
           />
         </div>
       </div>
