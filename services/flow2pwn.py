@@ -44,7 +44,7 @@ import sys
 
 host = sys.argv[1]
 proc = remote(host, {})
-""".format(ip, port)
+""".format(port)
 
     for message in flow['flow']:
         if message['from'] == 'c':
