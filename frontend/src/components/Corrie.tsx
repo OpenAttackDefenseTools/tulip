@@ -1,8 +1,9 @@
 import {
     useSearchParams,
     useParams,
+    useNavigate,
 } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useAtom } from "jotai";
 import { Flow, useTulip } from "../api";
 import {
@@ -46,6 +47,10 @@ export const Corrie = () => {
     const [loading, setLoading] = useState(false);
 
     const [lastRefresh, setLastRefresh] = useAtom(lastRefreshAtom);
+
+    const navigate = useNavigate();
+    const onClickNavicate = useCallback((loc: string) => navigate(loc, {replace: true}), [navigate]);
+
 
     useEffect(() => {
         const fetchData = async () => {
@@ -118,7 +123,7 @@ export const Corrie = () => {
                         // Retrieve flowList from chart's labels. This is hacky, refer to FIXME above.
                         const flowList = config.w.config.labels;
                         const flow = flowList[config.dataPointIndex];
-                        window.location.href = `/flow/${flow._id.$oid}?${searchParams}`;
+                        onClickNavicate(`/flow/${flow._id.$oid}?${searchParams}`);
                     }
                 }
             },
