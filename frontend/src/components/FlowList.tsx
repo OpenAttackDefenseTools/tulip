@@ -37,7 +37,7 @@ export function FlowList() {
   const [flowList, setFlowList] = useState<Flow[]>([]);
 
   // Set default flowIndex to Infinity, so that initialTopMostItemIndex != 0 and therefore scrolledToInitialItem != true
-  const [flowIndex, setFlowIndex] = useState<number>(Infinity);
+  const [flowIndex, setFlowIndex] = useState<number>(1);
 
   const virtuoso = useRef<VirtuosoHandle>(null);
 
@@ -78,13 +78,13 @@ export function FlowList() {
         service: "", // FIXME
         tags: selectedTags,
       });
-      data.forEach((flow, index)=>  {
-        if(flow._id.$oid === params.id){ setFlowIndex(index)}
+      data.forEach((flow, index) => {
+        if (flow._id.$oid === params.id) { setFlowIndex(index) }
       })
 
       setFlowList(data);
       setLoading(false);
-      
+
     };
     fetchData().catch(console.error);
   }, [
@@ -101,7 +101,7 @@ export function FlowList() {
   const onHeartHandler = useCallback(async (flow: Flow) => {
     await api.starFlow(flow._id.$oid, !flow.tags.includes("starred"));
     // optimistic update
-    const newFlow = { ...flow};
+    const newFlow = { ...flow };
     setFlowList((prev) =>
       prev.map((f) => (f._id.$oid === flow._id.$oid ? newFlow : f))
     );
