@@ -108,11 +108,6 @@ class TulipApi {
         const response = await fetch(`${this.API_ENDPOINT}/tags`);
         const tags = await response.json();
 
-        // HACK: make connected flows look like a tag
-        tags.push("connected")
-        // END HACK
-
-
         return tags;
     }
 
