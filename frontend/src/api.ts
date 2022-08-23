@@ -122,14 +122,19 @@ class TulipApi {
         return await response.text()
     }
 
-    async toPythonRequest(body: string, id: string, tokenize: boolean) {
-        const response = await fetch(`${this.API_ENDPOINT}/to_python_request?tokenize=${tokenize ? "1" : "0"}&id=${id}`, {
+    async toSinglePythonRequest(body: string, id: string, tokenize: boolean) {
+        const response = await fetch(`${this.API_ENDPOINT}/to_single_python_request?tokenize=${tokenize ? "1" : "0"}&id=${id}`, {
             method: "POST",
             headers: {
                 "Content-Type": "text/plain;charset=UTF-8"
             },
             body
         });
+        return await response.text()
+    }
+
+    async toFullPythonRequest(id: string) {
+        const response = await fetch(`${this.API_ENDPOINT}/to_python_request/${id}`);
         return await response.text()
     }
 

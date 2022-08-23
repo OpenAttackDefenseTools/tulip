@@ -25,7 +25,7 @@
 from flask import Flask, Response
 
 from configurations import services
-from data2req import convert_http_requests
+from data2req import convert_flow_to_http_requests, convert_single_http_requests
 from base64 import b64decode
 from db import DB
 from bson import json_util
@@ -84,8 +84,8 @@ def getFlowDetail(id):
     return to_ret
 
 
-@application.route('/to_python_request', methods=['POST'])
-def convertToRequests():
+@application.route('/to_single_python_request', methods=['POST'])
+def convertToSingleRequest():
     flow_id = request.args.get("id", "")
     if flow_id == "":
         return return_text_response("There was an error while converting the request:\n{}: {}".format("No flow id", "No flow id param"))
@@ -97,7 +97,21 @@ def convertToRequests():
     tokenize = request.args.get("tokenize", False)
     use_requests_session = request.args.get("use_requests_session", False)
     try:
-        converted = convert_http_requests(data, flow, tokenize, use_requests_session)
+        converted = convert_single_http_requests(data, flow, tokenize, use_requests_session)
+    except Exception as ex:
+        return return_text_response("There was an error while converting the request:\n{}: {}".format(type(ex).__name__, ex))
+    return return_text_response(converted)
+
+@application.route('/to_python_request/<id>')
+def convertToRequests(id):
+    #TODO check flow null or what
+    flow = db.getFlowDetail(id)
+    if not flow:
+        return return_text_response("There was an error while converting the request:\n{}: {}".format("Invalid flow", "Invalid flow id"))
+    tokenize = request.args.get("tokenize", True)
+    use_requests_session = request.args.get("use_requests_session", True)
+    try:
+        converted = convert_flow_to_http_requests(flow, tokenize, use_requests_session)
     except Exception as ex:
         return return_text_response("There was an error while converting the request:\n{}: {}".format(type(ex).__name__, ex))
     return return_text_response(converted)

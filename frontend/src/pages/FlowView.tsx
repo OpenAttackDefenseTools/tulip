@@ -91,7 +91,7 @@ function PythonRequestFlow({ full_flow, flow }: {full_flow:FullFlow, flow: FlowD
 
   useEffect(() => {
     const fetchData = async () => {
-      const data = await api.toPythonRequest(btoa(flow.data), full_flow._id.$oid,true);
+      const data = await api.toSinglePythonRequest(btoa(flow.data), full_flow._id.$oid,true);
       setData(data);
     };
     // TODO proper error handling
@@ -290,12 +290,32 @@ export function FlowView() {
     }
     return "";
   }
+  
 
-  const { statusText, copy } = useCopy({
+  const { statusText: pwnCopyStatusText, copy: copyPwn } = useCopy({
     getText: copyAsPwn,
     copyStateToText: {
       copied: "Copied",
       default: "Copy as pwntools",
+      failed: "Failed",
+      copying: "Generating payload",
+    },
+  });
+
+  async function copyAsRequests() {
+    if (flow?._id.$oid) {
+      let content = await api.toFullPythonRequest(flow?._id.$oid);
+      return content;
+    }
+    return "";
+  }
+  
+
+  const { statusText: requestsCopyStatusText, copy: copyRequests } = useCopy({
+    getText: copyAsRequests,
+    copyStateToText: {
+      copied: "Copied",
+      default: "Copy as requests",
       failed: "Failed",
       copying: "Generating payload",
     },
@@ -314,9 +334,16 @@ export function FlowView() {
         <div className="flex align-middle p-2 gap-3 ml-auto">
           <button
             className="bg-gray-700 text-white px-2 text-sm rounded-md"
-            onClick={copy}
+            onClick={copyPwn}
           >
-            {statusText}
+            {pwnCopyStatusText}
+          </button>
+
+          <button
+            className="bg-gray-700 text-white px-2 text-sm rounded-md"
+            onClick={copyRequests}
+          >
+            {requestsCopyStatusText}
           </button>
         </div>
       </div>

@@ -57,6 +57,8 @@ class DB:
             f["dst_ip"] = filters["dst_ip"]
         if "dst_port" in filters:
             if int(filters["dst_port"]) == -1:
+                # remove dst_ip
+                f.pop('dst_ip', None)
                 f["dst_port"] = {
                     "$nin": [service["port"] for service in services]
                 }
