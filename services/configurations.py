@@ -29,7 +29,8 @@ mongo_host = os.getenv("TULIP_MONGO", "0.0.0.0:27017")
 mongo_server = f'mongodb://{mongo_host}/'
 vm_ip = "192.168.201.2"  # todo put regex
 
-services = [{"ip": vm_ip, "port": 8000, "name": "saarbahn"},
+services = [{"ip": vm_ip, "port": -1, "name": "unknown"},
+            {"ip": vm_ip, "port": 8000, "name": "saarbahn"},
             {"ip": vm_ip, "port": 1984, "name": "bytewarden"},
             {"ip": vm_ip, "port": 5445, "name": "saarsecvv"},
             {"ip": vm_ip, "port": 8080, "name": "saarcloud"},

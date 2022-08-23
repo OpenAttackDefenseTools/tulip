@@ -14,8 +14,8 @@ export interface Flow {
     // TODO: get this from backend instead of hacky work around
     service_tag: string
     inx: number
-    starred: boolean
-    blocked: boolean
+    parent_id: Id
+    child_id: Id
     tags: string[]
     suricata: number[]
     filename: string
@@ -75,12 +75,10 @@ class TulipApi {
     async _getFlows(query: FlowsQuery, destToService: any) {
 
         // HACK: make starred look like a tag
-        const starred = query.tags.includes("starred");
-        let tags = query.tags.filter(tag => tag !== "starred")
+        let tags = query.tags;
         const hacky_query = {
             ...query,
             tags: tags.length > 0 ? tags : undefined,
-            starred
         }
         // END HACK
 
@@ -109,11 +107,6 @@ class TulipApi {
         const response = await fetch(`${this.API_ENDPOINT}/tags`);
         const tags = await response.json();
 
-        // HACK: make starred look like a tag
-        tags.push("starred")
-        // END HACK
-
-
         return tags;
     }
 
@@ -128,14 +121,19 @@ class TulipApi {
         return await response.text()
     }
 
-    async toPythonRequest(body: string, tokenize: boolean) {
-        const response = await fetch(`${this.API_ENDPOINT}/to_python_request?tokenize=${tokenize ? "1" : "0"}`, {
+    async toSinglePythonRequest(body: string, id: string, tokenize: boolean) {
+        const response = await fetch(`${this.API_ENDPOINT}/to_single_python_request?tokenize=${tokenize ? "1" : "0"}&id=${id}`, {
             method: "POST",
             headers: {
                 "Content-Type": "text/plain;charset=UTF-8"
             },
             body
         });
+        return await response.text()
+    }
+
+    async toFullPythonRequest(id: string) {
+        const response = await fetch(`${this.API_ENDPOINT}/to_python_request/${id}`);
         return await response.text()
     }
 

@@ -42,9 +42,6 @@ FLOW_ID = get_first_flow_id()
 def do_request(path):
     return requests.get("{}/{}".format(WS_URL,path))
 
-def get_starred():
-    return requests.post("{}/starred".format(WS_URL), json={}).json()
-
 def test_services():
     services = do_request("services").json()
     assert len(services) == 5
@@ -53,13 +50,6 @@ def test_services():
 def test_query():
     res = requests.post("{}/query".format(WS_URL), json={}).json()
     assert len(res) == 539
-
-def test_star():
-    assert len(get_starred()) == 0
-    requests.get("{}/star/{}/1".format(WS_URL,FLOW_ID))
-    assert len(get_starred()) == 1
-    requests.get("{}/star/{}/0".format(WS_URL,FLOW_ID))
-    assert len(get_starred()) == 0
 
 def test_frontend():
     assert "You need to enable JavaScript to run this app." in requests.get("{}".format(FE_URL)).text

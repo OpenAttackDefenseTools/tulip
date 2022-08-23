@@ -41,9 +41,11 @@ def flow2pwn(flow):
     port = flow["dst_port"]
 
     script = """from pwn import *
+import sys
 
-proc = remote('{}', {})
-""".format(ip, port)
+host = sys.argv[1]
+proc = remote(host, {})
+""".format(port)
 
     for message in flow['flow']:
         if message['from'] == 'c':

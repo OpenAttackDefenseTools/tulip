@@ -17,6 +17,7 @@ import (
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
 	"github.com/google/gopacket/reassembly"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 var allowmissinginit = true
@@ -184,7 +185,6 @@ func (t *tcpStream) ReassemblyComplete(ac reassembly.AssemblerContext) bool {
 			"time": 1530098789655,
 			"duration": 96,
 			"inx": 0,
-			"starred": 0,
 		}
 	*/
 	src, dst := t.net.Endpoints()
@@ -199,19 +199,20 @@ func (t *tcpStream) ReassemblyComplete(ac reassembly.AssemblerContext) bool {
 	duration = t.FlowItems[len(t.FlowItems)-1].Time - time
 
 	entry := db.FlowEntry{
-		Src_port: int(t.src_port),
-		Dst_port: int(t.dst_port),
-		Src_ip:   src.String(),
-		Dst_ip:   dst.String(),
-		Time:     time,
-		Duration: duration,
-		Inx:      0,
-		Starred:  false,
-		Blocked:  false,
-		Tags:     make([]string, 0),
-		Suricata: make([]string, 0),
-		Filename: t.source,
-		Flow:     t.FlowItems,
+		Src_port:  int(t.src_port),
+		Dst_port:  int(t.dst_port),
+		Src_ip:    src.String(),
+		Dst_ip:    dst.String(),
+		Time:      time,
+		Duration:  duration,
+		Inx:       0,
+		Parent_id: primitive.NilObjectID,
+		Child_id:  primitive.NilObjectID,
+		Blocked:   false,
+		Tags:      make([]string, 0),
+		Suricata:  make([]int, 0),
+		Filename:  t.source,
+		Flow:      t.FlowItems,
 	}
 
 	t.reassemblyCallback(entry)
