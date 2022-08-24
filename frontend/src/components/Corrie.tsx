@@ -86,8 +86,6 @@ export const Corrie = () => {
         lastRefresh,
     ]);
 
-    console.log(flowList);
-
     let state = {
 
         series: [{
