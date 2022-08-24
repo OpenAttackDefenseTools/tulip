@@ -15,7 +15,8 @@ import {
 import useDebounce from "../hooks/useDebounce";
 import { lastRefreshAtom } from "./Header";
 
-import Chart from "react-apexcharts";
+import ReactApexChart from "react-apexcharts";
+import { ApexOptions } from "apexcharts";
 
 import ReactDOMServer from "react-dom/server";
 
@@ -86,74 +87,72 @@ export const Corrie = () => {
         lastRefresh,
     ]);
 
-    let state = {
+    const series: ApexAxisChartSeries =  [{
+        name: 'Flows',
+        data: flowList.map((flow) => {
+            return {"x": flow.time, "y": flow.duration}
+        })
+    }];
 
-        series: [{
-            name: 'Flows',
-            data: flowList.map((flow) => {
-                return [flow.time, flow.duration]
-            })
+    const options: ApexOptions = {
+        dataLabels: {
+            enabled: false
         },
-        ],
-        options: {
-            dataLabels: {
-                enabled: false
-            },
-            grid: {
-                xaxis: {
-                    lines: {
-                        show: true
-                    }
-                },
-                yaxis: {
-                    lines: {
-                        show: true
-                    }
-                },
-            },
+        grid: {
             xaxis: {
-                type: 'datetime', // FIXME: Timezone is not displayed correctly
-            },
-            labels: flowList, // FIXME: Right now we're passing flowList as 'labels' to the chart. There should be a proper React way.
-            chart: {
-                events: {
-                    dataPointSelection: (event, chartContext, config) => {
-                        // Retrieve flowList from chart's labels. This is hacky, refer to FIXME above.
-                        const flowList = config.w.config.labels;
-                        const flow = flowList[config.dataPointIndex];
-                        onClickNavicate(`/flow/${flow._id.$oid}?${searchParams}`);
-                    }
+                lines: {
+                    show: true
                 }
             },
-            tooltip: {
-                followCursor: true,
-                custom: function ({ dataPointIndex, w }) {
-                    // Display corresponding flow like in the sidebar
-                    const flowList = w.config.labels;
-                    const flow = flowList[dataPointIndex];
-                    const element = (
-                        <div className={classNames({
-                            [classes.list_container]: true,
-                        })}>
-                            <FlowListEntry
-                                key={flow._id.$oid}
-                                flow={flow}
-                                isActive={flow._id.$oid === params.id}
-                                onHeartClick={() => { }}
-                            />
-                        </div>
-                    );
-                    return ReactDOMServer.renderToString(element);;
-                },
+            yaxis: {
+                lines: {
+                    show: true
+                }
+            },
+        },
+        xaxis: {
+            type: 'datetime', // FIXME: Timezone is not displayed correctly
+        },
+        //labels: flowList, // FIXME: Right now we're passing flowList as 'labels' to the chart. There should be a proper React way.
+        chart: {
+            events: {
+                dataPointSelection: (event: any, chartContext: any, config: any) => {
+                    // Retrieve flowList from chart's labels. This is hacky, refer to FIXME above.
+                    const flowList = config.w.config.labels;
+                    const flow = flowList[config.dataPointIndex];
+                    onClickNavicate(`/flow/${flow._id.$oid}?${searchParams}`);
+                }
             }
         },
+        tooltip: {
+            followCursor: true,
+            // TODO; these types are hacky
+            custom: function ({ dataPointIndex, w}: {dataPointIndex: number, w: any}) {
+                // Display corresponding flow like in the sidebar
+                const flowList = w.config.labels;
+                const flow = flowList[dataPointIndex];
+                const element = (
+                    <div className={classNames({
+                        [classes.list_container]: true,
+                    })}>
+                        <FlowListEntry
+                            key={flow._id.$oid}
+                            flow={flow}
+                            isActive={flow._id.$oid === params.id}
+                            onHeartClick={() => { }}
+                        />
+                    </div>
+                );
+                return ReactDOMServer.renderToString(element);;
+            },
+        }
     };
     return (
         <div>
             {/* <div>Corrie data:</div> */}
-            <Chart
-                options={state.options}
-                series={state.series}
+            <ReactApexChart
+                options={options}
+                series={series}
                 type="scatter"
             />
         </div>
