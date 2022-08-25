@@ -113,17 +113,18 @@ export const Corrie = () => {
         xaxis: {
             type: 'datetime', // FIXME: Timezone is not displayed correctly
         },
-        //labels: flowList, // FIXME: Right now we're passing flowList as 'labels' to the chart. There should be a proper React way.
+        labels: flowList.map((flow) => {return flow._id.$oid;}),
         chart: {
             events: {
                 dataPointSelection: (event: any, chartContext: any, config: any) => {
                     // Retrieve flowList from chart's labels. This is hacky, refer to FIXME above.
-                    const flowList = config.w.config.labels;
-                    const flow = flowList[config.dataPointIndex];
-                    onClickNavicate(`/flow/${flow._id.$oid}?${searchParams}`);
+                    const flowIdList = config.w.config.labels;
+                    const flow = flowIdList[config.dataPointIndex];
+                    onClickNavicate(`/flow/${flow}?${searchParams}`);
                 }
             }
         },
+        /*
         tooltip: {
             followCursor: true,
             // TODO; these types are hacky
@@ -146,6 +147,7 @@ export const Corrie = () => {
                 return ReactDOMServer.renderToString(element);;
             },
         }
+        */
     };
     return (
         <div>
