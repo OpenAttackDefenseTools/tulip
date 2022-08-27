@@ -139,8 +139,19 @@ function Flow({ full_flow, flow, delta_time }: FlowProps) {
             {formatted_time}
             <span className="text-gray-400 pl-3">{delta_time}ms</span>
           </div>
-          <button className="bg-gray-200 px-1 rounded-sm text-sm" onClick={() => {
-            window.open("https://gchq.github.io/CyberChef/#input=" + encodeURIComponent(btoa(flow.data)))
+          <button className="bg-gray-200 px-1 rounded-sm text-sm" onClick={async () => {
+            const base64_arraybuffer = async (data: Uint8Array) => {
+              const base64url = await new Promise<string>((r) => {
+                  const reader = new FileReader()
+                  reader.onload = () => r(String(reader.result))
+                  reader.readAsDataURL(new Blob([data]))
+              })
+          
+              return base64url.split(",", 2)[1]
+          }
+          
+          const b64Flow = await base64_arraybuffer(new Uint8Array(flow.data.split('').map((s) => s.charCodeAt(0))));
+            window.open("https://gchq.github.io/CyberChef/#input=" + encodeURIComponent(b64Flow))
           }}>Open in cyberchef</button>
           <RadioGroup
             options={displayOptions}

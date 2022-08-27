@@ -80,7 +80,7 @@ export function DiffView() {
             setFlow2(flowIds2);
         };
         fetchData().catch(console.error);
-    }, [setDisplayOption, flow1, flow2]);
+    }, []);
 
 
     if (flow1 === undefined || flow2 === undefined) {
@@ -99,7 +99,8 @@ export function DiffView() {
             className="flex gap-2 text-gray-800 text-sm mr-4"
           />
         </div>
-        <div>{Array.from({ length: Math.min(flow1.flow.length, flow2.flow.length) }, (_, i) => displayOption === "Hex" ? Flow(hexy(flow1.flow[i].data), hexy(flow2.flow[i].data)) :  Flow(flow1.flow[i].data, flow2.flow[i].data))}</div>
-        </div>
-    );
+
+        {displayOption === "Hex" && <div>{Array.from({ length: Math.min(flow1.flow.length, flow2.flow.length) }, (_, i) => Flow(hexy(flow1.flow[i].data), hexy(flow2.flow[i].data)))}</div>}
+        {displayOption === "Plain" && <div>{Array.from({ length: Math.min(flow1.flow.length, flow2.flow.length) }, (_, i) => Flow(flow1.flow[i].data, flow2.flow[i].data))}</div>}
+    </div>);
 }
