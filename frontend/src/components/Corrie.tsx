@@ -165,17 +165,20 @@ export const Corrie = () => {
         setSearchParams(searchParams);
     }
 
+    const inactiveButtonClass = "bg-blue-100 text-gray-800 rounded-md px-2 py-1";
+    const activeButtonClass = `${inactiveButtonClass} ring-2 ring-gray-500`;
+
     return (
         <div>
             <div className="flex flex-col h-full">
                 <div className="text-sm bg-white border-b-gray-300 border-b shadow-md flex flex-col">
                     <div className="p-2 flex space-x-2" style={{ height: 50 }}>
                         <a className="text-center px-2 py-2">Correlation mode: </a>
-                        <button className=" bg-blue-100 text-gray-800 rounded-md px-2 py-1"
+                        <button className={mode == "time" ? activeButtonClass : inactiveButtonClass}
                                 onClick={() => setCorrelationMode("time")}>
                             time
                         </button>
-                        <button className=" bg-blue-100 text-gray-800 rounded-md px-2 py-1"
+                        <button className={mode == "packets" ? activeButtonClass : inactiveButtonClass}
                                 onClick={() => setCorrelationMode("packets")}>
                             packets
                         </button>
