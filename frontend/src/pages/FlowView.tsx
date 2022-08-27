@@ -12,7 +12,7 @@ import classNames from "classnames";
 
 import { hexy } from "hexy";
 import { useCopy } from "../hooks/useCopy";
-import {RadioGroup, RadioGroupProps} from "../components/RadioGroup"
+import { RadioGroup, RadioGroupProps } from "../components/RadioGroup"
 
 const SECONDARY_NAVBAR_HEIGHT = 50;
 
@@ -53,7 +53,7 @@ function FlowContainer({
 }
 
 function HexFlow({ flow }: { flow: FlowData }) {
-  const hex = hexy(flow.data);
+  const hex = hexy(flow.data, { format: "twos" });
   return <FlowContainer copyText={hex}>{hex}</FlowContainer>;
 }
 
@@ -82,7 +82,7 @@ function WebFlow({ flow }: { flow: FlowData }) {
   );
 }
 
-function PythonRequestFlow({ full_flow, flow }: {full_flow:FullFlow, flow: FlowData }) {
+function PythonRequestFlow({ full_flow, flow }: { full_flow: FullFlow, flow: FlowData }) {
   const [data, setData] = useState("");
 
   const { api } = useTulip();
@@ -142,15 +142,15 @@ function Flow({ full_flow, flow, delta_time }: FlowProps) {
           <button className="bg-gray-200 px-1 rounded-sm text-sm" onClick={async () => {
             const base64_arraybuffer = async (data: Uint8Array) => {
               const base64url = await new Promise<string>((r) => {
-                  const reader = new FileReader()
-                  reader.onload = () => r(String(reader.result))
-                  reader.readAsDataURL(new Blob([data]))
+                const reader = new FileReader()
+                reader.onload = () => r(String(reader.result))
+                reader.readAsDataURL(new Blob([data]))
               })
-          
+
               return base64url.split(",", 2)[1]
-          }
-          
-          const b64Flow = await base64_arraybuffer(new Uint8Array(flow.data.split('').map((s) => s.charCodeAt(0))));
+            }
+
+            const b64Flow = await base64_arraybuffer(new Uint8Array(flow.data.split('').map((s) => s.charCodeAt(0))));
             window.open("https://gchq.github.io/CyberChef/#input=" + encodeURIComponent(b64Flow))
           }}>Open in cyberchef</button>
           <RadioGroup
@@ -249,7 +249,7 @@ function FlowOverview({ flow }: { flow: FullFlow }) {
   );
 }
 
-function Header() {}
+function Header() { }
 
 export function FlowView() {
   let [searchParams] = useSearchParams();
@@ -278,7 +278,7 @@ export function FlowView() {
     }
     return "";
   }
-  
+
 
   const { statusText: pwnCopyStatusText, copy: copyPwn } = useCopy({
     getText: copyAsPwn,
@@ -297,7 +297,7 @@ export function FlowView() {
     }
     return "";
   }
-  
+
 
   const { statusText: requestsCopyStatusText, copy: copyRequests } = useCopy({
     getText: copyAsRequests,
@@ -335,11 +335,11 @@ export function FlowView() {
           </button>
         </div>
       </div>
-      {flow?.parent_id?.$oid != "000000000000000000000000"? <Link
-            to={`/flow/${flow.parent_id.$oid}?${searchParams}`}
-            key={flow.parent_id.$oid}
-            className="focus-visible:rounded-md"
-          >Parent</Link>: undefined}
+      {flow?.parent_id?.$oid != "000000000000000000000000" ? <Link
+        to={`/flow/${flow.parent_id.$oid}?${searchParams}`}
+        key={flow.parent_id.$oid}
+        className="focus-visible:rounded-md"
+      >Parent</Link> : undefined}
 
       {flow ? <FlowOverview flow={flow}></FlowOverview> : undefined}
       {flow?.flow.map((flow_data, i, a) => {
@@ -355,10 +355,10 @@ export function FlowView() {
       })}
 
       {flow?.child_id?.$oid != "000000000000000000000000" ? <Link
-            to={`/flow/${flow.child_id.$oid}?${searchParams}`}
-            key={flow.child_id.$oid}
-            className="focus-visible:rounded-md"
-          >Child</Link>: undefined}
+        to={`/flow/${flow.child_id.$oid}?${searchParams}`}
+        key={flow.child_id.$oid}
+        className="focus-visible:rounded-md"
+      >Child</Link> : undefined}
     </div>
   );
 }

@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 import { useTulip, FlowData, FullFlow } from "../api";
 import { Buffer } from "buffer";
 import ReactDiffViewer from 'react-diff-viewer';
-import {RadioGroup, RadioGroupProps} from "../components/RadioGroup"
+import { RadioGroup, RadioGroupProps } from "../components/RadioGroup"
 
 import {
     ArrowCircleLeftIcon,
@@ -26,15 +26,17 @@ function Header() { }
 function Flow(flow1: string, flow2: string) {
     return (
         <div>
-        <ReactDiffViewer oldValue={flow1} newValue={flow2} splitView={true} showDiffOnly={false} useDarkTheme={false} hideLineNumbers={true}
-            styles={{
-                "line": {
-                    "wordBreak": 'break-word',
-                }
+            <ReactDiffViewer oldValue={flow1} newValue={flow2} splitView={true} showDiffOnly={false} useDarkTheme={false} hideLineNumbers={true}
+                styles={{
+                    "line": {
+                        "wordBreak": 'break-word',
+                    }
+                }} />
+            <hr style={{
+                "height": "1px",
+                "color": "inherit",
+                "borderTopWidth": "5px"
             }} />
-            <hr style={{"height": "1px",
-            "color": "inherit",
-            "borderTopWidth": "5px"}}/>
         </div>
     );
 }
@@ -90,17 +92,17 @@ export function DiffView() {
 
 
     return (
-    <div><div
-        className="sticky shadow-md bg-white overflow-auto py-1 border-y flex items-center">
-        <RadioGroup
-            options={displayOptions}
-            value={displayOption}
-            onChange={setDisplayOption}
-            className="flex gap-2 text-gray-800 text-sm mr-4"
-          />
+        <div><div
+            className="sticky shadow-md bg-white overflow-auto py-1 border-y flex items-center">
+            <RadioGroup
+                options={displayOptions}
+                value={displayOption}
+                onChange={setDisplayOption}
+                className="flex gap-2 text-gray-800 text-sm mr-4"
+            />
         </div>
 
-        {displayOption === "Hex" && <div>{Array.from({ length: Math.min(flow1.flow.length, flow2.flow.length) }, (_, i) => Flow(hexy(flow1.flow[i].data), hexy(flow2.flow[i].data)))}</div>}
-        {displayOption === "Plain" && <div>{Array.from({ length: Math.min(flow1.flow.length, flow2.flow.length) }, (_, i) => Flow(flow1.flow[i].data, flow2.flow[i].data))}</div>}
-    </div>);
+            {displayOption === "Hex" && <div>{Array.from({ length: Math.min(flow1.flow.length, flow2.flow.length) }, (_, i) => Flow(hexy(flow1.flow[i].data, { format: "twos" }), hexy(flow2.flow[i].data, { format: "twos" })))}</div>}
+            {displayOption === "Plain" && <div>{Array.from({ length: Math.min(flow1.flow.length, flow2.flow.length) }, (_, i) => Flow(flow1.flow[i].data, flow2.flow[i].data))}</div>}
+        </div>);
 }
