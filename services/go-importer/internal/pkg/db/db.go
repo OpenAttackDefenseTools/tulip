@@ -29,7 +29,7 @@ type FlowEntry struct {
 	Dst_ip       string
 	Time         int
 	Duration     int
-	Inx          int
+	Num_packets  int
 	Blocked      bool
 	Filename     string
 	Parent_id    primitive.ObjectID

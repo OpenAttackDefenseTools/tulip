@@ -13,7 +13,7 @@ export interface Flow {
     duration: number
     // TODO: get this from backend instead of hacky work around
     service_tag: string
-    inx: number
+    num_packets: number
     parent_id: Id
     child_id: Id
     tags: string[]

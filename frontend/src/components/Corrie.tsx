@@ -11,6 +11,7 @@ import {
     TEXT_FILTER_KEY,
     START_FILTER_KEY,
     END_FILTER_KEY,
+    CORRELATION_MODE_KEY,
 } from "../App";
 import useDebounce from "../hooks/useDebounce";
 import { lastRefreshAtom } from "./Header";
@@ -26,7 +27,7 @@ import classes from "./FlowList.module.css";
 import classNames from "classnames";
 
 export const Corrie = () => {
-    let [searchParams] = useSearchParams();
+    let [searchParams, setSearchParams] = useSearchParams();
     let params = useParams();
 
     const { services, api, getFlows } = useTulip();
@@ -50,7 +51,7 @@ export const Corrie = () => {
     const [lastRefresh, setLastRefresh] = useAtom(lastRefreshAtom);
 
     const navigate = useNavigate();
-    const onClickNavicate = useCallback((loc: string) => navigate(loc, {replace: true}), [navigate]);
+    const onClickNavicate = useCallback((loc: string) => navigate(loc, { replace: true }), [navigate]);
 
 
     useEffect(() => {
@@ -87,10 +88,16 @@ export const Corrie = () => {
         lastRefresh,
     ]);
 
-    const series: ApexAxisChartSeries =  [{
+    const mode = searchParams.get("correlation") ?? "time";
+
+    const series: ApexAxisChartSeries = [{
         name: 'Flows',
         data: flowList.map((flow) => {
-            return {"x": flow.time, "y": flow.duration}
+            let y = flow.duration;
+            if (mode == "packets") {
+                y = flow.num_packets
+            }
+            return { "x": flow.time, "y": y }
         })
     }];
 
@@ -113,8 +120,11 @@ export const Corrie = () => {
         xaxis: {
             type: 'datetime', // FIXME: Timezone is not displayed correctly
         },
-        labels: flowList.map((flow) => {return flow._id.$oid;}),
+        labels: flowList.map((flow) => { return flow._id.$oid; }),
         chart: {
+            animations: {
+                enabled: false
+            },
             events: {
                 dataPointSelection: (event: any, chartContext: any, config: any) => {
                     // Retrieve flowList from chart's labels. This is hacky, refer to FIXME above.
@@ -149,14 +159,38 @@ export const Corrie = () => {
         }
         */
     };
+
+    const setCorrelationMode = (mode: string) => {
+        searchParams.set(CORRELATION_MODE_KEY, mode);
+        setSearchParams(searchParams);
+    }
+
     return (
         <div>
-            {/* <div>Corrie data:</div> */}
-            <ReactApexChart
-                options={options}
-                series={series}
-                type="scatter"
-            />
+            <div className="flex flex-col h-full">
+                <div className="text-sm bg-white border-b-gray-300 border-b shadow-md flex flex-col">
+                    <div className="p-2 flex space-x-2" style={{ height: 50 }}>
+                        <a className="text-center px-2 py-2">Correlation mode: </a>
+                        <button className=" bg-blue-100 text-gray-800 rounded-md px-2 py-1"
+                                onClick={() => setCorrelationMode("time")}>
+                            time
+                        </button>
+                        <button className=" bg-blue-100 text-gray-800 rounded-md px-2 py-1"
+                                onClick={() => setCorrelationMode("packets")}>
+                            packets
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div>
+            </div>
+            <div>
+                <ReactApexChart
+                    options={options}
+                    series={series}
+                    type="scatter"
+                />
+            </div>
         </div>
     );
 }

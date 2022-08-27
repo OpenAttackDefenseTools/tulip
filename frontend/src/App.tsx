@@ -16,6 +16,7 @@ export const START_FILTER_KEY = "start";
 export const END_FILTER_KEY = "end";
 export const FIRST_DIFF_KEY = "first";
 export const SECOND_DIFF_KEY = "second";
+export const CORRELATION_MODE_KEY = "correlation";
 
 function App() {
   return (
