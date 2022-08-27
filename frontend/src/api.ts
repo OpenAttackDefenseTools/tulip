@@ -142,6 +142,10 @@ class TulipApi {
         return await response.text();
     }
 
+    getDownloadLink(path: string) {
+        return `${this.API_ENDPOINT}/download/?file=${path}`;
+    }
+
 }
 
 // Singleton

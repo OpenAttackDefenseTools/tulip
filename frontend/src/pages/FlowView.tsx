@@ -186,6 +186,8 @@ function formatIP(ip: string) {
 }
 
 function FlowOverview({ flow }: { flow: FullFlow }) {
+  const { api } = useTulip();
+
   return (
     <div>
       {flow.signatures?.length > 0 ? (
@@ -225,7 +227,7 @@ function FlowOverview({ flow }: { flow: FullFlow }) {
         <div className="font-extrabold">Meta</div>
         <div className="pl-2">
           <div>Source: </div>
-          <div className="font-bold">{flow.filename}</div>
+          <div className="font-bold"><a href={api.getDownloadLink(flow.filename)}>{flow.filename}</a></div>
           <div></div>
           <div>Tags: </div>
           <div className="font-bold">[{flow.tags.join(", ")}]</div>

@@ -22,9 +22,10 @@
 # You should have received a copy of the GNU General Public License
 # along with Flower.  If not, see <https://www.gnu.org/licenses/>.
 
-from flask import Flask, Response
+from flask import Flask, Response, send_file
 
-from configurations import services
+from configurations import services, traffic_dir
+from pathlib import Path
 from data2req import convert_flow_to_http_requests, convert_single_http_requests
 from base64 import b64decode
 from db import DB
@@ -121,6 +122,23 @@ def confertToPwn(id):
     flow = db.getFlowDetail(id)
     converted = flow2pwn(flow)
     return return_text_response(converted)
+
+@application.route('/download/')
+def downloadFile():
+    filepath = request.args.get('file')
+    if filepath is None:
+        return return_text_response("There was an error while downloading the requested file:\n{}: {}".format("Invalid 'file'", "No 'file' given"))
+    filepath = Path(filepath)
+    
+    # Check for path traversal by resolving the file first.
+    filepath = filepath.resolve()
+    if not traffic_dir in filepath.parents:
+        return return_text_response("There was an error while downloading the requested file:\n{}: {}".format("Invalid 'file'", "'file' was not in a subdirectory of traffic_dir"))
+
+    try: 
+        return send_file(filepath, as_attachment=True)
+    except FileNotFoundError:
+        return return_text_response("There was an error while downloading the requested file:\n{}: {}".format("Invalid 'file'", "'file' not found"))
 
 if __name__ == "__main__":
     application.run(host='0.0.0.0',threaded=True)

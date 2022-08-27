@@ -34,10 +34,11 @@ services:
     networks:
       - internal
     volumes:
-      - ./shared:/shared
+      - /${TRAFFIC_DIR_HOST}:${TRAFFIC_DIR_DOCKER}:ro
     environment:
       TULIP_MONGO: mongo:27017
-      FLAG_REGEX: "[A-Z0-9]{31}="
+      TULIP_TRAFFIC_DIR: ${TRAFFIC_DIR_DOCKER}
+      FLAG_REGEX: ${FLAG_REGEX}
 
   assembler:
     build:
@@ -49,11 +50,11 @@ services:
     networks:
       - internal
     volumes:
-      - /traffic:/traffic:ro
-    command: "./assembler -dir /traffic"
+      - ${TRAFFIC_DIR_HOST}:${TRAFFIC_DIR_DOCKER}:ro
+    command: "./assembler -dir ${TRAFFIC_DIR_DOCKER}"
     environment:
-      TULIP_MONGO: mongo:27017
-      FLAG_REGEX: "[A-Z0-9]{31}="
+      TULIP_MONGO: ${TULIP_MONGO}
+      FLAG_REGEX: ${FLAG_REGEX}
 
   enricher:
     build:
@@ -65,10 +66,10 @@ services:
     networks:
       - internal
     volumes:
-      - /traffic:/traffic:ro
-    command: "./enricher -eve /traffic/eve.json"
+      - ${TRAFFIC_DIR_HOST}:${TRAFFIC_DIR_DOCKER}:ro
+    command: "./enricher -eve ${TRAFFIC_DIR_DOCKER}/eve.json"
     environment:
-      TULIP_MONGO: mongo:27017
+      TULIP_MONGO: ${TULIP_MONGO}
 
 networks:
   internal:
