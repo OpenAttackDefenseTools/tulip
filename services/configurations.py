@@ -25,7 +25,7 @@
 import re
 import os
 
-mongo_host = os.getenv("TULIP_MONGO", "0.0.0.0:27017")
+mongo_host = os.getenv("TULIP_MONGO", "localhost:27017")
 mongo_server = f'mongodb://{mongo_host}/'
 vm_ip = "192.168.201.2"  # todo put regex
 
