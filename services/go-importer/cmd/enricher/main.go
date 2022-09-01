@@ -33,7 +33,7 @@ func main() {
 		*mongodb = os.Getenv("TULIP_MONGO")
 		// if that didn't work, just guess a reasonable default
 		if *mongodb == "" {
-			*mongodb = "mongo:27017"
+			*mongodb = "localhost:27017"
 		}
 	}
 

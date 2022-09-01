@@ -25,7 +25,7 @@
 import re
 import os
 
-mongo_host = os.getenv("TULIP_MONGO", "0.0.0.0:27017")
+mongo_host = os.getenv("TULIP_MONGO", "localhost:27017")
 mongo_server = f'mongodb://{mongo_host}/'
 vm_ip = "192.168.201.2"  # todo put regex
 
@@ -34,10 +34,3 @@ services = [{"ip": vm_ip, "port": 8000, "name": "saarbahn"},
             {"ip": vm_ip, "port": 5445, "name": "saarsecvv"},
             {"ip": vm_ip, "port": 8080, "name": "saarcloud"},
             {"ip": vm_ip, "port": 11025, "name": "saarloop"}]
-
-
-def containsFlag(text):
-    # todo implementare logica contains
-    regex_flag = os.getenv("REACT_APP_FLAG_REGEX", r'[A-Z0-9]{31}=')
-    match = re.match(regex_flag, text)
-    return match
