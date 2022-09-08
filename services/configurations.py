@@ -28,11 +28,8 @@ from pathlib import Path
 traffic_dir = Path(os.getenv("TULIP_TRAFFIC_DIR", "/traffic"))
 mongo_host = os.getenv("TULIP_MONGO", "0.0.0.0:27017")
 mongo_server = f'mongodb://{mongo_host}/'
-vm_ip = "192.168.201.2"  # todo put regex
+vm_ip = "10.10.20.1"  # todo put regex
 
 services = [{"ip": vm_ip, "port": -1, "name": "unknown"},
-            {"ip": vm_ip, "port": 8000, "name": "saarbahn"},
-            {"ip": vm_ip, "port": 1984, "name": "bytewarden"},
-            {"ip": vm_ip, "port": 5445, "name": "saarsecvv"},
-            {"ip": vm_ip, "port": 8080, "name": "saarcloud"},
-            {"ip": vm_ip, "port": 11025, "name": "saarloop"}]
+            {"ip": vm_ip, "port": 10011, "name": "binary"},
+            {"ip": vm_ip, "port": 10021, "name": "web"}]
