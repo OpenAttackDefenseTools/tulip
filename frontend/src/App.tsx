@@ -8,6 +8,7 @@ import { Home } from "./pages/Home";
 import { FlowList } from "./components/FlowList";
 import { FlowView } from "./pages/FlowView";
 import { DiffView } from "./pages/DiffView";
+import { Corrie } from "./components/Corrie";
 
 export const TEXT_FILTER_KEY = "text";
 export const SERVICE_FILTER_KEY = "service";
@@ -15,6 +16,7 @@ export const START_FILTER_KEY = "start";
 export const END_FILTER_KEY = "end";
 export const FIRST_DIFF_KEY = "first";
 export const SECOND_DIFF_KEY = "second";
+export const CORRELATION_MODE_KEY = "correlation";
 
 function App() {
   return (
@@ -36,6 +38,14 @@ function App() {
               element={
                 <Suspense>
                   <DiffView />
+                </Suspense>
+              }
+            />
+            <Route
+              path="corrie/"
+              element={
+                <Suspense>
+                  <Corrie />
                 </Suspense>
               }
             />

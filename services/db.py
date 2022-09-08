@@ -83,8 +83,6 @@ class DB:
         return a
 
     def getSignature(self, id):
-        f = {"_id"}
-        print("query:")
         return self.signature_coll.find_one({"_id": id})
 
     def getFlowDetail(self, id):

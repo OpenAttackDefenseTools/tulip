@@ -304,6 +304,20 @@ export function Header() {
       <div>
         <EndDateSelection></EndDateSelection>
       </div>
+      <div>
+        <button
+          className=" bg-amber-100 text-gray-800 rounded-md px-2 py-1"
+          onClick={() => {
+            setToLastnTicks(5);
+            setLastRefresh(Date.now());
+          }}
+        >
+          Last 5 ticks
+        </button>
+      </div>
+      <Link to={`/corrie?${searchParams}`}>
+        <div className="bg-blue-100 text-gray-800 rounded-md px-2 py-1">Time Correlation</div>
+      </Link>
       <div className="ml-auto mr-4" style={{"display": "flex"}}>
         <div className="mr-4">
           <FirstDiff></FirstDiff>
@@ -316,7 +330,7 @@ export function Header() {
             <Diff></Diff>
           </Suspense>
         </div>
-        <div className="ml-auto mr-4" style= {{"display": "flex", "justifyContent": "center", "alignContent": "center", "flexDirection": "column"}}>Current: {currentTick}</div>
+      <div className="ml-auto mr-4" style= {{"display": "flex", "justifyContent": "center", "alignContent": "center", "flexDirection": "column"}}>Current: {currentTick}</div>
 
       {/* <div className="ml-auto">
         <ShowHexToggle></ShowHexToggle>

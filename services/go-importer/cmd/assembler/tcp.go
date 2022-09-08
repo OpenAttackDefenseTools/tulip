@@ -91,6 +91,7 @@ type tcpStream struct {
 	src_port           layers.TCPPort
 	dst_port           layers.TCPPort
 	total_size         int
+	num_packets        int
 }
 
 func (t *tcpStream) Accept(tcp *layers.TCP, ci gopacket.CaptureInfo, dir reassembly.TCPFlowDirection, nextSeq reassembly.Sequence, start *bool, ac reassembly.AssemblerContext) bool {
@@ -117,6 +118,7 @@ func (t *tcpStream) ReassembledSG(sg reassembly.ScatterGather, ac reassembly.Ass
 	length, _ := sg.Lengths()
 	capInfo := ac.GetCaptureInfo()
 	timestamp := capInfo.Timestamp
+	t.num_packets += 1
 
 	// Don't add empty streams to the DB
 	if length == 0 {
@@ -199,20 +201,20 @@ func (t *tcpStream) ReassemblyComplete(ac reassembly.AssemblerContext) bool {
 	duration = t.FlowItems[len(t.FlowItems)-1].Time - time
 
 	entry := db.FlowEntry{
-		Src_port:  int(t.src_port),
-		Dst_port:  int(t.dst_port),
-		Src_ip:    src.String(),
-		Dst_ip:    dst.String(),
-		Time:      time,
-		Duration:  duration,
-		Inx:       0,
-		Parent_id: primitive.NilObjectID,
-		Child_id:  primitive.NilObjectID,
-		Blocked:   false,
-		Tags:      make([]string, 0),
-		Suricata:  make([]int, 0),
-		Filename:  t.source,
-		Flow:      t.FlowItems,
+		Src_port:    int(t.src_port),
+		Dst_port:    int(t.dst_port),
+		Src_ip:      src.String(),
+		Dst_ip:      dst.String(),
+		Time:        time,
+		Duration:    duration,
+		Num_packets: t.num_packets,
+		Parent_id:   primitive.NilObjectID,
+		Child_id:    primitive.NilObjectID,
+		Blocked:     false,
+		Tags:        make([]string, 0),
+		Suricata:    make([]int, 0),
+		Filename:    t.source,
+		Flow:        t.FlowItems,
 	}
 
 	t.reassemblyCallback(entry)

@@ -33,3 +33,4 @@ vm_ip = "10.10.20.1"  # todo put regex
 services = [{"ip": vm_ip, "port": -1, "name": "unknown"},
             {"ip": vm_ip, "port": 10011, "name": "binary"},
             {"ip": vm_ip, "port": 10021, "name": "web"}]
+

@@ -250,3 +250,5 @@ function FlowListEntry({ flow, isActive, onHeartClick }: FlowListEntryProps) {
     </li>
   );
 }
+
+export { FlowListEntry };
