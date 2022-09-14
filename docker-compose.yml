@@ -39,6 +39,9 @@ services:
       TULIP_MONGO: mongo:27017
       TULIP_TRAFFIC_DIR: ${TRAFFIC_DIR_DOCKER}
       FLAG_REGEX: ${FLAG_REGEX}
+      TICK_START: "2022-09-15T08:30+03:00"
+      # TICK_LENGTH: 3*60*1000
+      TICK_LENGTH: 180000
 
   assembler:
     build:
