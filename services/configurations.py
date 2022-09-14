@@ -27,6 +27,8 @@ from pathlib import Path
 
 traffic_dir = Path(os.getenv("TULIP_TRAFFIC_DIR", "/traffic"))
 mongo_host = os.getenv("TULIP_MONGO", "0.0.0.0:27017")
+tick_length = os.getenv("TICK_LENGTH", 2000)
+start_date = os.getenv("TICK_START", "2022-07-16T09:00+03:00")
 mongo_server = f'mongodb://{mongo_host}/'
 vm_ip = "10.10.20.1"  # todo put regex
 

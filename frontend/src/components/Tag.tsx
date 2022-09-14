@@ -38,11 +38,8 @@ export const Tag = ({ tag, color, disabled = false, onClick }: TagProps) => {
   return (
     <div
       onClick={onClick}
-      className={classNames({
+      className={classNames("p-3 cursor-pointer rounded-md uppercase text-xs h-5 text-center flex items-center hover:opacity-90 transition-colors duration-250 text-ellipsis overflow-hidden whitespace-nowrap", {
         "bg-gray-300": disabled,
-        "cursor-pointer": !disabled,
-        "px-2 rounded-md uppercase text-xs h-5 text-center flex items-center ":
-          true,
       })}
       style={{
         backgroundColor: tagBackgroundColor,

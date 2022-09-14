@@ -24,7 +24,7 @@
 
 from flask import Flask, Response, send_file
 
-from configurations import services, traffic_dir
+from configurations import services, traffic_dir, start_date, tick_length
 from pathlib import Path
 from data2req import convert_flow_to_http_requests, convert_single_http_requests
 from base64 import b64decode
@@ -51,6 +51,13 @@ def return_text_response(object):
 def hello_world():
     return 'Hello, World!'
 
+@application.route('/tick_info')
+def getTickInfo():
+    data = {
+        "startDate": start_date,
+        "tickLength": tick_length
+    }
+    return return_json_response(data)
 
 @application.route('/query', methods=['POST'])
 def query():
