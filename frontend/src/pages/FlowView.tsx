@@ -3,7 +3,9 @@ import React, { useDeferredValue, useEffect, useState } from "react";
 import { useHotkeys } from 'react-hotkeys-hook';
 import { FlowData, FullFlow } from "../types";
 import { Buffer } from "buffer";
-
+import {
+  TEXT_FILTER_KEY,
+} from "../App";
 import {
   ArrowCircleLeftIcon,
   ArrowCircleRightIcon,
@@ -65,9 +67,29 @@ function HexFlow({ flow }: { flow: FlowData }) {
   const hex = hexy(Buffer.from(flow.b64, 'base64'), { format: "twos" });
   return <FlowContainer copyText={hex}>{hex}</FlowContainer>;
 }
+function highlightText(flowText: string, highlight: string) {
+  try {
+    const regex = new RegExp(`(${highlight})`, 'gi');
+    const parts = flowText.split(regex);
+    return <span> { parts.map((part, i) => 
+        <span key={i} className={classNames({
+          "bg-orange-200 rounded-sm ring-2 ring-orange-200": regex.test(part),
+        })}>
+            { part }
+        </span>)
+    } </span>;
+  } catch(error) {
+    console.log(error)
+    return flowText;
+  }
+}
 
 function TextFlow({ flow }: { flow: FlowData }) {
-  return <FlowContainer copyText={flow.data}>{flow.data}</FlowContainer>;
+  let [searchParams] = useSearchParams();
+  const text_filter = searchParams.get(TEXT_FILTER_KEY) ?? '';
+  const text = text_filter === '' ? flow.data :  highlightText(flow.data,text_filter)
+
+  return <FlowContainer copyText={flow.data}>{text}</FlowContainer>;
 }
 
 function WebFlow({ flow }: { flow: FlowData }) {
