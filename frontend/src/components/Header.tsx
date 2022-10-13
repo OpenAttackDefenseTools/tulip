@@ -4,7 +4,7 @@ import { atomWithStorage } from "jotai/utils";
 import { Suspense } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { Service, useTulip } from "../api";
-
+import classNames from "classnames";
 import {
   END_FILTER_KEY,
   SERVICE_FILTER_KEY,
@@ -14,6 +14,8 @@ import {
 import { useCTF } from "../pages/Home";
 
 export const showHexAtom = atomWithStorage("showHex", false);
+export const autoRefreshAtom = atomWithStorage("autoRefresh", false);
+export const last5TicksAtom = atomWithStorage("last5Ticks", false);
 
 // Hack to force refres sidebar
 export const lastRefreshAtom = atom(Date.now());
@@ -37,6 +39,7 @@ function ServiceSelection() {
   console.log(...searchParams.entries(), service_select);
   return (
     <select
+    className="rounded-md px-3 py-1.5"
       value={searchParams.get(FILTER_KEY) ?? ""}
       onChange={(event) => {
         let serviceFilter = event.target.value;
@@ -198,7 +201,56 @@ function ShowHexToggle() {
     </div>
   );
 }
+function AutoRefreshToggle() {
+  const [autoRefresh, setAutoRefresh] = useAtom(autoRefreshAtom);
+  const { setTimeParam, endTick } = useMessyTimeStuff();
+  return (
+    
+      <button
+          className={classNames({
+            "ring-inset ring-2 bg-orange-200 ring-orange-300": autoRefresh,
+            "bg-gray-200 ": !autoRefresh,
+            "rounded-md px-2 py-1": true,
+          })}
+          onClick={() => {
+            setAutoRefresh(!autoRefresh);
+          }}
+        >
+          Autorefresh
+      </button>
 
+  );
+}
+function Last5TicksToggle() {
+  const [last5Ticks, setLast5Ticks] = useAtom(last5TicksAtom);
+  const { setToLastnTicks, currentTick } = useMessyTimeStuff();
+  const [lastRefresh, setLastRefresh] = useAtom(lastRefreshAtom);
+
+  const { setTimeParam, endTick } = useMessyTimeStuff();
+  return (
+    
+      <button
+          className={classNames({
+            "ring-inset ring-2  bg-orange-200 ring-orange-300": last5Ticks,
+            "bg-gray-200": !last5Ticks,
+            "rounded-md px-2 py-1": true,
+          })}
+          onClick={() => {
+            setLast5Ticks(!last5Ticks);
+            if (!last5Ticks) {
+              setToLastnTicks(5);
+              setLastRefresh(Date.now());
+            }else{
+              setTimeParam('', START_FILTER_KEY);
+              setTimeParam('', END_FILTER_KEY);
+            }
+          }}
+        >
+          Last 5 ticks
+      </button>
+
+  );
+}
 export function Header() {
   let [searchParams] = useSearchParams();
   const { setToLastnTicks, currentTick } = useMessyTimeStuff();
@@ -225,16 +277,12 @@ export function Header() {
         <EndDateSelection></EndDateSelection>
       </div>
       <div>
-        <button
-          className=" bg-amber-100 text-gray-800 rounded-md px-2 py-1"
-          onClick={() => {
-            setToLastnTicks(5);
-            setLastRefresh(Date.now());
-          }}
-        >
-          Last 5 ticks
-        </button>
+        <Last5TicksToggle></Last5TicksToggle>
       </div>
+      <div>
+        <AutoRefreshToggle></AutoRefreshToggle>
+      </div>
+      
       <div className="ml-auto mr-4">Current: {currentTick}</div>
 
       {/* <div className="ml-auto">

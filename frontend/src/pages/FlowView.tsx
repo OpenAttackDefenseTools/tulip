@@ -2,14 +2,16 @@ import { useParams } from "react-router-dom";
 import React, { useEffect, useState } from "react";
 import { useTulip, FlowData, FullFlow } from "../api";
 import { Buffer } from "buffer";
-
+import {
+  TEXT_FILTER_KEY,
+} from "../App";
 import {
   ArrowCircleLeftIcon,
   ArrowCircleRightIcon,
 } from "@heroicons/react/solid";
 import { format } from "date-fns";
 import classNames from "classnames";
-
+import { useSearchParams } from "react-router-dom";
 import { hexy } from "hexy";
 import { useCopy } from "../hooks/useCopy";
 
@@ -58,9 +60,29 @@ function HexFlow({ flow }: { flow: FlowData }) {
   const hex = hexy(buffer);
   return <FlowContainer copyText={hex}>{hex}</FlowContainer>;
 }
+function highlightText(flowText: string, highlight: string) {
+  try {
+    const regex = new RegExp(`(${highlight})`, 'gi');
+    const parts = flowText.split(regex);
+    return <span> { parts.map((part, i) => 
+        <span key={i} className={classNames({
+          "bg-orange-200 rounded-sm ring-2 ring-orange-200": regex.test(part),
+        })}>
+            { part }
+        </span>)
+    } </span>;
+  } catch(error) {
+    console.log(error)
+    return flowText;
+  }
+}
 
 function TextFlow({ flow }: { flow: FlowData }) {
-  return <FlowContainer copyText={flow.data}>{flow.data}</FlowContainer>;
+  let [searchParams] = useSearchParams();
+  const text_filter = searchParams.get(TEXT_FILTER_KEY) ?? '';
+  const text = text_filter === '' ? flow.data :  highlightText(flow.data,text_filter)
+
+  return <FlowContainer copyText={flow.data}>{text}</FlowContainer>;
 }
 
 function WebFlow({ flow }: { flow: FlowData }) {

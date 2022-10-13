@@ -7,6 +7,8 @@ import {
 import { useCallback, useEffect, useState } from "react";
 import { useAtom, useAtomValue } from "jotai";
 import { Flow, FullFlow, useTulip } from "../api";
+import { autoRefreshAtom } from "../components/Header";
+import { last5TicksAtom } from "../components/Header";
 import {
   SERVICE_FILTER_KEY,
   TEXT_FILTER_KEY,
@@ -35,13 +37,14 @@ export function FlowList() {
   const { services, api, getFlows } = useTulip();
 
   const [flowList, setFlowList] = useState<Flow[]>([]);
-
+  const [useAutoRefresh] = useAtom(autoRefreshAtom)
+  const [useLast5Ticks] = useAtom(last5TicksAtom)
   const service_name = searchParams.get(SERVICE_FILTER_KEY) ?? "";
   const service = services.find((s) => s.name == service_name);
 
   const text_filter = searchParams.get(TEXT_FILTER_KEY) ?? undefined;
   const from_filter = searchParams.get(START_FILTER_KEY) ?? undefined;
-  const to_filter = searchParams.get(END_FILTER_KEY) ?? undefined;
+  let to_filter = searchParams.get(END_FILTER_KEY) ?? undefined;
 
   const debounced_text_filter = useDebounce(text_filter, 300);
 
@@ -53,10 +56,46 @@ export function FlowList() {
   const [lastRefresh, setLastRefresh] = useAtom(lastRefreshAtom);
 
   useEffect(() => {
+
+    const timer = setInterval(async () => {
+      if(useAutoRefresh) {
+        
+        if (useLast5Ticks) {
+          to_filter = new Date().valueOf().toString() + 5000;
+        }
+        const fetchData = async () => {
+          const data = await getFlows({
+            "flow.data": debounced_text_filter,
+            dst_ip: service?.ip,
+            dst_port: service?.port,
+            from_time: from_filter,
+            to_time: to_filter,
+            service: "", // FIXME
+            tags: selectedTags,
+          });
+          if (flowList != data) {
+            setFlowList(data);
+          }
+        };
+        fetchData().catch(console.error);
+      }
+    }, 500)
+    return () => {
+      clearInterval(timer)
+    }
+  }, [
+    service,
+    debounced_text_filter,
+    from_filter,
+    to_filter,
+    selectedTags,
+    lastRefresh,
+    useAutoRefresh,
+    useLast5Ticks])
+  useEffect(() => {
     const fetchData = async () => {
       const data = await api.getTags();
       setAvailableTags(data);
-      console.log(data);
     };
     fetchData().catch(console.error);
   }, []);
@@ -85,7 +124,6 @@ export function FlowList() {
     selectedTags,
     lastRefresh,
   ]);
-
   const onHeartHandler = useCallback(async (flow: Flow) => {
     await api.starFlow(flow._id.$oid, !flow.starred);
     // optimistic update
