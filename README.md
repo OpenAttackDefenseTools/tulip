@@ -1,12 +1,16 @@
-# Tulip
+# 🌷 Tulip
 
-Tulip is a flow analyzer meant for use during Attack / Defence CTF competitions. It is originally based on [flower](https://github.com/secgroup/flower), but it contains quite some changes:
+Tulip is a flow analyzer meant for use during Attack / Defence CTF competitions. It allows players to easily find some traffic related to their service, and automatically generates python snippets to replicates attacks.
+
+## Origins
+Tulip was developed by Team Europe for use in the first International Cyber Security Challenge. The project is a fork of [flower](https://github.com/secgroup/flower), but it contains quite some changes:
 * New front-end (typescript / react / tailwind)
 * New ingestor code, based on gopacket
+* IPv6 support
 * Vastly improved filter and tagging system.
-* Deep link support
+* Deep links for easy collaboration
 * Added an http decoding pass for compressed data
-* Added ability to correlate flows with suricata alerts
+* Synchronized with Suricata.
 
 ## Screenshots
 ![](./demo_images/demo1.png)
@@ -21,6 +25,10 @@ services = [{"ip": vm_ip, "port": 18080, "name": "BIOMarkt"},
 ]
 ```
 
+You can also edit this during the CTF, just rebuild the `api` service:
+```
+docker-compose up --build -d api
+```
 
 ## Usage
 
@@ -31,13 +39,22 @@ docker-compose up -d --build
 To ingest traffic, it is recommended to create a shared bind mount with the docker-compose. One convenient way to set this up is as follows:
 1. On the vulnbox, start a rotating packet sniffer (e.g. tcpdump, suricata, ...)
 1. Using rsync, copy complete captures to the machine running tulip (e.g. to /traffic)
-1. Add a bind to flower-importer so it can read /traffic
+1. Add a bind to the assembler service so it can read /traffic
 
 The ingestor will use inotify to watch for new pcap's and suricata logs. No need to set a chron job.
 
 
 ## Suricata synchronization
 
+### Metadata
+Tags are read from the metadata field of a rule. For example, here's a simple rule to detect a path traversal:
+```
+alert tcp any any -> any any (msg: "Path Traversal-../"; flow:to_server; content: "../"; metadata: tag path_traversal; sid:1; rev: 1;)
+```
+Once this rule is seen in traffic, the `path_traversal` tag will automatically be added to the filters in Tulip.
+
+
+### eve.json
 Suricata alerts are read directly from the `eve.json` file. Because this file can get quite verbose when all extensions are enabled, it is recommended to strip the config down a fair bit. For example:
 ```yaml
 # ...
@@ -58,3 +75,9 @@ Suricata alerts are read directly from the `eve.json` file. Because this file ca
 ```
 
 Sessions with matched alerts will be highlighted in the front-end and include which rule was matched.
+
+# Security
+Similar to [flower](https://github.com/secgroup/flower), the default docker-compose.yml file **does not prevent anyone from connecting to your mongo instance and dropping/stealing all of your data**. Either disable the exposed port in the compose file or make sure you firewall it on the host.
+
+# Credits
+Tulip was written by [@RickdeJager](https://github.com/rickdejager) and [@Bazumo](https://github.com/bazumo), with additional help from [@Sijisu](https://github.com/sijisu). Thanks to our fellow Team Europe players and coaches for testing, feedback and suggestions. Finally, thanks the team behind [flower](https://github.com/secgroup/flower) for opensourcing their tooling.

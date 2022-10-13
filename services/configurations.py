@@ -26,13 +26,15 @@ import os
 from pathlib import Path
 
 traffic_dir = Path(os.getenv("TULIP_TRAFFIC_DIR", "/traffic"))
-mongo_host = os.getenv("TULIP_MONGO", "0.0.0.0:27017")
-tick_length = os.getenv("TICK_LENGTH", 2000)
-start_date = os.getenv("TICK_START", "2022-07-16T09:00+03:00")
+tick_length = os.getenv("TICK_LENGTH", 2*60*1000)
+start_date = os.getenv("TICK_START", "2018-06-27T13:00+02:00")
+mongo_host = os.getenv("TULIP_MONGO", "localhost:27017")
 mongo_server = f'mongodb://{mongo_host}/'
-vm_ip = "10.10.20.1"  # todo put regex
+vm_ip = "10.10.3.1"
 
-services = [{"ip": vm_ip, "port": -1, "name": "unknown"},
-            {"ip": vm_ip, "port": 10011, "name": "binary"},
-            {"ip": vm_ip, "port": 10021, "name": "web"}]
-
+services = [{"ip": vm_ip, "port": 9876, "name": "cc_market"},
+            {"ip": vm_ip, "port": 80, "name": "maze"},
+            {"ip": vm_ip, "port": 8080, "name": "scadent"},
+            {"ip": vm_ip, "port": 5000, "name": "starchaser"},
+            {"ip": vm_ip, "port": 1883, "name": "scadnet_bin"},
+            {"ip": vm_ip, "port": -1, "name": "other"}]

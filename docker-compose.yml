@@ -34,14 +34,13 @@ services:
     networks:
       - internal
     volumes:
-      - /${TRAFFIC_DIR_HOST}:${TRAFFIC_DIR_DOCKER}:ro
+      - ${TRAFFIC_DIR_HOST}:${TRAFFIC_DIR_DOCKER}:ro
     environment:
       TULIP_MONGO: mongo:27017
       TULIP_TRAFFIC_DIR: ${TRAFFIC_DIR_DOCKER}
       FLAG_REGEX: ${FLAG_REGEX}
-      TICK_START: "2022-09-15T08:30+03:00"
-      # TICK_LENGTH: 3*60*1000
-      TICK_LENGTH: 180000
+      TICK_START: ${TICK_START}
+      TICK_LENGTH: ${TICK_LENGTH}
 
   assembler:
     build:
