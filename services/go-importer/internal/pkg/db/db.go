@@ -16,28 +16,28 @@ import (
 type FlowItem struct {
 	/// From: "s" / "c" for server or client
 	From string
-	/// Data, in a somewhat reachable format
+	/// Data, in a somewhat readable format
 	Data string
-	/// Data, as hex string
-	Hex string
 	/// Timestamp of the first packet in the flow (Epoch / ms)
 	Time int
 }
 
 type FlowEntry struct {
-	Src_port int
-	Dst_port int
-	Src_ip   string
-	Dst_ip   string
-	Time     int
-	Duration int
-	Inx      int
-	Starred  bool
-	Blocked  bool
-	Filename string
-	Suricata []int
-	Flow     []FlowItem
-	Tags     []string
+	Src_port     int
+	Dst_port     int
+	Src_ip       string
+	Dst_ip       string
+	Time         int
+	Duration     int
+	Num_packets  int
+	Blocked      bool
+	Filename     string
+	Parent_id    primitive.ObjectID
+	Child_id     primitive.ObjectID
+	Fingerprints []uint32
+	Suricata     []int
+	Flow         []FlowItem
+	Tags         []string
 }
 
 type Database struct {
@@ -63,6 +63,7 @@ func (db Database) ConfigureDatabase() {
 	db.InsertTag("flag-out")
 	db.InsertTag("blocked")
 	db.InsertTag("suricata")
+	db.InsertTag("starred")
 	db.ConfigureIndexes()
 }
 
@@ -106,13 +107,51 @@ func (db Database) ConfigureIndexes() {
 func (db Database) InsertFlow(flow FlowEntry) {
 	flowCollection := db.client.Database("pcap").Collection("pcap")
 
+	if len(flow.Fingerprints) > 0 {
+		query := bson.M{
+			"fingerprints": bson.M{
+				"$in": flow.Fingerprints,
+			},
+		}
+		opts := options.FindOne().SetSort(bson.M{"time": -1})
+
+		// TODO does this return the first one? If multiple documents satisfy the given query expression, then this method will return the first document according to the natural order which reflects the order of documents on the disk.
+		connectedFlow := struct {
+			MongoID primitive.ObjectID `bson:"_id"`
+		}{}
+		err := flowCollection.FindOne(context.TODO(), query, opts).Decode(&connectedFlow)
+
+		// There is a connected flow
+		if err == nil {
+			//TODO Maybe add the childs fingerprints to mine?
+			flow.Child_id = connectedFlow.MongoID
+		}
+	}
+
 	// TODO; use insertMany instead
-	_, err := flowCollection.InsertOne(context.TODO(), flow)
+	insertion, err := flowCollection.InsertOne(context.TODO(), flow)
 	// check for errors in the insertion
 	if err != nil {
 		log.Println("Error occured while inserting record: ", err)
 		log.Println("NO PCAP DATA WILL BE AVAILABLE FOR: ", flow.Filename)
 	}
+
+	if flow.Child_id == primitive.NilObjectID {
+		return
+	}
+
+	query := bson.M{
+		"_id": flow.Child_id,
+	}
+
+	info := bson.M{
+		"$set": bson.M{
+			"parent_id": insertion.InsertedID,
+		},
+	}
+
+	_, err = flowCollection.UpdateOne(context.TODO(), query, info)
+	//TODO error handling
 }
 
 // Insert a new pcap uri, returns true if the pcap was not present yet,

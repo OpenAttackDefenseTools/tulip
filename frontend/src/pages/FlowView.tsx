@@ -1,17 +1,23 @@
-import { useParams } from "react-router-dom";
-import React, { useEffect, useState } from "react";
-import { useTulip, FlowData, FullFlow } from "../api";
-import { Buffer } from "buffer";
+import { useSearchParams, Link, useParams } from "react-router-dom";
+import React, { useState } from "react";
+import { FlowData, FullFlow } from "../types";
 
 import {
   ArrowCircleLeftIcon,
   ArrowCircleRightIcon,
 } from "@heroicons/react/solid";
 import { format } from "date-fns";
-import classNames from "classnames";
 
 import { hexy } from "hexy";
 import { useCopy } from "../hooks/useCopy";
+import { RadioGroup, RadioGroupProps } from "../components/RadioGroup";
+import {
+  useGetFlowQuery,
+  useLazyToFullPythonRequestQuery,
+  useLazyToPwnToolsQuery,
+  useToSinglePythonRequestQuery,
+} from "../api";
+import { API_BASE_PATH } from "../const";
 
 const SECONDARY_NAVBAR_HEIGHT = 50;
 
@@ -52,10 +58,7 @@ function FlowContainer({
 }
 
 function HexFlow({ flow }: { flow: FlowData }) {
-  const data = flow.hex;
-  // make hex view here, use Buffer or maybe not.
-  const buffer = Buffer.from(data, "hex");
-  const hex = hexy(buffer);
+  const hex = hexy(flow.data, { format: "twos" });
   return <FlowContainer copyText={hex}>{hex}</FlowContainer>;
 }
 
@@ -84,51 +87,26 @@ function WebFlow({ flow }: { flow: FlowData }) {
   );
 }
 
-function PythonRequestFlow({ flow }: { flow: FlowData }) {
-  const [data, setData] = useState("");
-
-  const { api } = useTulip();
-
-  useEffect(() => {
-    const fetchData = async () => {
-      const data = await api.toPythonRequest(btoa(flow.data), true);
-      setData(data);
-    };
-    // TODO proper error handling
-    fetchData().catch((err) => setData(err));
-  }, [flow.data]);
+function PythonRequestFlow({
+  full_flow,
+  flow,
+}: {
+  full_flow: FullFlow;
+  flow: FlowData;
+}) {
+  const { data } = useToSinglePythonRequestQuery({
+    body: btoa(flow.data),
+    id: full_flow._id.$oid,
+    tokenize: true,
+  });
 
   return <FlowContainer copyText={data}>{data}</FlowContainer>;
 }
 
 interface FlowProps {
+  full_flow: FullFlow;
   flow: FlowData;
   delta_time: number;
-}
-
-interface RadioGroupProps {
-  options: string[];
-  value: string;
-  onChange: (option: string) => void;
-}
-
-function RadioGroup(props: RadioGroupProps) {
-  return (
-    <div className="flex gap-2 text-gray-800 text-sm ml-auto mr-4">
-      {props.options.map((option) => (
-        <div
-          key={option}
-          onClick={() => props.onChange(option)}
-          className={classNames({
-            "bg-gray-200": option === props.value,
-            "px-1 rounded-sm": true,
-          })}
-        >
-          {option}
-        </div>
-      ))}
-    </div>
-  );
 }
 
 function detectType(flow: FlowData) {
@@ -140,7 +118,7 @@ function detectType(flow: FlowData) {
   return "Plain";
 }
 
-function Flow({ flow, delta_time }: FlowProps) {
+function Flow({ full_flow, flow, delta_time }: FlowProps) {
   const formatted_time = format(new Date(flow.time), "HH:mm:ss:SSS");
   const displayOptions = ["Plain", "Hex", "Web", "PythonRequest"];
 
@@ -165,10 +143,35 @@ function Flow({ flow, delta_time }: FlowProps) {
             {formatted_time}
             <span className="text-gray-400 pl-3">{delta_time}ms</span>
           </div>
+          <button
+            className="bg-gray-200 py-1 px-2 rounded-md text-sm"
+            onClick={async () => {
+              const base64_arraybuffer = async (data: Uint8Array) => {
+                const base64url = await new Promise<string>((r) => {
+                  const reader = new FileReader();
+                  reader.onload = () => r(String(reader.result));
+                  reader.readAsDataURL(new Blob([data]));
+                });
+
+                return base64url.split(",", 2)[1];
+              };
+
+              const b64Flow = await base64_arraybuffer(
+                new Uint8Array(flow.data.split("").map((s) => s.charCodeAt(0)))
+              );
+              window.open(
+                "https://gchq.github.io/CyberChef/#input=" +
+                  encodeURIComponent(b64Flow)
+              );
+            }}
+          >
+            Open in cyberchef
+          </button>
           <RadioGroup
             options={displayOptions}
             value={displayOption}
             onChange={setDisplayOption}
+            className="flex gap-2 text-gray-800 text-sm mr-4 ml-auto"
           />
         </div>
       </div>
@@ -183,7 +186,10 @@ function Flow({ flow, delta_time }: FlowProps) {
         {displayOption === "Plain" && <TextFlow flow={flow}></TextFlow>}
         {displayOption === "Web" && <WebFlow flow={flow}></WebFlow>}
         {displayOption === "PythonRequest" && (
-          <PythonRequestFlow flow={flow}></PythonRequestFlow>
+          <PythonRequestFlow
+            flow={flow}
+            full_flow={full_flow}
+          ></PythonRequestFlow>
         )}
       </div>
     </div>
@@ -200,7 +206,7 @@ function FlowOverview({ flow }: { flow: FullFlow }) {
   return (
     <div>
       {flow.signatures?.length > 0 ? (
-        <div className="bg-blue-200">
+        <div className="bg-blue-200 p-2">
           <div className="font-extrabold">Suricata</div>
           <div className="pl-2">
             {flow.signatures.map((sig) => {
@@ -232,11 +238,15 @@ function FlowOverview({ flow }: { flow: FullFlow }) {
           </div>
         </div>
       ) : undefined}
-      <div className="bg-yellow-200">
+      <div className="bg-yellow-200 p-2">
         <div className="font-extrabold">Meta</div>
         <div className="pl-2">
           <div>Source: </div>
-          <div className="font-bold">{flow.filename}</div>
+          <div className="font-bold">
+            <a href={`${API_BASE_PATH}/download/?file=${flow.filename}`}>
+              {flow.filename}
+            </a>
+          </div>
           <div></div>
           <div>Tags: </div>
           <div className="font-bold">[{flow.tags.join(", ")}]</div>
@@ -260,40 +270,49 @@ function FlowOverview({ flow }: { flow: FullFlow }) {
   );
 }
 
-function Header() {}
-
 export function FlowView() {
+  let [searchParams] = useSearchParams();
   const params = useParams();
-  const [flow, setFlow] = useState<FullFlow>();
 
   const id = params.id;
 
-  const { api } = useTulip();
+  const { data: flow } = useGetFlowQuery(id!, { skip: id === undefined });
 
-  useEffect(() => {
-    const fetchData = async () => {
-      if (id === undefined) {
-        return;
-      }
-      const data = await api.getFlow(id);
-      setFlow(data);
-    };
-    fetchData().catch(console.error);
-  }, [id]);
+  const [triggerPwnToolsQuery] = useLazyToPwnToolsQuery();
+  const [triggerFullPythonRequestQuery] = useLazyToFullPythonRequestQuery();
 
   async function copyAsPwn() {
     if (flow?._id.$oid) {
-      let content = await api.toPwnTools(flow?._id.$oid);
-      return content;
+      const { data } = await triggerPwnToolsQuery(flow?._id.$oid);
+      console.log(data);
+      return data || "";
     }
     return "";
   }
 
-  const { statusText, copy } = useCopy({
+  const { statusText: pwnCopyStatusText, copy: copyPwn } = useCopy({
     getText: copyAsPwn,
     copyStateToText: {
       copied: "Copied",
       default: "Copy as pwntools",
+      failed: "Failed",
+      copying: "Generating payload",
+    },
+  });
+
+  async function copyAsRequests() {
+    if (flow?._id.$oid) {
+      const { data } = await triggerFullPythonRequestQuery(flow?._id.$oid);
+      return data || "";
+    }
+    return "";
+  }
+
+  const { statusText: requestsCopyStatusText, copy: copyRequests } = useCopy({
+    getText: copyAsRequests,
+    copyStateToText: {
+      copied: "Copied",
+      default: "Copy as requests",
       failed: "Failed",
       copying: "Generating payload",
     },
@@ -312,12 +331,29 @@ export function FlowView() {
         <div className="flex align-middle p-2 gap-3 ml-auto">
           <button
             className="bg-gray-700 text-white px-2 text-sm rounded-md"
-            onClick={copy}
+            onClick={copyPwn}
           >
-            {statusText}
+            {pwnCopyStatusText}
+          </button>
+
+          <button
+            className="bg-gray-700 text-white px-2 text-sm rounded-md"
+            onClick={copyRequests}
+          >
+            {requestsCopyStatusText}
           </button>
         </div>
       </div>
+      {flow?.parent_id?.$oid != "000000000000000000000000" ? (
+        <Link
+          to={`/flow/${flow.parent_id.$oid}?${searchParams}`}
+          key={flow.parent_id.$oid}
+          className="focus-visible:rounded-md"
+        >
+          Parent
+        </Link>
+      ) : undefined}
+
       {flow ? <FlowOverview flow={flow}></FlowOverview> : undefined}
       {flow?.flow.map((flow_data, i, a) => {
         const delta_time = a[i].time - (a[i - 1]?.time ?? a[i].time);
@@ -325,10 +361,21 @@ export function FlowView() {
           <Flow
             flow={flow_data}
             delta_time={delta_time}
+            full_flow={flow}
             key={flow._id.$oid + " " + i}
           ></Flow>
         );
       })}
+
+      {flow?.child_id?.$oid != "000000000000000000000000" ? (
+        <Link
+          to={`/flow/${flow.child_id.$oid}?${searchParams}`}
+          key={flow.child_id.$oid}
+          className="focus-visible:rounded-md"
+        >
+          Child
+        </Link>
+      ) : undefined}
     </div>
   );
 }

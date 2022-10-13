@@ -47,8 +47,7 @@ class HTTPRequest(BaseHTTPRequestHandler):
         self.error_code = code
         self.error_message = message
 
-# tokenize used for automatically fill data param of request
-def convert_http_requests(raw_request, tokenize=True, use_requests_session=False):
+def decode_http_request(raw_request, tokenize):
     request = HTTPRequest(raw_request)
 
     data = {}
@@ -92,12 +91,18 @@ def convert_http_requests(raw_request, tokenize=True, use_requests_session=False
         # try to extract files
         if content_type.startswith("multipart/form-data"):
             data_param_name = "files"
-            return "Forms with files are not yet implemented"
+            return "Forms with files are not yet implemented", None, None, None
+    return request, data, data_param_name, headers
 
+# tokenize used for automatically fill data param of request
+def convert_single_http_requests(raw_request, flow, tokenize=True, use_requests_session=False):
+    
+    request, data, data_param_name, headers = decode_http_request(raw_request, tokenize)
     rtemplate = Environment(loader=BaseLoader()).from_string("""import os
 import requests
+import sys
 
-host = os.getenv("TARGET_IP")
+host = sys.argv[1]
 {% if use_requests_session %}
 s = requests.Session()
 
@@ -107,7 +112,7 @@ headers = {{headers}}
 {% endif %}
 data = {{data}}
 
-{% if use_requests_session %}s{% else %}requests{% endif %}.{{request.command.lower()}}("http://{}{{request.path}}".format(host), {{data_param_name}}=data{% if not use_requests_session %}, headers=headers{% endif %})""")
+{% if use_requests_session %}s{% else %}requests{% endif %}.{{request.command.lower()}}("http://{}:{{port}}{{request.path}}".format(host), {{data_param_name}}=data{% if not use_requests_session %}, headers=headers{% endif %})""")
 
     return rtemplate.render(
             headers=str(dict(headers)),
@@ -115,4 +120,38 @@ data = {{data}}
             request=request,
             data_param_name=data_param_name,
             use_requests_session=use_requests_session,
+            port=flow["dst_port"]
         )
+
+
+def render(template, **kwargs):
+    return Environment(loader=BaseLoader()).from_string(template).render(kwargs)
+
+def convert_flow_to_http_requests(flow, tokenize=True, use_requests_session=True):
+    port = flow["dst_port"]
+    script = render("""import os
+import requests
+import sys
+
+host = sys.argv[1]
+{% if use_requests_session %}
+s = requests.Session()
+{% endif %}""",use_requests_session=use_requests_session,
+            port=port)
+    for message in flow['flow']:
+        if message['from'] == 'c':
+            request, data, data_param_name, headers = decode_http_request(message['data'].encode(), tokenize)
+            script += render("""
+{% if use_requests_session %}
+s.headers = {{headers}}
+{% else %}
+headers = {{headers}}
+{% endif %}
+data = {{data}}
+{% if use_requests_session %}s{% else %}requests{% endif %}.{{request.command.lower()}}("http://{}:{{port}}{{request.path}}".format(host), {{data_param_name}}=data{% if not use_requests_session %}, headers=headers{% endif %})""", headers=str(dict(headers)),
+            data=data,
+            request=request,
+            data_param_name=data_param_name,
+            use_requests_session=use_requests_session,
+            port=port)
+    return script
