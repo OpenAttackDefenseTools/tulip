@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"compress/gzip"
-	"fmt"
 	"go-importer/internal/pkg/db"
 	"hash/crc32"
 	"io"
@@ -20,15 +19,11 @@ import (
 func AddFingerprints(cookies []*http.Cookie, fingerPrints map[uint32]bool) {
 	for _, cookie := range cookies {
 
-		fmt.Println(cookie)
 		// Prevent exploitation by encoding :pray:, who cares about collisions
 		checksum := crc32.Checksum([]byte(url.QueryEscape(cookie.Name)), crc32.IEEETable)
-
 		checksum = crc32.Update(checksum, crc32.IEEETable, []byte("="))
-
 		checksum = crc32.Update(checksum, crc32.IEEETable, []byte(url.QueryEscape(cookie.Value)))
 		fingerPrints[checksum] = true
-		//*fingerPrints = append(*fingerPrints, int(checksum))
 	}
 }
 
@@ -52,8 +47,10 @@ func ParseHttpFlow(flow *db.FlowEntry) {
 				//TODO; replace the HTTP data.
 			}
 
-			// Parse cookie and grab fingerprints
-			AddFingerprints(req.Cookies(), fingerprintsSet)
+			if *experimental {
+				// Parse cookie and grab fingerprints
+				AddFingerprints(req.Cookies(), fingerprintsSet)
+			}
 
 		} else if flowItem.From == "s" {
 			// Parse HTTP Response
@@ -61,11 +58,13 @@ func ParseHttpFlow(flow *db.FlowEntry) {
 			if err != nil {
 				continue
 			}
-			// Parse cookie and grab fingerprints
-			AddFingerprints(res.Cookies(), fingerprintsSet)
+
+			if *experimental {
+				// Parse cookie and grab fingerprints
+				AddFingerprints(res.Cookies(), fingerprintsSet)
+			}
 
 			// Substitute body
-
 			encoding := res.Header["Content-Encoding"]
 			if encoding == nil || len(encoding) == 0 {
 				// If we don't find an encoding header, it is either not valid,
@@ -111,10 +110,12 @@ func ParseHttpFlow(flow *db.FlowEntry) {
 		}
 	}
 
-	// Use maps.Keys(fingerprintsSet) in the future
-	flow.Fingerprints = make([]uint32, 0, len(fingerprintsSet))
-	for k := range fingerprintsSet {
-		flow.Fingerprints = append(flow.Fingerprints, k)
+	if *experimental {
+		// Use maps.Keys(fingerprintsSet) in the future
+		flow.Fingerprints = make([]uint32, 0, len(fingerprintsSet))
+		for k := range fingerprintsSet {
+			flow.Fingerprints = append(flow.Fingerprints, k)
+		}
 	}
 }
 
