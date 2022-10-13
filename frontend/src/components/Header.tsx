@@ -307,7 +307,7 @@ export function Header() {
       </div>
       <Link to={`/corrie?${searchParams}`}>
         <div className="bg-blue-100 text-gray-800 rounded-md px-2 py-1">
-          Time Correlation
+          Graph view
         </div>
       </Link>
       <div className="ml-auto mr-4" style={{ display: "flex" }}>

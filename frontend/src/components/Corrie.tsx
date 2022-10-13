@@ -107,16 +107,16 @@ export const Corrie = () => {
             packets
           </button>
           <button
-            className={mode == "tags" ? activeButtonClass : inactiveButtonClass}
-            onClick={() => setCorrelationMode("tags")}
+            className={mode == "volume" ? activeButtonClass : inactiveButtonClass}
+            onClick={() => setCorrelationMode("volume")}
           >
-            tags
+            volume
           </button>
         </div>
       </div>
       <div className="flex-1 w-full overflow-hidden p-4">
         {(mode == "packets" || mode == "time") && TimePacketGraph(graphProps)}
-        {mode == "tags" && TagGraph(graphProps)}
+        {mode == "volume" && VolumeGraph(graphProps)}
       </div>
     </div>
   );
@@ -197,7 +197,7 @@ function TimePacketGraph(graphProps: GraphProps) {
   );
 }
 
-function TagGraph(graphProps: GraphProps) {
+function VolumeGraph(graphProps: GraphProps) {
   const flowList = graphProps.flowList;
   const mode = graphProps.mode;
   const searchParams = graphProps.searchParams;
@@ -218,9 +218,7 @@ function TagGraph(graphProps: GraphProps) {
         ts = 0;
         acc = 0;
       } else {
-        if (flow.tags.includes("flag-out")) {
-          acc++;
-        }
+        acc++;
       }
     });
 
@@ -229,7 +227,7 @@ function TagGraph(graphProps: GraphProps) {
 
   const series_out: ApexAxisChartSeries = [
     {
-      name: "Flag-out",
+      name: "Volume",
       data: chunkData(flowList),
     },
   ];
