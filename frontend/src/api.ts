@@ -77,11 +77,15 @@ export const tulipApi = createApi({
       //   // `updateQueryData` requires the endpoint name and cache key arguments,
       //   // so it knows which piece of cache state to update
       //   const patchResult = dispatch(
-      //     apiSlice.util.updateQueryData("getPosts", undefined, (draft) => {
-      //       // The `draft` is Immer-wrapped and can be "mutated" like in createSlice
-      //       const post = draft.find((post) => post.id === postId);
-      //       if (post) {
-      //         post.reactions[reaction]++;
+      //     tulipApi.util.updateQueryData("getFlows", undefined, (flows) => {
+      //       // The `flows` is Immer-wrapped and can be "mutated" like in createSlice
+      //       const flow = flows.find((flow) => flow._id.$oid === id);
+      //       if (flow) {
+      //         if (star) {
+      //           flow.tags.push("starred");
+      //         } else {
+      //           flow.tags = flow.tags.filter((tag) => tag != "starred");
+      //         }
       //       }
       //     })
       //   );

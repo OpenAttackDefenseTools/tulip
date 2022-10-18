@@ -42,7 +42,6 @@ function ServiceSelection() {
     ...(services || []),
   ];
   let [searchParams, setSearchParams] = useSearchParams();
-  console.log(...searchParams.entries(), service_select);
   return (
     <select
       value={searchParams.get(FILTER_KEY) ?? ""}
