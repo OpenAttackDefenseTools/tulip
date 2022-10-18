@@ -2,12 +2,10 @@ package main
 
 import (
 	"bufio"
-	"bytes"
 	"compress/gzip"
 	"go-importer/internal/pkg/db"
 	"hash/crc32"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -15,6 +13,8 @@ import (
 
 	"github.com/andybalholm/brotli"
 )
+
+const DecompressionSizeLimit = int64(streamdoc_limit)
 
 func AddFingerprints(cookies []*http.Cookie, fingerPrints map[uint32]bool) {
 	for _, cookie := range cookies {
@@ -39,17 +39,19 @@ func ParseHttpFlow(flow *db.FlowEntry) {
 		flowItem := &flow.Flow[idx]
 		// TODO; rethink the flowItem format to make this less clunky
 		reader := bufio.NewReader(strings.NewReader(flowItem.Data))
+
 		if flowItem.From == "c" {
 			// HTTP Request
 			req, err := http.ReadRequest(reader)
 			if err != nil {
+				if *experimental {
+					// Parse cookie and grab fingerprints
+					AddFingerprints(req.Cookies(), fingerprintsSet)
+				}
 				continue
 				//TODO; replace the HTTP data.
-			}
-
-			if *experimental {
-				// Parse cookie and grab fingerprints
-				AddFingerprints(req.Cookies(), fingerprintsSet)
+				// Remember to use a `LimitReader` when implementing this to prevent
+				// decompressions bombs / DOS!
 			}
 
 		} else if flowItem.From == "s" {
@@ -72,41 +74,43 @@ func ParseHttpFlow(flow *db.FlowEntry) {
 				continue
 			}
 
-			var newReader io.ReadCloser
-			body, err := ioutil.ReadAll(res.Body)
-			r := bytes.NewBuffer(body)
-			res.Body.Close()
+			var newReader io.Reader
 			if err != nil {
 				// Failed to fully read the body. Bail out here
 				continue
 			}
 			switch encoding[0] {
 			case "gzip":
-				newReader, err = handleGzip(r)
+				newReader, err = handleGzip(res.Body)
 				break
 			case "br":
-				newReader, err = handleBrotili(r)
+				newReader, err = handleBrotili(res.Body)
 				break
 			case "deflate":
 				//TODO; verify this is correct
-				newReader, err = handleGzip(r)
+				newReader, err = handleGzip(res.Body)
 				break
 			default:
 				// Skipped, unknown or identity encoding
 				continue
 			}
 
-			res.Body = newReader
-			defer res.Body.Close()
-			// invalidate the content length, since decompressing the body will change its value.
-			res.ContentLength = -1
-			replacement, err := httputil.DumpResponse(res, true)
-			if err != nil {
-				// HTTPUtil failed us, continue without replacing anything.
-				continue
+			// Replace the reader to allow for in-place decompression
+			if err == nil && newReader != nil {
+				// Limit the reader to prevent potential decompression bombs
+				res.Body = io.NopCloser(io.LimitReader(newReader, DecompressionSizeLimit))
+				// invalidate the content length, since decompressing the body will change its value.
+				res.ContentLength = -1
+				replacement, err := httputil.DumpResponse(res, true)
+				if err != nil {
+					// HTTPUtil failed us, continue without replacing anything.
+					continue
+				}
+				// TODO; This can exceed the mongo document limit, so we need to take care to
+				// cut the flowitems off at some stage. Same issue as in the reassembler, though
+				// the data can now grow more after the fact.
+				flowItem.Data = string(replacement)
 			}
-
-			flowItem.Data = string(replacement)
 		}
 	}
 
@@ -119,16 +123,11 @@ func ParseHttpFlow(flow *db.FlowEntry) {
 	}
 }
 
-func handleGzip(r io.Reader) (io.ReadCloser, error) {
-	reader, err := gzip.NewReader(r)
-	if err != nil {
-		return nil, err
-	}
-	return reader, nil
+func handleGzip(r io.Reader) (io.Reader, error) {
+	return gzip.NewReader(r)
 }
 
-func handleBrotili(r io.Reader) (io.ReadCloser, error) {
+func handleBrotili(r io.Reader) (io.Reader, error) {
 	reader := brotli.NewReader(r)
-	ret := ioutil.NopCloser(reader)
-	return ret, nil
+	return reader, nil
 }
