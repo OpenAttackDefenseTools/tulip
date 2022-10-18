@@ -1,6 +1,6 @@
 # 🌷 Tulip
 
-Tulip is a flow analyzer meant for use during Attack / Defence CTF competitions. It allows players to easily find some traffic related to their service, and automatically generates python snippets to replicates attacks.
+Tulip is a flow analyzer meant for use during Attack / Defence CTF competitions. It allows players to easily find some traffic related to their service and automatically generates python snippets to replicate attacks.
 
 ## Origins
 Tulip was developed by Team Europe for use in the first International Cyber Security Challenge. The project is a fork of [flower](https://github.com/secgroup/flower), but it contains quite some changes:
@@ -77,7 +77,7 @@ Suricata alerts are read directly from the `eve.json` file. Because this file ca
 Sessions with matched alerts will be highlighted in the front-end and include which rule was matched.
 
 # Security
-Similar to [flower](https://github.com/secgroup/flower), the default docker-compose.yml file **does not prevent anyone from connecting to your mongo instance and dropping/stealing all of your data**. Either disable the exposed port in the compose file or make sure you firewall it on the host.
+Your Tulip instance will probably contain sensitive CTF information, like flags stolen from your machines. If you expose it to the internet and other people find it, you risk losing additional flags. It is recommended to host it on an internal network (for instance behind a VPN) or to put Tulip behind some form of authentication.
 
 # Credits
-Tulip was written by [@RickdeJager](https://github.com/rickdejager) and [@Bazumo](https://github.com/bazumo), with additional help from [@Sijisu](https://github.com/sijisu). Thanks to our fellow Team Europe players and coaches for testing, feedback and suggestions. Finally, thanks the team behind [flower](https://github.com/secgroup/flower) for opensourcing their tooling.
+Tulip was written by [@RickdeJager](https://github.com/rickdejager) and [@Bazumo](https://github.com/bazumo), with additional help from [@Sijisu](https://github.com/sijisu). Thanks to our fellow Team Europe players and coaches for testing, feedback and suggestions. Finally, thanks to the team behind [flower](https://github.com/secgroup/flower) for opensourcing their tooling.
