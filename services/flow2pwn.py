@@ -22,10 +22,11 @@
 # You should have received a copy of the GNU General Public License
 # along with Flower.  If not, see <https://www.gnu.org/licenses/>.
 
-import string
+import base64
 
 def escape(i):
-    i = ord(i)
+    if isinstance(i, str):
+        i = ord(i)
     ret = chr(i) if 0x20 <= i and i < 0x7f else f'\\x{i:02x}'
     if ret in '\\"':
         ret = '\\' + ret
@@ -47,13 +48,12 @@ proc = remote(host, {})
 """.format(port)
 
     for message in flow['flow']:
+        data = base64.b64decode(message["b64"])
         if message['from'] == 'c':
-            script += """proc.write(b"{}")\n""".format(convert(message["data"]))
+            script += """proc.write(b"{}")\n""".format(convert(data))
 
         else:
-            for m in range(len(message['data'])):
-                script += """proc.recvuntil(b"{}")\n""".format(convert(message["data"][-10:]).replace("\n","\\n"))
-                break
+            script += """proc.recvuntil(b"{}")\n""".format(convert(data[-10:]).replace("\n","\\n"))
 
     return script
 

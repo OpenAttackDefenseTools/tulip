@@ -33,6 +33,7 @@ export interface Id {
 export interface FlowData {
   from: string;
   data: string;
+  b64: string;
   time: number;
 }
 

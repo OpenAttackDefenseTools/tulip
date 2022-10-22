@@ -27,7 +27,7 @@ var quiet = true
 
 const closeTimeout time.Duration = time.Hour * 24 // Closing inactive: TODO: from CLI
 const timeout time.Duration = time.Minute * 5     // Pending bytes: TODO: from CLI
-const streamdoc_limit int = 15_000_000
+const streamdoc_limit int = 6_000_000             // 16 MB (6 + (4/3)*6)
 
 /*
  * The TCP factory: returns a new Stream

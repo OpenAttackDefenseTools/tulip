@@ -2,7 +2,9 @@ package db
 
 import (
 	"context"
+	"encoding/base64"
 	"log"
+	"strings"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -18,6 +20,9 @@ type FlowItem struct {
 	From string
 	/// Data, in a somewhat readable format
 	Data string
+	/// The raw data, base64 encoded.
+	// TODO; Replace this with gridfs
+	B64 string
 	/// Timestamp of the first packet in the flow (Epoch / ms)
 	Time int
 }
@@ -106,6 +111,20 @@ func (db Database) ConfigureIndexes() {
 // A single flow is defined by a db.FlowEntry" struct, containing an array of flowitems and some metadata
 func (db Database) InsertFlow(flow FlowEntry) {
 	flowCollection := db.client.Database("pcap").Collection("pcap")
+
+	// Process the data, so it works well in mongodb
+	for idx := 0; idx < len(flow.Flow); idx++ {
+		flowItem := &flow.Flow[idx]
+		// Base64 encode the raw data string
+		flowItem.B64 = base64.StdEncoding.EncodeToString([]byte(flowItem.Data))
+		// filter the data string down to only printable characters
+		flowItem.Data = strings.Map(func(r rune) rune {
+			if r < 128 {
+				return r
+			}
+			return -1
+		}, flowItem.Data)
+	}
 
 	if len(flow.Fingerprints) > 0 {
 		query := bson.M{

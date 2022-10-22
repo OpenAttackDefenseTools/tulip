@@ -58,7 +58,7 @@ function FlowContainer({
 }
 
 function HexFlow({ flow }: { flow: FlowData }) {
-  const hex = hexy(flow.data, { format: "twos" });
+  const hex = hexy(atob(flow.b64), { format: "twos" });
   return <FlowContainer copyText={hex}>{hex}</FlowContainer>;
 }
 
@@ -95,7 +95,7 @@ function PythonRequestFlow({
   flow: FlowData;
 }) {
   const { data } = useToSinglePythonRequestQuery({
-    body: btoa(flow.data),
+    body: flow.b64,
     id: full_flow._id.$oid,
     tokenize: true,
   });
@@ -146,22 +146,9 @@ function Flow({ full_flow, flow, delta_time }: FlowProps) {
           <button
             className="bg-gray-200 py-1 px-2 rounded-md text-sm"
             onClick={async () => {
-              const base64_arraybuffer = async (data: Uint8Array) => {
-                const base64url = await new Promise<string>((r) => {
-                  const reader = new FileReader();
-                  reader.onload = () => r(String(reader.result));
-                  reader.readAsDataURL(new Blob([data]));
-                });
-
-                return base64url.split(",", 2)[1];
-              };
-
-              const b64Flow = await base64_arraybuffer(
-                new Uint8Array(flow.data.split("").map((s) => s.charCodeAt(0)))
-              );
               window.open(
                 "https://gchq.github.io/CyberChef/#input=" +
-                  encodeURIComponent(b64Flow)
+                  encodeURIComponent(flow.b64)
               );
             }}
           >
