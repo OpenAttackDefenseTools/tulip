@@ -22,17 +22,18 @@
 # You should have received a copy of the GNU General Public License
 # along with Flower.  If not, see <https://www.gnu.org/licenses/>.
 
-import string
+import base64
 
 def escape(i):
+    if isinstance(i, str):
+        i = ord(i)
     ret = chr(i) if 0x20 <= i and i < 0x7f else f'\\x{i:02x}'
     if ret in '\\"':
         ret = '\\' + ret
     return ret
 
 def convert(message):
-    data = bytes.fromhex(message["hex"])
-    return ''.join([escape(i) for i in data])
+    return ''.join([escape(i) for i in message])
 
 #convert a flow into pwn script
 def flow2pwn(flow):
@@ -40,18 +41,19 @@ def flow2pwn(flow):
     port = flow["dst_port"]
 
     script = """from pwn import *
+import sys
 
-proc = remote('{}', {})
-""".format(ip, port)
+host = sys.argv[1]
+proc = remote(host, {})
+""".format(port)
 
     for message in flow['flow']:
+        data = base64.b64decode(message["b64"])
         if message['from'] == 'c':
-            script += """proc.write(b"{}")\n""".format(convert(message))
+            script += """proc.write(b"{}")\n""".format(convert(data))
 
         else:
-            for m in range(len(message['data'])):
-                script += """proc.recvuntil(b"{}")\n""".format(convert(message)[-20:].replace("\n","\\n"))
-                break
+            script += """proc.recvuntil(b"{}")\n""".format(convert(data[-10:]).replace("\n","\\n"))
 
     return script
 

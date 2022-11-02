@@ -35,6 +35,7 @@ var watch_dir = flag.String("dir", "", "Directory to watch for new pcaps")
 var mongodb = flag.String("mongo", "", "MongoDB dns name + port (e.g. mongo:27017)")
 var flag_regex = flag.String("flag", "", "flag regex, used for flag in/out tagging")
 var nonstrict = flag.Bool("nonstrict", false, "Do not check strict TCP / FSM flags")
+var experimental = flag.Bool("experimental", false, "Enable experimental features.")
 
 var g_db db.Database
 
