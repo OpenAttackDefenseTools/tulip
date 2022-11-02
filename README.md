@@ -11,9 +11,14 @@ Tulip was developed by Team Europe for use in the first International Cyber Secu
 * Deep links for easy collaboration
 * Added an http decoding pass for compressed data
 * Synchronized with Suricata.
+* Flow diffing
+* Time and size-based plots for correlation.
+* Linking HTTP sessions together based on cookies (Experimental, disabled by default)
 
 ## Screenshots
 ![](./demo_images/demo1.png)
+![](./demo_images/demo2.png)
+![](./demo_images/demo3.png)
 
 ## Configuration
 Before starting the stack, edit `services/configurations.py`:
