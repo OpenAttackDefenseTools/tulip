@@ -27,7 +27,7 @@ var quiet = true
 
 const closeTimeout time.Duration = time.Hour * 24 // Closing inactive: TODO: from CLI
 const timeout time.Duration = time.Minute * 5     // Pending bytes: TODO: from CLI
-const streamdoc_limit int = 6_000_000             // 16 MB (6 + (4/3)*6)
+const streamdoc_limit int = 6_000_000 - 0x1000    // 16 MB (6 + (4/3)*6) - some overhead
 
 /*
  * The TCP factory: returns a new Stream
@@ -215,6 +215,7 @@ func (t *tcpStream) ReassemblyComplete(ac reassembly.AssemblerContext) bool {
 		Suricata:    make([]int, 0),
 		Filename:    t.source,
 		Flow:        t.FlowItems,
+		Size:        t.total_size,
 	}
 
 	t.reassemblyCallback(entry)

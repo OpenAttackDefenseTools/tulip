@@ -43,6 +43,7 @@ type FlowEntry struct {
 	Suricata     []int
 	Flow         []FlowItem
 	Tags         []string
+	Size         int
 }
 
 type Database struct {

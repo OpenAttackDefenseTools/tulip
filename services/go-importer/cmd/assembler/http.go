@@ -106,10 +106,13 @@ func ParseHttpFlow(flow *db.FlowEntry) {
 					// HTTPUtil failed us, continue without replacing anything.
 					continue
 				}
-				// TODO; This can exceed the mongo document limit, so we need to take care to
-				// cut the flowitems off at some stage. Same issue as in the reassembler, though
-				// the data can now grow more after the fact.
-				flowItem.Data = string(replacement)
+				// This can exceed the mongo document limit, so we need to make sure
+				// the replacement will fit
+				new_size := flow.Size + (len(replacement) - len(flowItem.Data))
+				if new_size <= streamdoc_limit {
+					flowItem.Data = string(replacement)
+					flow.Size = new_size
+				}
 			}
 		}
 	}
