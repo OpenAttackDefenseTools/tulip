@@ -37,8 +37,10 @@ docker-compose up --build -d api
 
 ## Usage
 
-The stack can be started with docker-compose:
+The stack can be started with docker-compose, after creating an `.env` file. See `.env.example` as an example of how to configure your environment.
 ```
+cp .env.example .env
+# < Edit the .env file with your favourite text editor >
 docker-compose up -d --build
 ```
 To ingest traffic, it is recommended to create a shared bind mount with the docker-compose. One convenient way to set this up is as follows:
@@ -83,6 +85,10 @@ Sessions with matched alerts will be highlighted in the front-end and include wh
 
 # Security
 Your Tulip instance will probably contain sensitive CTF information, like flags stolen from your machines. If you expose it to the internet and other people find it, you risk losing additional flags. It is recommended to host it on an internal network (for instance behind a VPN) or to put Tulip behind some form of authentication.
+
+# Contributing
+If you have an idea for a new feature, bug fixes, UX improvements, or other contributions, feel free to open a pull request or create an issue!      
+When opening a pull request, please target the `devel` branch.
 
 # Credits
 Tulip was written by [@RickdeJager](https://github.com/rickdejager) and [@Bazumo](https://github.com/bazumo), with additional help from [@Sijisu](https://github.com/sijisu). Thanks to our fellow Team Europe players and coaches for testing, feedback and suggestions. Finally, thanks to the team behind [flower](https://github.com/secgroup/flower) for opensourcing their tooling.
