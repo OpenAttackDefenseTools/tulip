@@ -98,8 +98,10 @@ def decode_http_request(raw_request, tokenize):
 def convert_single_http_requests(raw_request, flow, tokenize=True, use_requests_session=False):
     
     request, data, data_param_name, headers = decode_http_request(raw_request, tokenize)
+    if not request.path.startswith('/'):
+        raise Exception('request path must start with / to be a valid HTTP request')
+    request_path_repr = repr(request.path)
     request_method = validate_request_method(request.command)
-    request_path = escape_request_path(request.path)
 
     rtemplate = Environment(loader=BaseLoader()).from_string("""import os
 import requests
@@ -115,13 +117,13 @@ headers = {{headers}}
 {% endif %}
 data = {{data}}
 
-{% if use_requests_session %}s{% else %}requests{% endif %}.{{request_method}}(f"http://{{ '{' }}host{{ '}' }}:{{port}}{{request_path}}", {{data_param_name}}=data{% if not use_requests_session %}, headers=headers{% endif %})""")
+{% if use_requests_session %}s{% else %}requests{% endif %}.{{request_method}}(f"http://{{ '{' }}host{{ '}' }}:{{port}}" + {{request_path_repr}}, {{data_param_name}}=data{% if not use_requests_session %}, headers=headers{% endif %})""")
 
     return rtemplate.render(
             headers=str(dict(headers)),
             data=data,
             request_method=request_method,
-            request_path=request_path,
+            request_path_repr=request_path_repr,
             data_param_name=data_param_name,
             use_requests_session=use_requests_session,
             port=flow["dst_port"]
@@ -146,7 +148,9 @@ s = requests.Session()
         if message['from'] == 'c':
             request, data, data_param_name, headers = decode_http_request(message['data'].encode(), tokenize)
             request_method = validate_request_method(request.command)
-            request_path = escape_request_path(request.path)
+            if not request.path.startswith('/'):
+                raise Exception('request path must start with / to be a valid HTTP request')
+            request_path_repr = repr(request.path)
             
             script += render("""
 {% if use_requests_session %}
@@ -155,11 +159,11 @@ s.headers = {{headers}}
 headers = {{headers}}
 {% endif %}
 data = {{data}}
-{% if use_requests_session %}s{% else %}requests{% endif %}.{{request_method}}(f"http://{{ '{' }}host{{ '}' }}:{{port}}{{request_path}}", {{data_param_name}}=data{% if not use_requests_session %}, headers=headers{% endif %})""",
+{% if use_requests_session %}s{% else %}requests{% endif %}.{{request_method}}(f"http://{{ '{' }}host{{ '}' }}:{{port}}" + {{request_path_repr}}, {{data_param_name}}=data{% if not use_requests_session %}, headers=headers{% endif %})""",
             headers=str(dict(headers)),
             data=data,
             request_method=request_method,
-            request_path=request_path,
+            request_path_repr=request_path_repr,
             data_param_name=data_param_name,
             use_requests_session=use_requests_session,
             port=port)
@@ -171,11 +175,3 @@ def validate_request_method(request_method: str):
         # Throw Exception for a bad method to prevent command inject via a nasty request method
         raise Exception(f'Invalid request method: {request_method}')
     return request_method
-
-def escape_request_path(path: str):
-    """Escape backslashes and either quote character with an additional backslash. Also escape curly braces with an additional curly brace"""
-    # Prevent command injection via a nasty request path by escaping characters
-    replacements = (('\\', '\\\\'), ("'", "\\'"), ('"', '\\"'), ('{', '{{'), ('}', '}}'))
-    for old, new in replacements:
-        path = path.replace(old, new)
-    return path
