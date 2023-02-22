@@ -52,7 +52,7 @@ export const tulipApi = createApi({
       { body: string; id: string; tokenize: boolean }
     >({
       query: ({ body, id, tokenize }) => ({
-        url: `/to_single_python_request?tokenize/${
+        url: `/to_single_python_request?tokenize=${
           tokenize ? "1" : "0"
         }&id=${id}`,
         method: "POST",
