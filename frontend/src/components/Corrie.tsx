@@ -13,7 +13,9 @@ import useDebounce from "../hooks/useDebounce";
 
 import ReactApexChart from "react-apexcharts";
 import { ApexOptions } from "apexcharts";
-import { useGetFlowsQuery, useGetServicesQuery } from "../api";
+import { useGetFlowsQuery, useGetServicesQuery, useGetTickInfoQuery } from "../api";
+import { TICK_REFETCH_INTERVAL_MS } from "../const";
+import { TickInfo } from "../types";
 import { useAppSelector } from "../store";
 
 interface GraphProps {
@@ -22,6 +24,7 @@ interface GraphProps {
   searchParams: URLSearchParams;
   setSearchParams: (a: URLSearchParams) => void;
   onClickNavigate: (a: string) => void;
+  tickInfoData: TickInfo | undefined;
 }
 
 export const Corrie = () => {
@@ -79,12 +82,18 @@ export const Corrie = () => {
     [navigate]
   );
 
+  // TODO find a better way to do this
+  const { data: tickInfoData } = useGetTickInfoQuery(undefined, {
+    pollingInterval: TICK_REFETCH_INTERVAL_MS,
+  });
+
   const graphProps: GraphProps = {
     flowList: transformedFlowData || [],
     mode: mode,
     searchParams: searchParams,
     setSearchParams: setSearchParams,
     onClickNavigate: onClickNavigate,
+    tickInfoData: tickInfoData
   };
 
   return (
@@ -112,15 +121,160 @@ export const Corrie = () => {
           >
             volume
           </button>
+          <button
+            className={mode == "flags" ? activeButtonClass : inactiveButtonClass}
+            onClick={() => setCorrelationMode("flags")}
+          >
+            flags
+          </button>
         </div>
       </div>
       <div className="flex-1 w-full overflow-hidden p-4">
         {(mode == "packets" || mode == "time") && TimePacketGraph(graphProps)}
         {mode == "volume" && VolumeGraph(graphProps)}
+        {mode == "flags" && FlagsGraph(graphProps)}
       </div>
     </div>
   );
 };
+
+function FlagsGraph(graphProps: GraphProps) {
+  const flowList = graphProps.flowList;
+  const searchParams = graphProps.searchParams;
+  const setSearchParams = graphProps.setSearchParams;
+  const tickInfoData = graphProps.tickInfoData;
+
+  const SEARCH_CAP = 100;
+  const DEFAULT_CAP = 25;
+
+  // TODO find a better way to do this
+  const startDate = tickInfoData?.startDate ?? "1970-01-01T00:00:00Z";
+  const tickLength = tickInfoData?.tickLength ?? 1000;
+
+  function unixTimeToTick(unixTimeInt: number): number {
+    return Math.floor(
+      (unixTimeInt - new Date(startDate).valueOf()) / tickLength
+    );
+  }
+
+  function tickToUnixTime(tick: number): number {
+    return new Date(startDate).valueOf() + tickLength * tick;
+  }
+
+  let endTick = Math.ceil(unixTimeToTick(parseInt(searchParams.get(END_FILTER_KEY) ?? new Date().valueOf().toString())));
+  let startTick = Math.floor(unixTimeToTick(parseInt(searchParams.get(START_FILTER_KEY) ?? new Date(startDate).valueOf().toString())));
+
+  // Hard limit for performance reasons
+  if (searchParams.has(START_FILTER_KEY) && searchParams.has(END_FILTER_KEY)) {
+    startTick = Math.max(Math.max(0, startTick), endTick - SEARCH_CAP);
+  } else if (endTick - startTick > DEFAULT_CAP) {
+    startTick = Math.max(0, endTick - DEFAULT_CAP);
+  }
+
+  let flags: any = {
+    in: {},
+    out: {}
+  };
+
+  for (var i = startTick; i <= endTick; i++) {
+      flags.in[i] = {
+        x: i, y: 0
+      }
+
+      flags.out[i] = {
+        x: i, y: 0
+      }
+  }
+
+  flowList.forEach((flow) => {
+    const tick = unixTimeToTick(flow.time);
+    
+    if (tick < startTick || tick > endTick) {
+      return;
+    }
+
+    if (flow.tags.includes("flag-in")) {
+      flags.in[tick].y++;
+    }
+
+    if (flow.tags.includes("flag-out")) {
+      flags.in[tick].y++;
+    }
+  });
+
+  var options: ApexOptions = {
+    dataLabels: {
+      enabled: false,
+    },
+    grid: {
+      xaxis: {
+        lines: {
+          show: true,
+        },
+      },
+      yaxis: {
+        lines: {
+          show: true,
+        },
+      },
+    },
+    xaxis: {
+      type: "numeric"
+    },
+    chart: {
+      animations: {
+        enabled: false,
+      },
+      events: {
+        beforeZoom: function (chartContext, { xaxis }) {
+          const start = Math.floor(tickToUnixTime(xaxis.min));
+          const end = Math.ceil(tickToUnixTime(xaxis.max + 1));
+          searchParams.set(START_FILTER_KEY, start.toString());
+          searchParams.set(END_FILTER_KEY, end.toString());
+          setSearchParams(searchParams);
+        },
+      },
+    },
+  };
+
+  const series1: ApexAxisChartSeries = [
+    {
+      name: "Flag In",
+      data: Object.values(flags.in)
+    }
+  ];
+
+  const series2: ApexAxisChartSeries = [
+    {
+      name: "Flag Out",
+      data: Object.values(flags.out)
+    }
+  ];
+ 
+  // TODO remove hardcoded height values and find a way to split this
+  return (
+    <div id="chart-wrapper">
+      <div id="chart-flag-in">
+        <ReactApexChart
+          options={Object.assign({ labels: Object.keys(flags.in), title: { text: "Flag In by Flow", align: "left" } }, options)}
+          series={series1}
+          type="line"
+          height={360}
+          width="100%"
+        />
+      </div>
+      <div id="chart-flag-out">
+        <ReactApexChart
+          options={Object.assign({ labels: Object.keys(flags.out), title: { text: "Flag Out by Flow", align: "left" } }, options)}
+          series={series2}
+          type="line"
+          height={360}
+          width="100%"
+        />
+      </div>
+    </div>
+  );
+}
 
 function TimePacketGraph(graphProps: GraphProps) {
   const flowList = graphProps.flowList;
