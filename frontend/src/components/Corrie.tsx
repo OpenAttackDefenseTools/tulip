@@ -163,6 +163,14 @@ function FlagsGraph(graphProps: GraphProps) {
 
   let endTick = Math.ceil(unixTimeToTick(parseInt(searchParams.get(END_FILTER_KEY) ?? new Date().valueOf().toString())));
   let startTick = Math.floor(unixTimeToTick(parseInt(searchParams.get(START_FILTER_KEY) ?? new Date(startDate).valueOf().toString())));
+  
+  if (startTick < 0) {
+    startTick = 0;
+  }
+  
+  if (endTick < startTick) {
+    endTick = startTick;
+  }
 
   // Hard limit for performance reasons
   if (searchParams.has(START_FILTER_KEY) && searchParams.has(END_FILTER_KEY)) {
@@ -172,107 +180,100 @@ function FlagsGraph(graphProps: GraphProps) {
   }
 
   let flags: any = {
-    in: {},
-    out: {}
+    in: Array(endTick - startTick).fill(0),
+    out: Array(endTick - startTick).fill(0),
   };
-
-  for (var i = startTick; i <= endTick; i++) {
-      flags.in[i] = {
-        x: i, y: 0
-      }
-
-      flags.out[i] = {
-        x: i, y: 0
-      }
-  }
 
   flowList.forEach((flow) => {
     const tick = unixTimeToTick(flow.time);
     
-    if (tick < startTick || tick > endTick) {
+    if (tick < startTick || tick >= endTick) {
       return;
     }
 
     if (flow.tags.includes("flag-in")) {
-      flags.in[tick].y++;
+      flags.in[tick - startTick]++;
     }
 
     if (flow.tags.includes("flag-out")) {
-      flags.in[tick].y++;
+      flags.out[tick - startTick]++;
     }
   });
 
   var options: ApexOptions = {
+    plotOptions: {
+      bar: {
+        horizontal: false,
+        columnWidth: "55%"
+      }
+    },
     dataLabels: {
       enabled: false,
     },
-    grid: {
-      xaxis: {
-        lines: {
-          show: true,
-        },
-      },
-      yaxis: {
-        lines: {
-          show: true,
-        },
-      },
+    stroke: {
+      show: true,
+      width: 2,
+      colors: ['transparent']
     },
     xaxis: {
-      type: "numeric"
+      categories: Array.from({ length: endTick - startTick + 1 }, (_, i) => startTick + i),
+      title: {
+        text: "Ticks"
+      }
+    },
+    yaxis: {
+      title: {
+        text: "Number of flows"
+      }
+    },
+    tooltip: {
+      x: {
+        formatter: function (v) {
+          return "Tick " + v;
+        }
+      }
     },
     chart: {
       animations: {
-        enabled: false,
+        enabled: false
       },
       events: {
-        beforeZoom: function (chartContext, { xaxis }) {
-          const start = Math.floor(tickToUnixTime(xaxis.min));
-          const end = Math.ceil(tickToUnixTime(xaxis.max + 1));
-          searchParams.set(START_FILTER_KEY, start.toString());
-          searchParams.set(END_FILTER_KEY, end.toString());
-          setSearchParams(searchParams);
+        click: function (e, chartContext, options) {
+          const tick = options.dataPointIndex;
+          if (tick !== -1) {
+            const start = Math.floor(tickToUnixTime(tick + startTick));
+            const end = Math.ceil(tickToUnixTime(tick + startTick + 1));
+            searchParams.set(START_FILTER_KEY, start.toString());
+            searchParams.set(END_FILTER_KEY, end.toString());
+            setSearchParams(searchParams);
+          }
         },
       },
     },
   };
 
-  const series1: ApexAxisChartSeries = [
+  const series: ApexAxisChartSeries = [
     {
       name: "Flag In",
-      data: Object.values(flags.in)
-    }
-  ];
-
-  const series2: ApexAxisChartSeries = [
+      data: flags.in,
+      color: "#00ff00"
+    },
     {
       name: "Flag Out",
-      data: Object.values(flags.out)
+      data: flags.out,
+      color: "#ff0000"
     }
   ];
  
   // TODO remove hardcoded height values and find a way to split this
   return (
-    <div id="chart-wrapper">
-      <div id="chart-flag-in">
-        <ReactApexChart
-          options={Object.assign({ labels: Object.keys(flags.in), title: { text: "Flag In by Flow", align: "left" } }, options)}
-          series={series1}
-          type="line"
-          height={360}
-          width="100%"
-        />
-      </div>
-      <div id="chart-flag-out">
-        <ReactApexChart
-          options={Object.assign({ labels: Object.keys(flags.out), title: { text: "Flag Out by Flow", align: "left" } }, options)}
-          series={series2}
-          type="line"
-          height={360}
-          width="100%"
-        />
-      </div>
-    </div>
+      <ReactApexChart
+        options={options}
+        series={series}
+        type="bar"
+        height="100%"
+        width="100%"
+      />
   );
 }
 
