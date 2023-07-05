@@ -154,5 +154,5 @@ def downloadFile():
         return return_text_response("There was an error while downloading the requested file:\n{}: {}".format("Invalid 'file'", "'file' not found"))
 
 if __name__ == "__main__":
-    application.run(host='0.0.0.0',threaded=True, debug=True)
+    application.run(host='0.0.0.0',threaded=True)
 
