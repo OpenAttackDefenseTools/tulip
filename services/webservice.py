@@ -65,6 +65,12 @@ def query():
     result = db.getFlowList(json)
     return return_json_response(result)
 
+@application.route('/stats/<service>')
+def getStats(service):
+    args = request.args
+    result = db.getStats(service, args)
+    return return_json_response(result)
+
 @application.route('/tags')
 def getTags():
     result = db.getTagList()
@@ -148,5 +154,5 @@ def downloadFile():
         return return_text_response("There was an error while downloading the requested file:\n{}: {}".format("Invalid 'file'", "'file' not found"))
 
 if __name__ == "__main__":
-    application.run(host='0.0.0.0',threaded=True)
+    application.run(host='0.0.0.0',threaded=True, debug=True)
 

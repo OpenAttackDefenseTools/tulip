@@ -29,7 +29,8 @@ from pymongo import MongoClient
 from pymongo.errors import ServerSelectionTimeoutError
 import sys
 import pprint
-from configurations import mongo_server, services
+from configurations import mongo_server, services, start_date, tick_length
+from dateutil import parser as dateparser
 
 
 class DB:
@@ -77,6 +78,50 @@ class DB:
         pprint.pprint(f)
 
         return self.pcap_coll.find(f, {"flow": 0}).sort("time", -1).limit(2000)
+    
+    def getStats(self, service, filters):
+        f = {}
+        
+        if service != "all" and isinstance(service, str):
+            for s in services:
+                if s["name"] == service:
+                    f["dst_port"] = s["port"]
+                    break
+                
+            if "dst_port" not in f:
+                return []
+
+        if "tick" in filters:
+            start = dateparser.parse(start_date).timestamp() * 1000 + int(filters.get("tick")) * int(tick_length)
+
+            f["time"] = {
+                "$gte": int(start),
+                "$lt": int(start + int(tick_length))
+            }
+        elif "from_time" in filters and "to_time" in filters:
+            f["time"] = {
+                "$gte": int(filters["from_time"]),
+                "$lt": int(filters["to_time"])
+            }
+        else:
+            return []
+        
+        # note: this returns an empty array if the match phase fails to find flows
+        return self.pcap_coll.aggregate([
+            { "$match": f },
+            { "$group": {
+                "_id": None,
+
+                "requests": { "$sum": { "$size": "$flow" } },
+
+                "flows-flag-in": { "$sum": { "$cond": { "if": { "$in": ["flag-in", "$tags"] }, "then": 1, "else": 0 } } },
+                "flows-flag-out": { "$sum": { "$cond": { "if": { "$in": ["flag-out", "$tags"] }, "then": 1, "else": 0 } } },
+
+                "flag-in": { "$sum": "$flags_in" },
+                "flag-out": { "$sum": "$flags_out" }
+            }},
+        ])
+
 
     def getTagList(self):
         a = [i["_id"] for i in self.tag_col.find()]
