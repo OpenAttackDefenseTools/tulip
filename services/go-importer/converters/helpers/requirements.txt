@@ -1,0 +1,7 @@
+h2
+urllib3
+protobuf-inspector
+dnslib
+cryptography
+scapy
+aioquic
