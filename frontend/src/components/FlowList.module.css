@@ -2,12 +2,16 @@
 
     @apply flex flex-col gap-2;
 
+    a {
+        @apply pb-1;
+    }
+
     li {
-        @apply bg-gray-100 p-2 rounded-md focus:ring-4 m-2 list-none;
+        @apply bg-gray-100 p-2 focus:ring-4 list-none;
     }
 
     li.active {
-        @apply ring-2 ring-gray-500
+        @apply border-l-4 border-gray-500 bg-gray-300/50
     }
 
 }

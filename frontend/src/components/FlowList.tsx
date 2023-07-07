@@ -126,6 +126,7 @@ export function FlowList() {
       if (element) {
         element.addEventListener('keydown', keyDownCallback)
         listRef.current = element
+        element.focus() // time wasted here: 3.5 hours - we need to refocus the parent element, because the originally focused item will disappear
       } else {
         listRef.current?.removeEventListener('keydown', keyDownCallback)
       }
@@ -186,7 +187,7 @@ export function FlowList() {
             onClick={() => setFlowIndex(index)}
             key={flow._id.$oid}
             className="focus-visible:rounded-md"
-            style={{ margin: 0 }}
+            //style={{ paddingTop: '1em' }}
           >
             <FlowListEntry
               key={flow._id.$oid}
@@ -226,9 +227,8 @@ function FlowListEntry({ flow, isActive, onHeartClick }: FlowListEntryProps) {
       className={classNames({
         [classes.active]: isActive,
       })}
-      style={{ margin: 0 }}
     >
-      <div className="flex" style={{ margin: 0 }}>
+      <div className="flex">
         <div
           className="w-5 ml-1 mr-1 self-center shrink-0"
           onClick={() => {
