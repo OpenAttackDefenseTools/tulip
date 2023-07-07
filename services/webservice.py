@@ -65,6 +65,12 @@ def query():
     result = db.getFlowList(json)
     return return_json_response(result)
 
+@application.route('/stats/<service>')
+def getStats(service):
+    args = request.args
+    result = db.getStats(service, args)
+    return return_json_response(result)
+
 @application.route('/tags')
 def getTags():
     result = db.getTagList()
