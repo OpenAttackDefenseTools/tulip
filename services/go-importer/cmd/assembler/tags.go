@@ -41,12 +41,17 @@ func ApplyFlagTags(flow *db.FlowEntry, reg *string) {
 
 	for idx := 0; idx < len(flow.Flow); idx++ {
 		flowItem := &flow.Flow[idx]
-		if flagRegex.MatchString(flowItem.Data) {
+		
+		matches := len(flagRegex.FindAllStringIndex(flowItem.Data, -1))
+		
+		if matches > 0 {
 			var tag string
 			if flowItem.From == "c" {
 				tag = "flag-in"
+				flow.Flags_In += matches;
 			} else {
 				tag = "flag-out"
+				flow.Flags_Out += matches;
 			}
 			// Add the tag if it doesn't already exist
 			if !containsTag(flow.Tags, tag) {

@@ -44,6 +44,8 @@ type FlowEntry struct {
 	Flow         []FlowItem
 	Tags         []string
 	Size         int
+	Flags_In		 int
+	Flags_Out		 int
 }
 
 type Database struct {
