@@ -99,7 +99,7 @@ export function FlowList() {
       if (keyboardEvent.code === 'ArrowUp') {
         nextIndex = Math.max(0, flowIndex - 1)
       } else if (keyboardEvent.code === 'ArrowDown') {
-        nextIndex = Math.min(flowData?.length ?? 0, flowIndex + 1)
+        nextIndex = Math.min((flowData?.length ?? 1)-1, flowIndex + 1)
       }
 
       if (nextIndex !== null) {
