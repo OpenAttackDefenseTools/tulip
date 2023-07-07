@@ -4,7 +4,7 @@ import {
   useParams,
   useNavigate,
 } from "react-router-dom";
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import { Flow } from "../types";
 import {
   SERVICE_FILTER_KEY,
@@ -45,7 +45,7 @@ export function FlowList() {
   const [starFlow] = useStarFlowMutation();
 
   // Set default flowIndex to Infinity, so that initialTopMostItemIndex != 0 and therefore scrolledToInitialItem != true
-  const [flowIndex, setFlowIndex] = useState<number>(1);
+  const [flowIndex, setFlowIndex] = useState<number>(-1);
 
   const virtuoso = useRef<VirtuosoHandle>(null);
 
@@ -88,6 +88,50 @@ export function FlowList() {
   };
 
   const [showFilters, setShowFilters] = useState(false);
+
+  const navigate = useNavigate();
+
+  const keyDownCallback = useCallback(
+    (e: Event) => {
+      let nextIndex: number | null = null
+      const keyboardEvent = e as KeyboardEvent;
+
+      if (keyboardEvent.code === 'ArrowUp') {
+        nextIndex = Math.max(0, flowIndex - 1)
+      } else if (keyboardEvent.code === 'ArrowDown') {
+        nextIndex = Math.min(flowData?.length ?? 0, flowIndex + 1)
+      }
+
+      if (nextIndex !== null) {
+        virtuoso?.current?.scrollIntoView({
+          index: nextIndex,
+          behavior: 'auto',
+          done: () => {
+            setFlowIndex(nextIndex ?? 0)
+            if (transformedFlowData) {
+              navigate(`/flow/${transformedFlowData[nextIndex ?? 0]._id.$oid}?${searchParams}`)
+            }
+          },
+        })
+        e.preventDefault()
+      }
+    },
+    [flowIndex, virtuoso, transformedFlowData, setFlowIndex]
+  )
+
+  const listRef = useRef<HTMLElement | Window | null>(null)
+
+  const scrollerRef = useCallback(
+    (element: HTMLElement | Window | null) => {
+      if (element) {
+        element.addEventListener('keydown', keyDownCallback)
+        listRef.current = element
+      } else {
+        listRef.current?.removeEventListener('keydown', keyDownCallback)
+      }
+    },
+    [keyDownCallback]
+  )
 
   return (
     <div className="flex flex-col h-full">
@@ -134,12 +178,15 @@ export function FlowList() {
         })}
         data={transformedFlowData}
         ref={virtuoso}
-        initialTopMostItemIndex={flowIndex}
+        //initialTopMostItemIndex={flowIndex}
+        scrollerRef={scrollerRef}
         itemContent={(index, flow) => (
           <Link
             to={`/flow/${flow._id.$oid}?${searchParams}`}
+            onClick={() => setFlowIndex(index)}
             key={flow._id.$oid}
             className="focus-visible:rounded-md"
+            style={{ margin: 0 }}
           >
             <FlowListEntry
               key={flow._id.$oid}
@@ -179,8 +226,9 @@ function FlowListEntry({ flow, isActive, onHeartClick }: FlowListEntryProps) {
       className={classNames({
         [classes.active]: isActive,
       })}
+      style={{ margin: 0 }}
     >
-      <div className="flex">
+      <div className="flex" style={{ margin: 0 }}>
         <div
           className="w-5 ml-1 mr-1 self-center shrink-0"
           onClick={() => {
