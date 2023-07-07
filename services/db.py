@@ -105,21 +105,26 @@ class DB:
             }
         else:
             return []
+
+        group =  {
+            "_id": None,
+
+            "requests": { "$sum": { "$size": "$flow" } },
+
+            # this is hardcoded because we dont want all tags and because python messes up the order in $cond
+            "tag-flag-in": { "$sum": { "$cond": { "if": { "$in": ["flag-in", "$tags"] }, "then": 1, "else": 0 } } },
+            "tag-flag-out": { "$sum": { "$cond": { "if": { "$in": ["flag-out", "$tags"] }, "then": 1, "else": 0 } } },
+            "tag-blocked": { "$sum": { "$cond": { "if": { "$in": ["blocked", "$tags"] }, "then": 1, "else": 0 } } },
+            "tag-suricata": { "$sum": { "$cond": { "if": { "$in": ["suricata", "$tags"] }, "then": 1, "else": 0 } } },
+            "tag-enemy": { "$sum": { "$cond": { "if": { "$in": ["suricata", "$tags"] }, "then": 1, "else": 0 } } },
+
+            "flag-in": { "$sum": "$flags_in" },
+            "flag-out": { "$sum": "$flags_out" }
+        }
         
-        # note: this returns an empty array if the match phase fails to find flows
         return self.pcap_coll.aggregate([
             { "$match": f },
-            { "$group": {
-                "_id": None,
-
-                "requests": { "$sum": { "$size": "$flow" } },
-
-                "flows-flag-in": { "$sum": { "$cond": { "if": { "$in": ["flag-in", "$tags"] }, "then": 1, "else": 0 } } },
-                "flows-flag-out": { "$sum": { "$cond": { "if": { "$in": ["flag-out", "$tags"] }, "then": 1, "else": 0 } } },
-
-                "flag-in": { "$sum": "$flags_in" },
-                "flag-out": { "$sum": "$flags_out" }
-            }},
+            { "$group": group }
         ])
 
 
