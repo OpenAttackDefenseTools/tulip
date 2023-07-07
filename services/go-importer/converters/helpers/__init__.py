@@ -84,7 +84,8 @@ class Converter:
         self.current_stream_id = -1
         # TODO: move this back to a while true loop so we can use this on-demand
         try:
-            flow_entry = json.loads(sys.stdin.buffer.readline().decode("utf-8"))
+            stdin_input = sys.stdin.buffer.readline().decode("utf-8")
+            flow_entry = json.loads(stdin_input)
             metadata = StreamMetadata(
                 StreamID=0,  # TODO: is this needed?
                 ClientHost=flow_entry['Src_ip'],
@@ -98,14 +99,20 @@ class Converter:
             stream_chunks = []
             for chunk in flow_entry['Flow']:
                 stream_chunks.append(StreamChunk(
-                    Content=chunk['Data'].encode(),  # TODO: switch to b64 decoding
+                    Content=base64.b64decode(chunk['B64']),
                     Direction=Direction.CLIENTTOSERVER if chunk['From'] == 'c' else Direction.SERVERTOCLIENT,
                 ))
 
             stream = Stream(metadata, stream_chunks)
             result = self.handle_stream(stream)
 
-            formatted_chunks = []
+            formatted_chunks = [
+                # TODO: remove this sample chunk when we can easily identify converter runs
+                {
+                    'from': 's',
+                    'base64_content': base64.b64encode(f"CONVERTER: {self.__class__.__name__}\nDATA:\n{stdin_input}".encode()).decode(),
+                },
+            ]
             for chunk in result.Chunks:
                 formatted_chunks.append({
                     'from': 'c' if chunk.Direction == Direction.CLIENTTOSERVER else 's',

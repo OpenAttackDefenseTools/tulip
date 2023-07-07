@@ -293,9 +293,9 @@ class WebsocketConverter(HTTP2Converter):
 
     def handle_http1_request(self, chunk: StreamChunk,
                              request: HTTPRequest) -> List[StreamChunk]:
-
-        if request.headers.get(
-                "Connection") == "Upgrade" and request.headers.get(
+        # tulip: Connection: keep-alive, Upgrade is also valid for websocket traffic
+        if "Upgrade" in request.headers.get(
+                "Connection") and request.headers.get(
                     "Upgrade") == "websocket":
             websocket_key = request.headers.get("Sec-WebSocket-Key", None)
             if websocket_key is None:

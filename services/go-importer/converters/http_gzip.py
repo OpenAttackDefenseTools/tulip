@@ -5,6 +5,7 @@ from io import BytesIO
 from typing import List, Optional
 from urllib3 import HTTPResponse
 from helpers import Converter, StreamChunk, Direction, Result, Stream
+import traceback
 
 # TODO: add license notice from https://github.com/spq/pkappa2
 # https://stackoverflow.com/questions/4685217/parse-raw-http-headers
@@ -92,6 +93,9 @@ class HTTPConverter(Converter):
                     status = int(requestline[1])
                     headers = parse_headers(header_stream)
 
+                    # tulip: fix the header format, HTTPResponse expects a dict?
+                    headers = headers.items()
+
                     body_stream = BytesIO(body)
                     response = HTTPResponse(
                         body=body_stream,
@@ -103,7 +107,7 @@ class HTTPConverter(Converter):
                         self.handle_http1_response(header, body, chunk,
                                                    response))
                 except Exception as ex:
-                    data = f"Unable to parse HTTP response: {ex}".encode()
+                    data = f"Unable to parse HTTP response: {ex}\n{traceback.format_exc()}".encode()
                     result_data.append(StreamChunk(chunk.Direction, data))
         return Result(result_data)
 
