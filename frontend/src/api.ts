@@ -33,7 +33,8 @@ export const tulipApi = createApi({
         // Diederik gives you a beer once this has been fixed
         body: JSON.stringify({
           ...query,
-          tags: query.tags.length > 0 ? query.tags : undefined,
+          includeTags: query.includeTags.length > 0 ? query.includeTags : undefined,
+          excludeTags: query.excludeTags.length > 0 ? query.excludeTags : undefined,
         }),
       }),
     }),
