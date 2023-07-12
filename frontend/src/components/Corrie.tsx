@@ -17,6 +17,7 @@ import { useGetFlowsQuery, useGetServicesQuery, useGetTickInfoQuery, useGetStats
 import { TICK_REFETCH_INTERVAL_MS } from "../const";
 import { TickInfo } from "../types";
 import { useAppSelector } from "../store";
+import { tagToColor } from "./Tag";
 
 interface TickInfoWithTimeStuff extends TickInfo {
   startTick: number;
@@ -267,14 +268,14 @@ function BarPerTickGraph(graphProps: GraphProps, mode: string) {
   let series: ApexAxisChartSeries = [];
   
   const colors : any = {
-    "tag_flag_in": "#00ff00",
-    "tag_flag_out": "#ff0000",
-    "tag_suricata": "#0000ff",
-    "tag_blocked": "#00ffff",
-    "tag_enemy": "#ff00ff",
+    "tag_flag_in": tagToColor("flag-in"),
+    "tag_flag_out": tagToColor("flag-out"),
+    "tag_suricata": tagToColor("suricata"),
+    "tag_blocked": tagToColor("blocked"),
+    "tag_enemy": tagToColor("enemy"),
 
-    "flag_in": "#00ff00",
-    "flag_out":"#ff0000",
+    "flag_in": tagToColor("flag-in"),
+    "flag_out":tagToColor("flag-out"),
   };
   
   Object.keys(colors).forEach(t => {
