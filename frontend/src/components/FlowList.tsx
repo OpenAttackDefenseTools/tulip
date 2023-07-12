@@ -4,7 +4,8 @@ import {
   useParams,
   useNavigate,
 } from "react-router-dom";
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useEffect } from "react";
+import { useHotkeys } from 'react-hotkeys-hook';
 import { Flow } from "../types";
 import {
   SERVICE_FILTER_KEY,
@@ -87,52 +88,26 @@ export function FlowList() {
     await starFlow({ id: flow._id.$oid, star: !flow.tags.includes("starred") });
   };
 
-  const [showFilters, setShowFilters] = useState(false);
-
   const navigate = useNavigate();
 
-  const keyDownCallback = useCallback(
-    (e: Event) => {
-      let nextIndex: number | null = null
-      const keyboardEvent = e as KeyboardEvent;
-
-      if (keyboardEvent.code === 'ArrowUp') {
-        nextIndex = Math.max(0, flowIndex - 1)
-      } else if (keyboardEvent.code === 'ArrowDown') {
-        nextIndex = Math.min((flowData?.length ?? 1)-1, flowIndex + 1)
-      }
-
-      if (nextIndex !== null) {
-        virtuoso?.current?.scrollIntoView({
-          index: nextIndex,
-          behavior: 'auto',
-          done: () => {
-            setFlowIndex(nextIndex ?? 0)
-            if (transformedFlowData) {
-              navigate(`/flow/${transformedFlowData[nextIndex ?? 0]._id.$oid}?${searchParams}`)
-            }
-          },
-        })
-        e.preventDefault()
-      }
+  useEffect(() => {
+      virtuoso?.current?.scrollIntoView({
+        index: flowIndex,
+        behavior: 'auto',
+        done: () => {
+          if (transformedFlowData) {
+            navigate(`/flow/${transformedFlowData[flowIndex ?? 0]._id.$oid}?${searchParams}`)
+          }
+        },
+      })
     },
-    [flowIndex, virtuoso, transformedFlowData, setFlowIndex]
+    [flowIndex]
   )
 
-  const listRef = useRef<HTMLElement | Window | null>(null)
+  useHotkeys('j', () => setFlowIndex(fi => Math.max(0, fi - 1)));
+  useHotkeys('k', () => setFlowIndex(fi => Math.min((transformedFlowData?.length ?? 1)-1, fi + 1)));
 
-  const scrollerRef = useCallback(
-    (element: HTMLElement | Window | null) => {
-      if (element) {
-        element.addEventListener('keydown', keyDownCallback)
-        listRef.current = element
-        element.focus() // time wasted here: 3.5 hours - we need to refocus the parent element, because the originally focused item will disappear
-      } else {
-        listRef.current?.removeEventListener('keydown', keyDownCallback)
-      }
-    },
-    [keyDownCallback]
-  )
+  const [showFilters, setShowFilters] = useState(false);
 
   return (
     <div className="flex flex-col h-full">
@@ -180,7 +155,6 @@ export function FlowList() {
         data={transformedFlowData}
         ref={virtuoso}
         //initialTopMostItemIndex={flowIndex}
-        scrollerRef={scrollerRef}
         itemContent={(index, flow) => (
           <Link
             to={`/flow/${flow._id.$oid}?${searchParams}`}
