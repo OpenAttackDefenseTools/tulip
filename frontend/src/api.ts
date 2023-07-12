@@ -8,6 +8,8 @@ import {
   TickInfo,
   Flow,
   FlowsQuery,
+  StatsQuery,
+  Stats
 } from "./types";
 
 export const tulipApi = createApi({
@@ -34,6 +36,20 @@ export const tulipApi = createApi({
           tags: query.tags.length > 0 ? query.tags : undefined,
         }),
       }),
+    }),
+    getStats: builder.query<Stats[], StatsQuery>({
+      query: (query) => ({
+        url: query.service === "" ? `/stats/all` : `/stats/${query.service}`,
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+        params: {
+          from_tick: query.from_tick,
+          to_tick: query.to_tick
+        }
+      })
     }),
     getTags: builder.query<string[], void>({
       query: () => `/tags`,
@@ -111,4 +127,5 @@ export const {
   useLazyToFullPythonRequestQuery,
   useToSinglePythonRequestQuery,
   useStarFlowMutation,
+  useGetStatsQuery,
 } = tulipApi;

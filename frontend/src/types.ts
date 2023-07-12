@@ -57,6 +57,24 @@ export interface FlowsQuery {
   tags: string[];
 }
 
+export interface StatsQuery {
+  service: string;
+  from_tick: number;
+  to_tick: number;
+}
+
+export interface Stats {
+  _id: number;
+  requests: number;
+  tag_flag_in: number;
+  tag_flag_out: number;
+  tag_blocked: number;
+  tag_suricata: number;
+  tag_enemy: number;
+  flag_in: number;
+  flag_out: number;
+};
+
 export type Service = {
   ip: string;
   port: number;
