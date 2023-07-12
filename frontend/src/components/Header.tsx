@@ -1,5 +1,6 @@
 import { format, parse } from "date-fns";
 import { Suspense, useState } from "react";
+import { useHotkeys } from 'react-hotkeys-hook';
 import {
   Link,
   useParams,
@@ -67,11 +68,18 @@ function ServiceSelection() {
 function TextSearch() {
   const FILTER_KEY = TEXT_FILTER_KEY;
   let [searchParams, setSearchParams] = useSearchParams();
+  useHotkeys('s', (e) => {
+    let el = document.getElementById('search') as HTMLInputElement;
+    el?.focus();
+    el?.select();
+    e.preventDefault()
+  });
   return (
     <div>
       <input
         type="text"
         placeholder="regex"
+        id="search"
         value={searchParams.get(FILTER_KEY) || ""}
         onChange={(event) => {
           let textFilter = event.target.value;
