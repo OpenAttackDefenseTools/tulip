@@ -283,7 +283,7 @@ function BarPerTickGraph(graphProps: GraphProps, mode: string) {
       const data = Array(endTick - startTick + 1).fill(0);
 
       statsList.forEach(s => {
-        data[s._id - startTick] = s[t]; // TODO fix typescript error - looks bad works fine
+        data[s._id - startTick] = s[t];
       });
 
       series.push({

@@ -64,6 +64,7 @@ export interface StatsQuery {
 }
 
 export interface Stats {
+  [key: string]: number; // little hack to make typescript happy
   _id: number;
   requests: number;
   tag_flag_in: number;
