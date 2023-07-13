@@ -59,7 +59,7 @@ export function FlowList() {
 
   const debounced_text_filter = useDebounce(text_filter, 300);
 
-  const { data: flowData, isLoading } = useGetFlowsQuery(
+  const { data: flowData, isLoading, refetch } = useGetFlowsQuery(
     {
       "flow.data": debounced_text_filter,
       dst_ip: service?.ip,
@@ -106,6 +106,7 @@ export function FlowList() {
 
   useHotkeys('j', () => setFlowIndex(fi => Math.max(0, fi - 1)));
   useHotkeys('k', () => setFlowIndex(fi => Math.min((transformedFlowData?.length ?? 1)-1, fi + 1)));
+  useHotkeys('r', () => refetch());
 
   const [showFilters, setShowFilters] = useState(false);
 
