@@ -313,11 +313,25 @@ export function FlowView() {
   // TODO: account for user scrolling - update currentFlow accordingly
   const [currentFlow, setCurrentFlow] = useState<number>(-1);
 
-  useHotkeys('h', () => setCurrentFlow(fi => Math.max(0, fi - 1)));
-  useHotkeys('l', () => setCurrentFlow(fi => Math.min((flow?.flow?.length ?? 1)-1, fi + 1)));
+  useHotkeys('h', () => {
+    // we do this for the scroll to top
+    if (currentFlow === 0) {
+      document.getElementById(`${id}-${currentFlow}`)?.scrollIntoView(true)
+    }
+    setCurrentFlow(fi => Math.max(0, fi - 1))
+  });
+  useHotkeys('l', () => {
+    if (currentFlow === (flow?.flow?.length ?? 1)-1) {
+      document.getElementById(`${id}-${currentFlow}`)?.scrollIntoView(true)
+    }
+    setCurrentFlow(fi => Math.min((flow?.flow?.length ?? 1)-1, fi + 1))
+  });
 
   useEffect(
     () => {
+      if (currentFlow < 0) {
+        return
+      }
       document.getElementById(`${id}-${currentFlow}`)?.scrollIntoView(true)
     },
     [currentFlow]
