@@ -136,8 +136,18 @@ export function FlowList() {
 
   useHotkeys('j', () => setFlowIndex(fi => Math.max(0, fi - 1)));
   useHotkeys('k', () => setFlowIndex(fi => Math.min((transformedFlowData?.length ?? 1)-1, fi + 1)));
-  useHotkeys('i', () => dispatch(toggleFilterTag(tag)));
-  useHotkeys('o', () => dispatch(toggleFilterTag(tag)));
+  useHotkeys('i', () => {
+    setShowFilters(true)
+    if ((availableTags ?? []).includes("flag-in")) {
+      dispatch(toggleFilterTag("flag-in"))
+    }
+  });
+  useHotkeys('o', () => {
+    setShowFilters(true)
+    if ((availableTags ?? []).includes("flag-out")) {
+      dispatch(toggleFilterTag("flag-out"))
+    }
+  });
   useHotkeys('r', () => refetch());
 
   const [showFilters, setShowFilters] = useState(false);
