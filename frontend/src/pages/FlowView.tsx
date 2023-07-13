@@ -5,6 +5,7 @@ import { FlowData, FullFlow } from "../types";
 import {
   ArrowCircleLeftIcon,
   ArrowCircleRightIcon,
+  DownloadIcon,
 } from "@heroicons/react/solid";
 import { format } from "date-fns";
 
@@ -232,6 +233,7 @@ function FlowOverview({ flow }: { flow: FullFlow }) {
           <div className="font-bold">
             <a href={`${API_BASE_PATH}/download/?file=${flow.filename}`}>
               {flow.filename}
+              <DownloadIcon className="inline-flex items-baseline w-5 h-5" />
             </a>
           </div>
           <div></div>
