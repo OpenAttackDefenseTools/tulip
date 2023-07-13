@@ -97,7 +97,7 @@ export function FlowList() {
         index: flowIndex,
         behavior: 'auto',
         done: () => {
-          if (transformedFlowData) {
+          if (transformedFlowData && transformedFlowData[flowIndex ?? 0]) {
             let idAtIndex = transformedFlowData[flowIndex ?? 0]._id.$oid;
             // if the current flow ID at the index indeed did change (ie because of keyboard navigation), we need to update the URL as well as local ID
             if (idAtIndex !== openedFlowID) {
