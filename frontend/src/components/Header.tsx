@@ -285,6 +285,8 @@ export function Header() {
   let [searchParams] = useSearchParams();
   const { setToLastnTicks, currentTick } = useMessyTimeStuff();
 
+  useHotkeys('a', () => setToLastnTicks(5));
+
   return (
     <>
       <Link to={`/?${searchParams}`}>

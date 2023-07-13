@@ -8,6 +8,7 @@ const shortcutTableData = [
   ],
   [
     { key: 'h/l', action: 'Up/Down in Flow' },
+    { key: 'a', action: 'Last 5 ticks' },
   ]
 ];
 
