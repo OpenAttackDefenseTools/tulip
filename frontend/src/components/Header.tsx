@@ -178,6 +178,7 @@ function StartDateSelection() {
     <div>
       <input
         className="w-20"
+        id="startdateselection"
         type="number"
         placeholder="from"
         value={startTick}
@@ -196,6 +197,7 @@ function EndDateSelection() {
     <div>
       <input
         className="w-20"
+        id="enddateselection"
         type="number"
         placeholder="to"
         value={endTick}
@@ -283,9 +285,15 @@ function Diff() {
 
 export function Header() {
   let [searchParams] = useSearchParams();
-  const { setToLastnTicks, currentTick } = useMessyTimeStuff();
+  const { setToLastnTicks, currentTick, setTimeParam } = useMessyTimeStuff();
 
   useHotkeys('a', () => setToLastnTicks(5));
+  useHotkeys('d', () => {
+    (document.getElementById("startdateselection") as HTMLInputElement).value = "";
+    (document.getElementById("enddateselection") as HTMLInputElement).value = "";
+    setTimeParam("", START_FILTER_KEY);
+    setTimeParam("", END_FILTER_KEY);
+  });
 
   return (
     <>
