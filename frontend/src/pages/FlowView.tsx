@@ -1,5 +1,6 @@
 import { useSearchParams, Link, useParams } from "react-router-dom";
-import React, { useState } from "react";
+import React, { useDeferredValue, useEffect, useState } from "react";
+import { useHotkeys } from 'react-hotkeys-hook';
 import { FlowData, FullFlow } from "../types";
 
 import {
@@ -19,6 +20,7 @@ import {
   useToSinglePythonRequestQuery,
 } from "../api";
 import { API_BASE_PATH } from "../const";
+import { produceWithPatches } from "immer";
 
 const SECONDARY_NAVBAR_HEIGHT = 50;
 
@@ -108,6 +110,7 @@ interface FlowProps {
   full_flow: FullFlow;
   flow: FlowData;
   delta_time: number;
+  id: string;
 }
 
 function detectType(flow: FlowData) {
@@ -119,7 +122,7 @@ function detectType(flow: FlowData) {
   return "Plain";
 }
 
-function Flow({ full_flow, flow, delta_time }: FlowProps) {
+function Flow({ full_flow, flow, delta_time, id }: FlowProps) {
   const formatted_time = format(new Date(flow.time), "HH:mm:ss:SSS");
   const displayOptions = ["Plain", "Hex", "Web", "PythonRequest"];
 
@@ -127,7 +130,7 @@ function Flow({ full_flow, flow, delta_time }: FlowProps) {
   const [displayOption, setDisplayOption] = useState(detectType(flow));
 
   return (
-    <div className=" text-mono">
+    <div className="text-mono" id={id}>
       <div
         className="sticky shadow-md bg-white overflow-auto py-1 border-y"
         style={{ top: SECONDARY_NAVBAR_HEIGHT }}
@@ -307,6 +310,19 @@ export function FlowView() {
     },
   });
 
+  // TODO: account for user scrolling - update currentFlow accordingly
+  const [currentFlow, setCurrentFlow] = useState<number>(-1);
+
+  useHotkeys('h', () => setCurrentFlow(fi => Math.max(0, fi - 1)));
+  useHotkeys('l', () => setCurrentFlow(fi => Math.min((flow?.flow?.length ?? 1)-1, fi + 1)));
+
+  useEffect(
+    () => {
+      document.getElementById(`${id}-${currentFlow}`)?.scrollIntoView(true)
+    },
+    [currentFlow]
+  )
+
   if (flow === undefined) {
     return <div>Loading...</div>;
   }
@@ -351,7 +367,8 @@ export function FlowView() {
             flow={flow_data}
             delta_time={delta_time}
             full_flow={flow}
-            key={flow._id.$oid + " " + i}
+            key={flow._id.$oid + "-" + i}
+            id={flow._id.$oid + "-" + i}
           ></Flow>
         );
       })}
