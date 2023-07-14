@@ -270,9 +270,9 @@ function BarPerTickGraph(graphProps: GraphProps, mode: string) {
   const colors : any = {
     "tag_flag_in": tagToColor("flag-in"),
     "tag_flag_out": tagToColor("flag-out"),
-    "tag_suricata": tagToColor("suricata"),
-    "tag_blocked": tagToColor("blocked"),
     "tag_enemy": tagToColor("enemy"),
+    "tag_blocked": tagToColor("blocked"),
+    "tag_suricata": tagToColor("suricata"),
 
     "flag_in": tagToColor("flag-in"),
     "flag_out":tagToColor("flag-out"),
