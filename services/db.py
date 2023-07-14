@@ -98,6 +98,14 @@ class DB:
                 "$gte": int(start),
                 "$lt": int(start + int(tick_length))
             }
+        elif "from_tick" in filters and "to_tick" in filters:
+            start = dateparser.parse(start_date).timestamp() * 1000 + int(filters.get("from_tick")) * int(tick_length)
+            end = dateparser.parse(start_date).timestamp() * 1000 + int(filters.get("to_tick")) * int(tick_length)
+
+            f["time"] = {
+                "$gte": int(start),
+                "$lt": int(end)
+            }
         elif "from_time" in filters and "to_time" in filters:
             f["time"] = {
                 "$gte": int(filters["from_time"]),
@@ -107,26 +115,35 @@ class DB:
             return []
 
         group =  {
-            "_id": None,
+            "_id": "$tick",
 
             "requests": { "$sum": { "$size": "$flow" } },
 
             # this is hardcoded because we dont want all tags and because python messes up the order in $cond
-            "tag-flag-in": { "$sum": { "$cond": { "if": { "$in": ["flag-in", "$tags"] }, "then": 1, "else": 0 } } },
-            "tag-flag-out": { "$sum": { "$cond": { "if": { "$in": ["flag-out", "$tags"] }, "then": 1, "else": 0 } } },
-            "tag-blocked": { "$sum": { "$cond": { "if": { "$in": ["blocked", "$tags"] }, "then": 1, "else": 0 } } },
-            "tag-suricata": { "$sum": { "$cond": { "if": { "$in": ["suricata", "$tags"] }, "then": 1, "else": 0 } } },
-            "tag-enemy": { "$sum": { "$cond": { "if": { "$in": ["suricata", "$tags"] }, "then": 1, "else": 0 } } },
+            "tag_flag_in": { "$sum": { "$cond": { "if": { "$in": ["flag-in", "$tags"] }, "then": 1, "else": 0 } } },
+            "tag_flag_out": { "$sum": { "$cond": { "if": { "$in": ["flag-out", "$tags"] }, "then": 1, "else": 0 } } },
+            "tag_blocked": { "$sum": { "$cond": { "if": { "$in": ["blocked", "$tags"] }, "then": 1, "else": 0 } } },
+            "tag_suricata": { "$sum": { "$cond": { "if": { "$in": ["suricata", "$tags"] }, "then": 1, "else": 0 } } },
+            "tag_enemy": { "$sum": { "$cond": { "if": { "$in": ["enemy", "$tags"] }, "then": 1, "else": 0 } } },
 
-            "flag-in": { "$sum": "$flags_in" },
-            "flag-out": { "$sum": "$flags_out" }
+            "flag_in": { "$sum": "$flags_in" },
+            "flag_out": { "$sum": "$flags_out" }
         }
         
         return self.pcap_coll.aggregate([
             { "$match": f },
+            { "$addFields": { 
+                "tick": {
+                    "$floor": {
+                        "$divide": [
+                            { "$subtract": [ "$time", dateparser.parse(start_date).timestamp() * 1000 ] },
+                            int(tick_length)
+                        ]
+                    }
+                }
+            }},
             { "$group": group }
         ])
-
 
     def getTagList(self):
         a = [i["_id"] for i in self.tag_col.find()]

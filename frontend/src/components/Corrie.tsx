@@ -1,6 +1,6 @@
 import { useSearchParams, useParams, useNavigate } from "react-router-dom";
 import { useCallback } from "react";
-import { Flow } from "../types";
+import { Flow, Stats } from "../types";
 import {
   SERVICE_FILTER_KEY,
   TEXT_FILTER_KEY,
@@ -13,15 +13,55 @@ import useDebounce from "../hooks/useDebounce";
 
 import ReactApexChart from "react-apexcharts";
 import { ApexOptions } from "apexcharts";
-import { useGetFlowsQuery, useGetServicesQuery } from "../api";
+import { useGetFlowsQuery, useGetServicesQuery, useGetTickInfoQuery, useGetStatsQuery } from "../api";
+import { TICK_REFETCH_INTERVAL_MS } from "../const";
+import { TickInfo } from "../types";
 import { useAppSelector } from "../store";
+import { tagToColor } from "./Tag";
 
+interface TickInfoWithTimeStuff extends TickInfo {
+  startTick: number;
+  endTick: number;
+  tickToUnixTime: (a: number) => number;
+  unixTimeToTick: (a: number) => number;
+}
 interface GraphProps {
   flowList: Flow[];
+  statsList: Stats[];
   mode: string;
   searchParams: URLSearchParams;
   setSearchParams: (a: URLSearchParams) => void;
   onClickNavigate: (a: string) => void;
+  tickInfoData: TickInfoWithTimeStuff;
+}
+
+// TODO find a better way to do this
+function getTickStuffFromTimeParams(tickInfoData: TickInfo | undefined, searchParams: URLSearchParams) {
+  const startDate = tickInfoData?.startDate ?? "1970-01-01T00:00:00Z";
+  const tickLength = tickInfoData?.tickLength ?? 1000;
+
+  function unixTimeToTick(unixTimeInt: number): number {
+    return Math.floor(
+      (unixTimeInt - new Date(startDate).valueOf()) / tickLength
+    );
+  }
+
+  function tickToUnixTime(tick: number): number {
+    return new Date(startDate).valueOf() + tickLength * tick;
+  }
+
+  let endTick = Math.ceil(unixTimeToTick(parseInt(searchParams.get(END_FILTER_KEY) ?? new Date().valueOf().toString())));
+  let startTick = Math.floor(unixTimeToTick(parseInt(searchParams.get(START_FILTER_KEY) ?? new Date(startDate).valueOf().toString())));
+  
+  if (startTick < 0) {
+    startTick = 0;
+  }
+  
+  if (endTick < startTick) {
+    endTick = startTick;
+  }
+  
+  return { startTick, endTick, unixTimeToTick, tickToUnixTime };
 }
 
 export const Corrie = () => {
@@ -39,31 +79,6 @@ export const Corrie = () => {
 
   const debounced_text_filter = useDebounce(text_filter, 300);
 
-  const { data: flowData, isLoading } = useGetFlowsQuery(
-    {
-      "flow.data": debounced_text_filter,
-      dst_ip: service?.ip,
-      dst_port: service?.port,
-      from_time: from_filter,
-      to_time: to_filter,
-      service: "", // FIXME
-      tags: filterTags,
-    },
-    {
-      refetchOnMountOrArgChange: true,
-      pollingInterval: FLOW_LIST_REFETCH_INTERVAL_MS,
-    }
-  );
-
-  // TODO: fix the below transformation - move it to server
-  // Diederik gives you a beer once it has been fixed
-  const transformedFlowData = flowData?.map((flow) => ({
-    ...flow,
-    service_tag:
-      services?.find((s) => s.ip === flow.dst_ip && s.port === flow.dst_port)
-        ?.name ?? "unknown",
-  }));
-
   const mode = searchParams.get("correlation") ?? "time";
   const setCorrelationMode = (mode: string) => {
     searchParams.set(CORRELATION_MODE_KEY, mode);
@@ -79,12 +94,56 @@ export const Corrie = () => {
     [navigate]
   );
 
+  // TODO find a better way to do this
+  const { data: tickInfoData } = useGetTickInfoQuery(undefined, {
+    pollingInterval: TICK_REFETCH_INTERVAL_MS,
+  });
+  
+  const tickStuff = getTickStuffFromTimeParams(tickInfoData, searchParams)
+  
+  const needsStats = mode == "flags" || mode == "tags";
+
+  const statsData = needsStats ? useGetStatsQuery(
+    {
+      service: service_name,
+      from_tick: tickStuff.startTick,
+      to_tick: tickStuff.endTick,
+    }
+  ).data : [];
+
+  const flowData = !needsStats ? useGetFlowsQuery(
+    {
+      "flow.data": debounced_text_filter,
+      dst_ip: service?.ip,
+      dst_port: service?.port,
+      from_time: from_filter,
+      to_time: to_filter,
+      service: "", // FIXME
+      tags: filterTags,
+    },
+    {
+      refetchOnMountOrArgChange: true,
+      pollingInterval: FLOW_LIST_REFETCH_INTERVAL_MS,
+    }
+  ).data : [];
+
+  // TODO: fix the below transformation - move it to server
+  // Diederik gives you a beer once it has been fixed
+  const transformedFlowData = flowData?.map((flow) => ({
+    ...flow,
+    service_tag:
+      services?.find((s) => s.ip === flow.dst_ip && s.port === flow.dst_port)
+        ?.name ?? "unknown",
+  }));
+
   const graphProps: GraphProps = {
     flowList: transformedFlowData || [],
+    statsList: statsData || [],
     mode: mode,
     searchParams: searchParams,
     setSearchParams: setSearchParams,
     onClickNavigate: onClickNavigate,
+    tickInfoData: Object.assign(tickStuff, tickInfoData)
   };
 
   return (
@@ -112,15 +171,140 @@ export const Corrie = () => {
           >
             volume
           </button>
+          <button
+            className={mode == "tags" ? activeButtonClass : inactiveButtonClass}
+            onClick={() => setCorrelationMode("tags")}
+          >
+            tags
+          </button>
+          <button
+            className={mode == "flags" ? activeButtonClass : inactiveButtonClass}
+            onClick={() => setCorrelationMode("flags")}
+          >
+            flags
+          </button>
         </div>
       </div>
       <div className="flex-1 w-full overflow-hidden p-4">
         {(mode == "packets" || mode == "time") && TimePacketGraph(graphProps)}
         {mode == "volume" && VolumeGraph(graphProps)}
+        {(mode == "tags" || mode == "flags") && BarPerTickGraph(graphProps, mode)}
       </div>
     </div>
   );
 };
+
+function BarPerTickGraph(graphProps: GraphProps, mode: string) {
+  const statsList = graphProps.statsList;
+  const searchParams = graphProps.searchParams;
+  const setSearchParams = graphProps.setSearchParams;
+  const tickInfoData = graphProps.tickInfoData;
+  let startTick = tickInfoData.startTick;
+  let endTick = tickInfoData.endTick;
+  const tickToUnixTime = tickInfoData.tickToUnixTime;
+
+  const SEARCH_CAP = 50;
+  const DEFAULT_CAP = 15;
+
+  // Hard limit for performance reasons
+  if (searchParams.has(START_FILTER_KEY) && searchParams.has(END_FILTER_KEY)) {
+    startTick = Math.max(Math.max(0, startTick), endTick - SEARCH_CAP);
+  } else if (endTick - startTick > DEFAULT_CAP) {
+    startTick = Math.max(0, endTick - DEFAULT_CAP);
+  }
+
+  var options: ApexOptions = {
+    plotOptions: {
+      bar: {
+        horizontal: false,
+        columnWidth: "100%"
+      }
+    },
+    dataLabels: {
+      enabled: false,
+    },
+    stroke: {
+      show: true,
+      width: 2,
+      colors: ['transparent']
+    },
+    xaxis: {
+      categories: Array.from({ length: endTick - startTick + 1 }, (_, i) => startTick + i),
+      title: {
+        text: "Ticks"
+      }
+    },
+    yaxis: {
+      title: {
+        text: "Number of flows"
+      }
+    },
+    tooltip: {
+      x: {
+        formatter: function (v) {
+          return "Tick " + v;
+        }
+      }
+    },
+    chart: {
+      animations: {
+        enabled: false
+      },
+      events: {
+        click: function (e, chartContext, options) {
+          const tick = options.dataPointIndex;
+          if (tick !== -1) {
+            const start = Math.floor(tickToUnixTime(tick + startTick));
+            const end = Math.ceil(tickToUnixTime(tick + startTick + 1));
+            searchParams.set(START_FILTER_KEY, start.toString());
+            searchParams.set(END_FILTER_KEY, end.toString());
+            setSearchParams(searchParams);
+          }
+        },
+      },
+    },
+  };
+  
+  let series: ApexAxisChartSeries = [];
+  
+  const colors : any = {
+    "tag_flag_in": tagToColor("flag-in"),
+    "tag_flag_out": tagToColor("flag-out"),
+    "tag_enemy": tagToColor("enemy"),
+    "tag_blocked": tagToColor("blocked"),
+    "tag_suricata": tagToColor("suricata"),
+
+    "flag_in": tagToColor("flag-in"),
+    "flag_out":tagToColor("flag-out"),
+  };
+  
+  Object.keys(colors).forEach(t => {
+    if ((mode == "tags" && t.startsWith("tag_")) || (mode == "flags" && t.startsWith("flag_"))) {
+      const data = Array(endTick - startTick + 1).fill(0);
+
+      statsList.forEach(s => {
+        data[s._id - startTick] = s[t];
+      });
+
+      series.push({
+        name: t,
+        data: data,
+        color: colors[t]
+      });
+    }
+  });
+ 
+  // TODO remove hardcoded height values and find a way to split this
+  return (
+      <ReactApexChart
+        options={options}
+        series={series}
+        type="bar"
+        height="100%"
+        width="100%"
+      />
+  );
+}
 
 function TimePacketGraph(graphProps: GraphProps) {
   const flowList = graphProps.flowList;
