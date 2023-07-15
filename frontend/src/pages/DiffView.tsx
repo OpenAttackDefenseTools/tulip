@@ -73,13 +73,13 @@ export function DiffView() {
   const firstFlowId = searchParams.get(FIRST_DIFF_KEY);
   const secondFlowId = searchParams.get(SECOND_DIFF_KEY);
 
-  let { data: firstFlow, isLoading: firstFlowLoading } = useGetFlowQuery(
+  let { data: firstFlow, isLoading: firstFlowLoading, isError: firstFlowError } = useGetFlowQuery(
     firstFlowId!,
     {
       skip: firstFlowId === null,
     }
   );
-  let { data: secondFlow, isLoading: secondFlowLoading } = useGetFlowQuery(
+  let { data: secondFlow, isLoading: secondFlowLoading, isError: secondFlowError } = useGetFlowQuery(
     secondFlowId!,
     {
       skip: secondFlowId === null,
@@ -90,7 +90,7 @@ export function DiffView() {
     deriveDisplayMode(firstFlow!, secondFlow!)
   );
 
-  if (firstFlowId === null || secondFlowId === null) {
+  if (firstFlowError || secondFlowError) {
     return <div>Invalid flow id</div>;
   }
 

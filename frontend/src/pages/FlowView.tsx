@@ -361,7 +361,7 @@ export function FlowView() {
 
   const id = params.id;
 
-  const { data: flow } = useGetFlowQuery(id!, { skip: id === undefined });
+  const { data: flow, isError, isLoading } = useGetFlowQuery(id!, { skip: id === undefined });
 
   const [triggerPwnToolsQuery] = useLazyToPwnToolsQuery();
   const [triggerFullPythonRequestQuery] = useLazyToFullPythonRequestQuery();
@@ -430,7 +430,11 @@ export function FlowView() {
     [currentFlow]
   )
 
-  if (flow === undefined) {
+  if (isError) {
+    return <div>Error while fetching flow</div>;
+  }
+
+  if (isLoading) {
     return <div>Loading...</div>;
   }
 

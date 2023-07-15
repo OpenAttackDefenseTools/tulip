@@ -42,6 +42,7 @@ function App() {
             }
           />
         </Route>
+        <Route path="*" element={<PageNotFound />} />
       </Routes>
     </BrowserRouter>
   );
@@ -67,4 +68,14 @@ function Layout() {
     </div>
   );
 }
+
+
+function PageNotFound() {
+  return (
+    <div>
+      <h2>404 Page not found</h2>
+    </div>
+  );
+}
+
 export default App;
