@@ -1,5 +1,6 @@
 import { useSearchParams, Link, useParams } from "react-router-dom";
 import { useState } from "react";
+import { Buffer } from "buffer";
 
 import { FullFlow } from "../types";
 
@@ -129,8 +130,8 @@ export function DiffView() {
             },
             (_, i) =>
               Flow(
-                hexy(firstFlow!.flow[i].data, { format: "twos" }),
-                hexy(secondFlow!.flow[i].data, { format: "twos" })
+                hexy(Buffer.from(firstFlow!.flow[i].b64, 'base64'), { format: "twos" }),
+                hexy(Buffer.from(secondFlow!.flow[i].b64, 'base64'), { format: "twos" })
               )
           )}
         </div>

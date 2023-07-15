@@ -2,6 +2,7 @@ import { useSearchParams, Link, useParams } from "react-router-dom";
 import React, { useDeferredValue, useEffect, useState } from "react";
 import { useHotkeys } from 'react-hotkeys-hook';
 import { FlowData, FullFlow } from "../types";
+import { Buffer } from "buffer";
 
 import {
   ArrowCircleLeftIcon,
@@ -61,7 +62,7 @@ function FlowContainer({
 }
 
 function HexFlow({ flow }: { flow: FlowData }) {
-  const hex = hexy(atob(flow.b64), { format: "twos" });
+  const hex = hexy(Buffer.from(flow.b64, 'base64'), { format: "twos" });
   return <FlowContainer copyText={hex}>{hex}</FlowContainer>;
 }
 
@@ -116,10 +117,19 @@ interface FlowProps {
 function detectType(flow: FlowData) {
   const firstLine = flow.data.split("\n")[0];
   if (firstLine.includes("HTTP")) {
-    return "Plain";
+    return "Web";
   }
 
   return "Plain";
+}
+
+function getHTTPBody(flow: FlowData) {
+  const contentType = flow.data.match(/Content-Type: ([^\s;]+)/im)?.[1];
+  if (contentType) {
+    const body = Buffer.from(flow.b64, 'base64').subarray(flow.data.indexOf('\r\n\r\n')+4);
+    return [contentType, body]
+  }
+  return null
 }
 
 function Flow({ full_flow, flow, delta_time, id }: FlowProps) {
@@ -127,7 +137,10 @@ function Flow({ full_flow, flow, delta_time, id }: FlowProps) {
   const displayOptions = ["Plain", "Hex", "Web", "PythonRequest"];
 
   // Basic type detection, currently unused
-  const [displayOption, setDisplayOption] = useState(detectType(flow));
+  const [displayOption, setDisplayOption] = useState("Plain");
+
+  const flowType = detectType(flow);
+  const flowBody = getHTTPBody(flow);
 
   return (
     <div className="text-mono" id={id}>
@@ -156,8 +169,61 @@ function Flow({ full_flow, flow, delta_time, id }: FlowProps) {
               );
             }}
           >
-            Open in cyberchef
+            Open in CC
           </button>
+          {flowType == "Web" && flowBody && (
+            <button
+            className="bg-gray-200 py-1 px-2 rounded-md text-sm ml-2"
+            onClick={async () => {
+              window.open(
+                "https://gchq.github.io/CyberChef/#input=" +
+                  encodeURIComponent(flowBody[1].toString('base64'))
+              );
+            }}
+          >
+            Open body in CC
+          </button>
+          )}
+          <button
+            className="bg-gray-200 py-1 px-2 rounded-md text-sm ml-2"
+            onClick={async () => {
+              const blob = new Blob([Buffer.from(flow.b64, 'base64')], {
+                type: "application/octet-stream",
+              });
+              const url = window.URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.style.display = 'none';
+              a.href = url;
+              a.download = "tulip-dl-"+id+".dat";
+              document.body.appendChild(a);
+              a.click();
+              window.URL.revokeObjectURL(url);
+              a.remove();
+            }}
+          >
+            Download
+          </button>
+          {flowType == "Web" && flowBody && (
+            <button
+            className="bg-gray-200 py-1 px-2 rounded-md text-sm ml-2"
+            onClick={async () => {
+              const blob = new Blob([flowBody[1]], {
+                type: flowBody[0].toString(),
+              });
+              const url = window.URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.style.display = 'none';
+              a.href = url;
+              a.download = "tulip-dl-"+id+".dat";
+              document.body.appendChild(a);
+              a.click();
+              window.URL.revokeObjectURL(url);
+              a.remove();
+            }}
+          >
+            Download body
+          </button>
+          )}
           <RadioGroup
             options={displayOptions}
             value={displayOption}
