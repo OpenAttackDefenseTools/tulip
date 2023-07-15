@@ -1,6 +1,6 @@
 const shortcutTableData = [
   [
-    { key: 'j/k', action: 'Up/Down in FlowList' },
+    { key: 'j/k', action: 'Down/Up in FlowList' },
     { key: 's', action: 'Focus search bar' },
     { key: 'esc', action: 'Unfocus search bar' },
     { key: 'i/o', action: 'Toggle flag in/out filters' },
