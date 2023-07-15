@@ -123,11 +123,13 @@ function detectType(flow: FlowData) {
   return "Plain";
 }
 
-function getHTTPBody(flow: FlowData) {
-  const contentType = flow.data.match(/Content-Type: ([^\s;]+)/im)?.[1];
-  if (contentType) {
-    const body = Buffer.from(flow.b64, 'base64').subarray(flow.data.indexOf('\r\n\r\n')+4);
-    return [contentType, body]
+function getFlowBody(flow: FlowData, flowType: string) {
+  if (flowType == "Web") {
+    const contentType = flow.data.match(/Content-Type: ([^\s;]+)/im)?.[1];
+    if (contentType) {
+      const body = Buffer.from(flow.b64, 'base64').subarray(flow.data.indexOf('\r\n\r\n')+4);
+      return [contentType, body]
+    }
   }
   return null
 }
@@ -140,7 +142,7 @@ function Flow({ full_flow, flow, delta_time, id }: FlowProps) {
   const [displayOption, setDisplayOption] = useState("Plain");
 
   const flowType = detectType(flow);
-  const flowBody = getHTTPBody(flow);
+  const flowBody = getFlowBody(flow, flowType);
 
   return (
     <div className="text-mono" id={id}>
