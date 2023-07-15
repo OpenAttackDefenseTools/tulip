@@ -5,7 +5,8 @@ import { FlowData, FullFlow } from "../types";
 import { Buffer } from "buffer";
 import {
   TEXT_FILTER_KEY,
-} from "../App";
+  MAX_LENGTH_FOR_HIGHLIGHT,
+} from "../const";
 import {
   ArrowCircleLeftIcon,
   ArrowCircleRightIcon,
@@ -67,14 +68,16 @@ function HexFlow({ flow }: { flow: FlowData }) {
   const hex = hexy(Buffer.from(flow.b64, 'base64'), { format: "twos" });
   return <FlowContainer copyText={hex}>{hex}</FlowContainer>;
 }
-function highlightText(flowText: string, highlight: string) {
+function highlightText(flowText: string, highlight: string, color: string) {
+  if (flowText.length > MAX_LENGTH_FOR_HIGHLIGHT) {
+    return flowText
+  }
   try {
     const regex = new RegExp(`(${highlight})`, 'gi');
     const parts = flowText.split(regex);
+    const classes = "bg-"+color+"-200 rounded-sm ring-2 ring-"+color+"-200"
     return <span> { parts.map((part, i) => 
-        <span key={i} className={classNames({
-          "bg-orange-200 rounded-sm ring-2 ring-orange-200": regex.test(part),
-        })}>
+        <span key={i} className={ regex.test(part) ? classes : '' }>
             { part }
         </span>)
     } </span>;
@@ -87,7 +90,7 @@ function highlightText(flowText: string, highlight: string) {
 function TextFlow({ flow }: { flow: FlowData }) {
   let [searchParams] = useSearchParams();
   const text_filter = searchParams.get(TEXT_FILTER_KEY) ?? '';
-  const text = text_filter === '' ? flow.data :  highlightText(flow.data,text_filter)
+  const text = text_filter === '' ? flow.data :  highlightText(flow.data,text_filter, "orange")
 
   return <FlowContainer copyText={flow.data}>{text}</FlowContainer>;
 }
