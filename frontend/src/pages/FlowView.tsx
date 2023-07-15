@@ -430,7 +430,7 @@ export function FlowView() {
     [currentFlow]
   )
 
-  if (isError) {
+  if (isError || flow == undefined) {
     return <div>Error while fetching flow</div>;
   }
 
