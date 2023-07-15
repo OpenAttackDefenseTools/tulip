@@ -76,11 +76,11 @@ function highlightText(flowText: string, highlight: string, color: string) {
     const regex = new RegExp(`(${highlight})`, 'gi');
     const parts = flowText.split(regex);
     const classes = "bg-"+color+"-200 rounded-sm ring-2 ring-"+color+"-200"
-    return <span> { parts.map((part, i) => 
+    return <span>{ parts.map((part, i) => 
         <span key={i} className={ regex.test(part) ? classes : '' }>
             { part }
         </span>)
-    } </span>;
+    }</span>;
   } catch(error) {
     console.log(error)
     return flowText;
@@ -412,13 +412,13 @@ export function FlowView() {
       document.getElementById(`${id}-${currentFlow}`)?.scrollIntoView(true)
     }
     setCurrentFlow(fi => Math.max(0, fi - 1))
-  });
+  }, [currentFlow]);
   useHotkeys('l', () => {
     if (currentFlow === (flow?.flow?.length ?? 1)-1) {
       document.getElementById(`${id}-${currentFlow}`)?.scrollIntoView(true)
     }
     setCurrentFlow(fi => Math.min((flow?.flow?.length ?? 1)-1, fi + 1))
-  });
+  }, [currentFlow, flow?.flow?.length]);
 
   useEffect(
     () => {
