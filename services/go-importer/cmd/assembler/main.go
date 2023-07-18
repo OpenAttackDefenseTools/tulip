@@ -39,11 +39,10 @@ var pcap_over_ip = flag.String("pcap-over-ip", "", "PCAP-over-IP host + port (e.
 var bpf = flag.String("bpf", "", "BPF filter")
 var nonstrict = flag.Bool("nonstrict", false, "Do not check strict TCP / FSM flags")
 var experimental = flag.Bool("experimental", false, "Enable experimental features.")
-var flushAfter = flag.String("flush-after", "", `
-Connections which have buffered packets (they've gotten packets out of order and
+var flushAfter = flag.String("flush-after", "", `Connections which have buffered packets (they've gotten packets out of order and
 are waiting for old packets to fill the gaps) can be flushed after they're this old
 (their oldest gap is skipped). This is particularly useful for pcap-over-ip captures.
-Any string parsed by time. ParseDuration is acceptable here. No flushing is done if
+Any string parsed by time.ParseDuration is acceptable here (ie. "3m", "2h45m"). No flushing is done if
 kept empty.`)
 
 var g_db db.Database
