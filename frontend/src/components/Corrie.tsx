@@ -217,7 +217,20 @@ function BarPerTickGraph(graphProps: GraphProps, mode: string) {
     plotOptions: {
       bar: {
         horizontal: false,
-        columnWidth: "100%"
+        columnWidth: "90%",
+      }
+    },
+    grid: {
+      position: "back",
+      xaxis: {
+        lines: {
+          show: endTick !== startTick + 1
+        }
+      },
+      yaxis: {
+        lines: {
+          show: false
+        }
       }
     },
     dataLabels: {
@@ -229,7 +242,7 @@ function BarPerTickGraph(graphProps: GraphProps, mode: string) {
       colors: ['transparent']
     },
     xaxis: {
-      categories: Array.from({ length: endTick - startTick + 1 }, (_, i) => startTick + i),
+      categories: Array.from({ length: endTick - startTick }, (_, i) => startTick + i),
       title: {
         text: "Ticks"
       }
@@ -280,7 +293,7 @@ function BarPerTickGraph(graphProps: GraphProps, mode: string) {
   
   Object.keys(colors).forEach(t => {
     if ((mode == "tags" && t.startsWith("tag_")) || (mode == "flags" && t.startsWith("flag_"))) {
-      const data = Array(endTick - startTick + 1).fill(0);
+      const data = Array(endTick - startTick).fill(0);
 
       statsList.forEach(s => {
         data[s._id - startTick] = s[t];
@@ -294,7 +307,6 @@ function BarPerTickGraph(graphProps: GraphProps, mode: string) {
     }
   });
  
-  // TODO remove hardcoded height values and find a way to split this
   return (
       <ReactApexChart
         options={options}
