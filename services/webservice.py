@@ -23,8 +23,9 @@
 # along with Flower.  If not, see <https://www.gnu.org/licenses/>.
 
 from flask import Flask, Response, send_file
+from requests import get
 
-from configurations import services, traffic_dir, start_date, tick_length
+from configurations import services, traffic_dir, start_date, tick_length, visualizer_url, flag_lifetime
 from pathlib import Path
 from data2req import convert_flow_to_http_requests, convert_single_http_requests
 from base64 import b64decode
@@ -55,7 +56,8 @@ def hello_world():
 def getTickInfo():
     data = {
         "startDate": start_date,
-        "tickLength": tick_length
+        "tickLength": tick_length,
+        "flagLifetime": flag_lifetime,
     }
     return return_json_response(data)
 
@@ -70,6 +72,19 @@ def getStats(service):
     args = request.args
     result = db.getStats(service, args)
     return return_json_response(result)
+
+
+@application.route('/under_attack')
+def getUnderAttack():
+    res = get(f'{visualizer_url}/api/under-attack', params = {
+        'from_tick': request.args.get('from_tick'),
+        'to_tick': request.args.get('to_tick'),
+    })
+    assert res.status_code == 200
+
+    tick_data = res.json()
+    return return_json_response(tick_data)
+
 
 @application.route('/tags')
 def getTags():

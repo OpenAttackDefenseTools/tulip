@@ -9,7 +9,9 @@ import {
   Flow,
   FlowsQuery,
   StatsQuery,
-  Stats
+  Stats,
+  TicksAttackInfo,
+  TicksAttackQuery,
 } from "./types";
 
 export const tulipApi = createApi({
@@ -56,6 +58,15 @@ export const tulipApi = createApi({
     }),
     getTickInfo: builder.query<TickInfo, void>({
       query: () => `/tick_info`,
+    }),
+    getUnderAttack: builder.query<TicksAttackInfo, TicksAttackQuery>({
+      query: (query) => ({
+        url: '/under_attack',
+        params: {
+          from_tick: query.from_tick,
+          to_tick: query.to_tick,
+        }
+      }),
     }),
     getSignature: builder.query<Signature[], number>({
       query: (id) => `/signature/${id}`,
@@ -128,4 +139,5 @@ export const {
   useToSinglePythonRequestQuery,
   useStarFlowMutation,
   useGetStatsQuery,
+  useGetUnderAttackQuery,
 } = tulipApi;
