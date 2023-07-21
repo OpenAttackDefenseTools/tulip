@@ -1,11 +1,11 @@
 package main
 
 import (
-	"fmt"
 	"go-importer/internal/pkg/db"
-	"net"
 
 	"flag"
+	"fmt"
+	"net"
 	"io/ioutil"
 	"log"
 	"os"
@@ -39,11 +39,17 @@ var pcap_over_ip = flag.String("pcap-over-ip", "", "PCAP-over-IP host + port (e.
 var bpf = flag.String("bpf", "", "BPF filter")
 var nonstrict = flag.Bool("nonstrict", false, "Do not check strict TCP / FSM flags")
 var experimental = flag.Bool("experimental", false, "Enable experimental features.")
-var flushAfter = flag.String("flush-after", "", `Connections which have buffered packets (they've gotten packets out of order and
+var flushAfter = flag.String("flush-after", "30s", `(TCP) Connections which have buffered packets (they've gotten packets out of order and
 are waiting for old packets to fill the gaps) can be flushed after they're this old
 (their oldest gap is skipped). This is particularly useful for pcap-over-ip captures.
-Any string parsed by time.ParseDuration is acceptable here (ie. "3m", "2h45m"). No flushing is done if
-kept empty.`)
+Any string parsed by time.ParseDuration is acceptable here (ie. "3m", "2h45m").
+This setting defaults to "30s" unless specified. To prevent connection flooding,
+it is not recommended setting this to a high value, since assembler persists between pcaps.
+Setting this to empty value disables TCP flushing.`)
+var flushInterval = flag.String("flush-interval", "15s", `Period of flushing while processing one pcap.
+Any string parsed by time.ParseDuration is acceptable here (ie. "3m", "2h45m").
+Flushing always happens between pcaps, but sometimes (for example with PCAP-over-IP) it is required to flush periodically
+while processing one file (since PCAP-over-IP treats whole connection as one pcap file). This is also the period for debug prints.`)
 
 var g_db db.Database
 
@@ -57,6 +63,42 @@ func reassemblyCallback(entry db.FlowEntry) {
 	}
 	// Finally, insert the new entry
 	g_db.InsertFlow(entry)
+}
+
+type AssemblerService struct {
+	Defragmenter *ip4defrag.IPv4Defragmenter
+	StreamFactory *TcpStreamFactory
+	StreamPool *reassembly.StreamPool
+	AssemblerTcp *reassembly.Assembler
+	ConnectionTcpTimeout time.Duration
+	FlushInterval time.Duration
+	BpfFilter string
+}
+
+func NewAssemblerService() AssemblerService {
+	streamFactory := &TcpStreamFactory { reassemblyCallback: reassemblyCallback }
+	streamPool := reassembly.NewStreamPool(streamFactory)
+
+	return AssemblerService {
+		Defragmenter: ip4defrag.NewIPv4Defragmenter(),
+		StreamFactory: streamFactory,
+		StreamPool: streamPool,
+		AssemblerTcp: reassembly.NewAssembler(streamPool),
+	}
+}
+
+func (service AssemblerService) FlushConnections() {
+	thresholdTcp := time.Now().Add(-service.ConnectionTcpTimeout)
+	flushed, closed, discarded := 0, 0, 0
+
+	if service.ConnectionTcpTimeout != 0 {
+		flushed, closed = service.AssemblerTcp.FlushCloseOlderThan(thresholdTcp);
+		discarded = service.Defragmenter.DiscardOlderThan(thresholdTcp);
+	}
+
+	if flushed != 0 || closed != 0 || discarded != 0 {
+		log.Println("Flushed", flushed, "closed", closed, "and discarded", discarded, "connections")
+	}
 }
 
 func main() {
@@ -98,41 +140,78 @@ func main() {
 	g_db = db.ConnectMongo(db_string)
 	log.Println("Connected, configuring MongoDB database")
 	g_db.ConfigureDatabase()
+	service := NewAssemblerService()
+	service.BpfFilter = *bpf;
 
+	// Parse flush duration parameter (TCP)
+	if *flushAfter != "" {
+		flushDuration, err := time.ParseDuration(*flushAfter)
+		if err != nil {
+			log.Fatal("Invalid flush-after duration: ", *flushAfter)
+		}
+
+		service.ConnectionTcpTimeout = flushDuration
+	}
+
+	// Parse flush interval
+	if *flushAfter != "" {
+		flushIntervalDuration, err := time.ParseDuration(*flushInterval)
+		if err != nil {
+			log.Fatal("Invalid flush-interval duration: ", *&flushIntervalDuration)
+		}
+
+		service.FlushInterval = flushIntervalDuration
+	}
+
+	// Pass positional arguments to the pcap handler
+	for _, uri := range flag.Args() {
+		service.HandlePcapUri(uri)
+	}
+
+	// If PCAP-over-IP was configured, connect to it
+	// NOTE: Configuring PCAP-over-IP ignores watch dir
 	if *pcap_over_ip != "" {
-		log.Println("Connecting to PCAP-over-IP:", *pcap_over_ip)
-		tcpServer, err := net.ResolveTCPAddr("tcp", *pcap_over_ip)
-		if err != nil {
-			log.Fatal(err)
-		}
+		for {
+			log.Println("Connecting to PCAP-over-IP:", *pcap_over_ip)
 
-		conn, err := net.DialTCP("tcp", nil, tcpServer)
-		if err != nil {
-			log.Fatal(err)
+			tcpServer, err := net.ResolveTCPAddr("tcp", *pcap_over_ip)
+			if err != nil {
+				log.Println(err)
+				time.Sleep(5 * time.Second)
+				continue
+			}
+
+			conn, err := net.DialTCP("tcp", nil, tcpServer)
+			if err != nil {
+				log.Println(err)
+				time.Sleep(5 * time.Second)
+				continue
+			}
+			defer conn.Close()
+
+			pcapFile, err := conn.File()
+			if err != nil {
+				log.Println(err)
+				time.Sleep(5 * time.Second)
+				continue
+			}
+			defer pcapFile.Close()
+
+			// Name the file uniquely per connection to not skip packets on reconnect
+			fname := *pcap_over_ip + ":" + fmt.Sprintf("%d", time.Now().Unix())
+
+			service.HandlePcapFile(pcapFile, fname)
 		}
-		defer conn.Close()
-		pcapFile, err := conn.File()
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer pcapFile.Close()
-		handlePcapFile(pcapFile, *pcap_over_ip, *bpf)
 	} else {
-		// Pass positional arguments to the pcap handler
-		for _, uri := range flag.Args() {
-			handlePcapUri(uri, *bpf)
-		}
-
 		// If a watch dir was configured, handle all files in the directory, then
 		// keep monitoring it for new files.
 		if *watch_dir != "" {
-			watchDir(*watch_dir)
+			service.WatchDir(*watch_dir)
 		}
 	}
 }
 
-func watchDir(watch_dir string) {
-
+func (service AssemblerService) WatchDir(watch_dir string) {
 	stat, err := os.Stat(watch_dir)
 	if err != nil {
 		log.Fatal("Failed to open the watch_dir with error: ", err)
@@ -151,7 +230,7 @@ func watchDir(watch_dir string) {
 
 	for _, file := range files {
 		if strings.HasSuffix(file.Name(), ".pcap") || strings.HasSuffix(file.Name(), ".pcapng") {
-			handlePcapUri(filepath.Join(watch_dir, file.Name()), *bpf) //FIXME; this is a little clunky
+			service.HandlePcapUri(filepath.Join(watch_dir, file.Name())) //FIXME; this is a little clunky
 		}
 	}
 
@@ -172,11 +251,11 @@ func watchDir(watch_dir string) {
 				if !ok {
 					return
 				}
-				if event.Op&(fsnotify.Rename|fsnotify.Create) != 0 {
+				if event.Op&(fsnotify.Rename|fsnotify.Create|fsnotify.Write) != 0 {
 					if strings.HasSuffix(event.Name, ".pcap") || strings.HasSuffix(event.Name, ".pcapng") {
 						log.Println("Found new file", event.Name, event.Op.String())
 						time.Sleep(2 * time.Second) // FIXME; bit of race here between file creation and writes.
-						handlePcapUri(event.Name, *bpf)
+						service.HandlePcapUri(event.Name)
 					}
 				}
 			case err, ok := <-watcher.Errors:
@@ -197,7 +276,7 @@ func watchDir(watch_dir string) {
 
 }
 
-func handlePcapUri(fname string, bpf string) {
+func (service AssemblerService) HandlePcapUri(fname string) {
 	var handle *pcap.Handle
 	var err error
 
@@ -207,22 +286,10 @@ func handlePcapUri(fname string, bpf string) {
 	}
 	defer handle.Close()
 
-	if g_db.ContainsPcap(fname) {
-		log.Println("Skipped: ", fname)
-		return
-	}
-
-	if bpf != "" {
-		if err := handle.SetBPFFilter(bpf); err != nil {
-			log.Println("Set BPF Filter error: ", err)
-			return
-		}
-	}
-
-	processPcapHandle(handle, fname)
+	service.ProcessPcapHandle(handle, fname)
 }
 
-func handlePcapFile(file *os.File, fname string, bpf string) {
+func (service AssemblerService) HandlePcapFile(file *os.File, fname string) {
 	var handle *pcap.Handle
 	var err error
 
@@ -232,67 +299,57 @@ func handlePcapFile(file *os.File, fname string, bpf string) {
 	}
 	defer handle.Close()
 
-	if bpf != "" {
-		if err := handle.SetBPFFilter(bpf); err != nil {
+	service.ProcessPcapHandle(handle, fname)
+}
+
+func (service AssemblerService) ProcessPcapHandle(handle *pcap.Handle, fname string) {
+	if service.BpfFilter != "" {
+		if err := handle.SetBPFFilter(service.BpfFilter); err != nil {
 			log.Println("Set BPF Filter error: ", err)
 			return
 		}
 	}
-	processPcapHandle(handle, fname)
-}
 
-func processPcapHandle(handle *pcap.Handle, fname string) {
+	processedCount := int64(0)
+	processedExists, processedPcap := g_db.GetPcap(fname)
+	if processedExists {
+		processedCount = processedPcap.Position
+		log.Println("Skipped", processedCount, "packets from file", fname)
+	}
+
 	var source *gopacket.PacketSource
 	nodefrag := false
 	linktype := handle.LinkType()
 	switch linktype {
-	case layers.LinkTypeIPv4:
-		source = gopacket.NewPacketSource(handle, layers.LayerTypeIPv4)
-		break
-	default:
-		source = gopacket.NewPacketSource(handle, linktype)
+		case layers.LinkTypeIPv4:
+			source = gopacket.NewPacketSource(handle, layers.LayerTypeIPv4)
+			break
+		default:
+			source = gopacket.NewPacketSource(handle, linktype)
 	}
 
 	source.Lazy = lazy
 	source.NoCopy = true
-	count := 0
+	count := int64(0)
 	bytes := int64(0)
-	defragger := ip4defrag.NewIPv4Defragmenter()
-
-	streamFactory := &tcpStreamFactory{source: fname, reassemblyCallback: reassemblyCallback}
-	streamPool := reassembly.NewStreamPool(streamFactory)
-	assembler := reassembly.NewAssembler(streamPool)
-
-	var nextFlush time.Time
-	var flushDuration time.Duration
-	var err error
-	if *flushAfter != "" {
-		flushDuration, err = time.ParseDuration(*flushAfter)
-		if err != nil {
-			log.Fatal("invalid flush duration: ", *flushAfter)
-		}
-		nextFlush = time.Now().Add(flushDuration / 2)
-		log.Println("Starting PCAP loop!")
-	}
+	lastFlush := time.Now()
 
 	signalChan := make(chan os.Signal, 1)
 	signal.Notify(signalChan, os.Interrupt)
 
+	service.FlushConnections()
+
 	for packet := range source.Packets() {
 		count++
+
+		// Skip packets that were already processed from this pcap
+		if count < processedCount + 1 {
+			continue
+		}
+
 		data := packet.Data()
 		bytes += int64(len(data))
 		done := false
-
-		if !nextFlush.IsZero() {
-			// Check to see if we should flush the streams we have that haven't seen any new data in a while.
-			// Note that pcapOpenOfflineFile is blocking so we need at least see some packets passing by to get here.
-			if time.Since(nextFlush) > 0 {
-				log.Printf("flushing all streams that haven't seen packets in the last %s", *flushAfter)
-				assembler.FlushCloseOlderThan(time.Now().Add(-flushDuration))
-				nextFlush = time.Now().Add(flushDuration / 2)
-			}
-		}
 
 		// defrag the IPv4 packet if required
 		// (TODO; IPv6 will not be defragged)
@@ -300,7 +357,7 @@ func processPcapHandle(handle *pcap.Handle, fname string) {
 		if !nodefrag && ip4Layer != nil {
 			ip4 := ip4Layer.(*layers.IPv4)
 			l := ip4.Length
-			newip4, err := defragger.DefragIPv4(ip4)
+			newip4, err := service.Defragmenter.DefragIPv4(ip4)
 			if err != nil {
 				log.Fatalln("Error while de-fragmenting", err)
 			} else if newip4 == nil {
@@ -322,34 +379,39 @@ func processPcapHandle(handle *pcap.Handle, fname string) {
 		}
 
 		switch transport.LayerType() {
-		case layers.LayerTypeTCP:
-			tcp := transport.(*layers.TCP)
-			c := Context{
-				CaptureInfo: packet.Metadata().CaptureInfo,
-			}
-			assembler.AssembleWithContext(packet.NetworkLayer().NetworkFlow(), tcp, &c)
-			break
-		default:
-			// pass
+			case layers.LayerTypeTCP:
+				tcp := transport.(*layers.TCP)
+				flow := packet.NetworkLayer().NetworkFlow()
+				captureInfo := packet.Metadata().CaptureInfo;
+				captureInfo.AncillaryData = []interface{}{ fname };
+				context := &Context { CaptureInfo: captureInfo };
+				service.AssemblerTcp.AssembleWithContext(flow, tcp, context)
+				break
+			default:
+				// pass
 		}
 
 		select {
-		case <-signalChan:
-			fmt.Fprintf(os.Stderr, "\nCaught SIGINT: aborting\n")
-			done = true
-		default:
-			// NOP: continue
+			case <-signalChan:
+				fmt.Fprintf(os.Stderr, "\nCaught SIGINT: aborting\n")
+				done = true
+			default:
+				// NOP: continue
 		}
+
 		if done {
 			break
 		}
+
+		// Try flushing connections here. When using PCAP-over-IP this is required, since it treats whole connection as one pcap.
+		// NOTE: PCAP-over-IP: pcapOpenOfflineFile is blocking so we need at least see some packets passing by to get here.
+		if service.FlushInterval != 0 && lastFlush.Add(service.FlushInterval).Unix() < time.Now().Unix() {
+			service.FlushConnections()
+			log.Println("Processed", count - processedCount, "packets from", fname)
+			lastFlush = time.Now()
+		}
 	}
 
-	// This flushes connections that are still lingering, for example because
-	// the never sent a FIN. This case is _super_ common in ctf captures
-	assembler.FlushAll()
-	streamFactory.WaitGoRoutines()
-
-	log.Println("Processed file:", fname)
-	g_db.InsertPcap(fname)
+	log.Println("Processed", count - processedCount, "packets from", fname)
+	g_db.InsertPcap(fname, count)
 }
