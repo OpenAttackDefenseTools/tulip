@@ -27,8 +27,6 @@ services:
       context: .
       dockerfile: Dockerfile-python
     image: tulip-api:latest
-    ports:
-      - "127.0.0.1:5000:5000"
     depends_on:
       - mongo
     networks:
