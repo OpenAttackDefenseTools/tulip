@@ -8,12 +8,12 @@
 # Copyright ©2018 Brunello Simone
 # Copyright ©2018 Alessio Marotta
 # DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
-# 
+#
 # Flower is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # Flower is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -36,7 +36,11 @@ class HTTPRequest(BaseHTTPRequestHandler):
         self.error_code = self.error_message = None
         self.parse_request()
 
-        self.headers = dict(self.headers)
+        try:
+            self.headers = dict(self.headers)
+        except AttributeError:
+            self.headers = {}
+
         # Data
         try:
             self.body = raw_http_request.split(b"\r\n\r\n", 1)[1].rstrip()
@@ -96,7 +100,7 @@ def decode_http_request(raw_request, tokenize):
 
 # tokenize used for automatically fill data param of request
 def convert_single_http_requests(raw_request, flow, tokenize=True, use_requests_session=False):
-    
+
     request, data, data_param_name, headers = decode_http_request(raw_request, tokenize)
     if not request.path.startswith('/'):
         raise Exception('request path must start with / to be a valid HTTP request')
@@ -151,7 +155,7 @@ s = requests.Session()
             if not request.path.startswith('/'):
                 raise Exception('request path must start with / to be a valid HTTP request')
             request_path_repr = repr(request.path)
-            
+
             script += render("""
 {% if use_requests_session %}
 s.headers = {{headers}}
