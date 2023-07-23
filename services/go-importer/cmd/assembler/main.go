@@ -46,6 +46,12 @@ Any string parsed by time.ParseDuration is acceptable here (ie. "3m", "2h45m").
 This setting defaults to "30s" unless specified. To prevent connection flooding,
 it is not recommended setting this to a high value, since assembler persists between pcaps.
 Setting this to empty value disables TCP flushing.`)
+var flushAfterUdp = flag.String("flush-after-udp", "30s", `Same as flush-after, except for UDP connections.
+UDP connections are assembled by unique pairings of ip addressed and ports on both sides.
+The only way a UDP connection is considered closed, is if this timeout passes without seeing any new packets.
+This setting defaults to "30s" unless specified. To prevent connection flooding,
+it is not recommended setting this to a high value, since assembler persists between pcaps.
+Setting this to empty value disables UDP flushing.`)
 var flushInterval = flag.String("flush-interval", "15s", `Period of flushing while processing one pcap.
 Any string parsed by time.ParseDuration is acceptable here (ie. "3m", "2h45m").
 Flushing always happens between pcaps, but sometimes (for example with PCAP-over-IP) it is required to flush periodically
@@ -70,7 +76,9 @@ type AssemblerService struct {
 	StreamFactory *TcpStreamFactory
 	StreamPool *reassembly.StreamPool
 	AssemblerTcp *reassembly.Assembler
+	AssemblerUdp *UdpAssembler
 	ConnectionTcpTimeout time.Duration
+	ConnectionUdpTimeout time.Duration
 	FlushInterval time.Duration
 	BpfFilter string
 }
@@ -78,17 +86,20 @@ type AssemblerService struct {
 func NewAssemblerService() AssemblerService {
 	streamFactory := &TcpStreamFactory { reassemblyCallback: reassemblyCallback }
 	streamPool := reassembly.NewStreamPool(streamFactory)
+	assemblerUdp := NewUdpAssembler()
 
 	return AssemblerService {
 		Defragmenter: ip4defrag.NewIPv4Defragmenter(),
 		StreamFactory: streamFactory,
 		StreamPool: streamPool,
 		AssemblerTcp: reassembly.NewAssembler(streamPool),
+		AssemblerUdp: &assemblerUdp,
 	}
 }
 
 func (service AssemblerService) FlushConnections() {
 	thresholdTcp := time.Now().Add(-service.ConnectionTcpTimeout)
+	thresholdUdp := time.Now().Add(-service.ConnectionUdpTimeout)
 	flushed, closed, discarded := 0, 0, 0
 
 	if service.ConnectionTcpTimeout != 0 {
@@ -98,6 +109,17 @@ func (service AssemblerService) FlushConnections() {
 
 	if flushed != 0 || closed != 0 || discarded != 0 {
 		log.Println("Flushed", flushed, "closed", closed, "and discarded", discarded, "connections")
+	}
+
+	if service.ConnectionUdpTimeout != 0 {
+		udpFlows := service.AssemblerUdp.CompleteOlderThan(thresholdUdp)
+		for _, flow := range udpFlows {
+			reassemblyCallback(*flow)
+		}
+
+		if len(udpFlows) != 0 {
+			log.Println("Assembled", len(udpFlows), "udp flows")
+		}
 	}
 }
 
@@ -153,6 +175,16 @@ func main() {
 		service.ConnectionTcpTimeout = flushDuration
 	}
 
+	// Parse flush duration parameter (UDP)
+	if *flushAfterUdp != "" {
+		flushDurationUdp, err := time.ParseDuration(*flushAfterUdp)
+		if err != nil {
+			log.Fatal("Invalid flush-after-udp duration: ", *flushAfterUdp)
+		}
+
+		service.ConnectionUdpTimeout = flushDurationUdp
+	}
+
 	// Parse flush interval
 	if *flushAfter != "" {
 		flushIntervalDuration, err := time.ParseDuration(*flushInterval)
@@ -200,6 +232,7 @@ func main() {
 			// Name the file uniquely per connection to not skip packets on reconnect
 			fname := *pcap_over_ip + ":" + fmt.Sprintf("%d", time.Now().Unix())
 
+			log.Println("Connected to PCAP-over-IP:", fname)
 			service.HandlePcapFile(pcapFile, fname)
 		}
 	} else {
@@ -386,6 +419,12 @@ func (service AssemblerService) ProcessPcapHandle(handle *pcap.Handle, fname str
 				captureInfo.AncillaryData = []interface{}{ fname };
 				context := &Context { CaptureInfo: captureInfo };
 				service.AssemblerTcp.AssembleWithContext(flow, tcp, context)
+				break
+			case layers.LayerTypeUDP:
+				udp := transport.(*layers.UDP)
+				flow := packet.NetworkLayer().NetworkFlow()
+				captureInfo := packet.Metadata().CaptureInfo;
+				service.AssemblerUdp.Assemble(flow, udp, &captureInfo, fname)
 				break
 			default:
 				// pass
