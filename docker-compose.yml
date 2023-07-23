@@ -13,6 +13,7 @@ services:
       context: frontend
       dockerfile: Dockerfile-frontend
     image: tulip-frontend:latest
+    restart: on-failure
     ports:
       - "3000:3000"
     depends_on:
@@ -27,6 +28,7 @@ services:
       context: .
       dockerfile: Dockerfile-python
     image: tulip-api:latest
+    restart: on-failure
     depends_on:
       - mongo
     networks:
@@ -45,6 +47,7 @@ services:
       context: services/go-importer
       dockerfile: Dockerfile-assembler
     image: tulip-assembler:latest
+    restart: on-failure
     depends_on:
       - mongo
     networks:
@@ -61,6 +64,7 @@ services:
       context: services/go-importer
       dockerfile: Dockerfile-enricher
     image: tulip-enricher:latest
+    restart: on-failure
     depends_on:
       - mongo
     networks:
