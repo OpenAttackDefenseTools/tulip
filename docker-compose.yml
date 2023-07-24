@@ -58,6 +58,7 @@ services:
     environment:
       TULIP_MONGO: ${TULIP_MONGO}
       FLAG_REGEX: ${FLAG_REGEX}
+      PCAP_OVER_IP: ${PCAP_OVER_IP}
 
   enricher:
     build:
