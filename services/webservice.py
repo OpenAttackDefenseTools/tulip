@@ -24,7 +24,7 @@
 
 from flask import Flask, Response, send_file
 
-from configurations import services, traffic_dir, start_date, tick_length
+from configurations import services, traffic_dir, start_date, tick_length, flag_regex
 from pathlib import Path
 from data2req import convert_flow_to_http_requests, convert_single_http_requests
 from base64 import b64decode
@@ -90,6 +90,11 @@ def setStar(flow_id, star_to_set):
 @application.route('/services')
 def getServices():
     return return_json_response(services)
+
+
+@application.route('/flag_regex')
+def getFlagRegex():
+    return return_json_response(flag_regex)
 
 
 @application.route('/flow/<id>')

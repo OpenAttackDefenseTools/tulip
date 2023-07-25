@@ -22,6 +22,7 @@ import {
   useLazyToFullPythonRequestQuery,
   useLazyToPwnToolsQuery,
   useToSinglePythonRequestQuery,
+  useGetFlagRegexQuery,
 } from "../api";
 import { API_BASE_PATH } from "../const";
 import { produceWithPatches } from "immer";
@@ -68,16 +69,34 @@ function HexFlow({ flow }: { flow: FlowData }) {
   const hex = hexy(Buffer.from(flow.b64, 'base64'), { format: "twos" });
   return <FlowContainer copyText={hex}>{hex}</FlowContainer>;
 }
-function highlightText(flowText: string, highlight: string, color: string) {
-  if (flowText.length > MAX_LENGTH_FOR_HIGHLIGHT) {
+function highlightText(flowText: string, search_string: string, flag_string: string) {
+  console.log(search_string, flag_string)
+  if (flowText.length > MAX_LENGTH_FOR_HIGHLIGHT || flag_string === '') {
     return flowText
   }
   try {
-    const regex = new RegExp(`(${highlight})`, 'gi');
-    const parts = flowText.split(regex);
-    const classes = "bg-"+color+"-200 rounded-sm ring-2 ring-"+color+"-200"
+    const flag_regex = new RegExp(`(${flag_string})`, 'g');
+    const search_regex = new RegExp(`(${search_string})`, 'gi');
+    const combined_regex = new RegExp(`${
+      search_regex.source.split('').map(c => {
+        if (!c.match(/[a-z]/i)) {
+          return c
+        }
+        return '['+c.toLowerCase()+c.toUpperCase()+']' // HACK: this is a hack to make the search case insensitive, but the flag case sensitive
+      }).join('')
+      }|${flag_regex.source}`, 'g');
+    let parts;
+    if (search_string !== '') {
+      parts = flowText.split(combined_regex);
+      console.log(combined_regex.source)
+    } else {
+      parts = flowText.split(flag_regex);
+    }
+    console.log(parts)
+    const searchClasses = "bg-orange-200 rounded-sm"
+    const flagClasses = "bg-red-200 rounded-sm"
     return <span>{ parts.map((part, i) => 
-        <span key={i} className={ regex.test(part) ? classes : '' }>
+        <span key={i} className={ (search_string !== '' && search_regex.test(part)) ? searchClasses : (flag_regex.test(part) ? flagClasses : '') }>
             { part }
         </span>)
     }</span>;
@@ -89,8 +108,9 @@ function highlightText(flowText: string, highlight: string, color: string) {
 
 function TextFlow({ flow }: { flow: FlowData }) {
   let [searchParams] = useSearchParams();
-  const text_filter = searchParams.get(TEXT_FILTER_KEY) ?? '';
-  const text = text_filter === '' ? flow.data :  highlightText(flow.data,text_filter, "orange")
+  const text_filter = searchParams.get(TEXT_FILTER_KEY);
+  const { data: flag_regex } = useGetFlagRegexQuery();
+  const text = highlightText(flow.data, text_filter ?? '', flag_regex ?? '');
 
   return <FlowContainer copyText={flow.data}>{text}</FlowContainer>;
 }
