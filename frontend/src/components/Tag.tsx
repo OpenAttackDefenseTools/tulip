@@ -24,17 +24,23 @@ interface TagProps {
   tag: string;
   color?: string;
   disabled?: boolean;
+  excluded?: boolean;
   onClick?: () => void;
 }
-export const Tag = ({ tag, color, disabled = false, onClick }: TagProps) => {
-  const tagBackgroundColor = disabled ? "#eee" : color ?? tagToColor(tag);
+export const Tag = ({ tag, color, disabled = false, excluded = false, onClick }: TagProps) => {
+  var tagBackgroundColor = disabled ? "#eee" : color ?? tagToColor(tag);
 
-  const tagTextColor = disabled
+  var tagTextColor = disabled
     ? "#bbb"
     : Color(tagBackgroundColor).isDark()
-    ? "#fff"
-    : "#000";
+      ? "#fff"
+      : "#000";
 
+
+  if (excluded) {
+    tagTextColor = "white";
+    tagBackgroundColor = "black";
+  }
   return (
     <div
       onClick={onClick}
@@ -46,7 +52,7 @@ export const Tag = ({ tag, color, disabled = false, onClick }: TagProps) => {
         color: tagTextColor,
       }}
     >
-      <span>{tag}</span>
+      <span  style={excluded ? { textDecoration: 'line-through' } : {}}>{tag}</span>
     </div>
   );
 };

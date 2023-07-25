@@ -43,7 +43,9 @@ export function FlowList() {
   const { data: availableTags } = useGetTagsQuery();
   const { data: services } = useGetServicesQuery();
 
-  const filterTags = useAppSelector((state) => state.filter.filterTags);
+  const includeTags = useAppSelector((state) => state.filter.includeTags);
+  const excludeTags = useAppSelector((state) => state.filter.excludeTags);
+
   const dispatch = useAppDispatch();
 
   const [starFlow] = useStarFlowMutation();
@@ -69,7 +71,8 @@ export function FlowList() {
       from_time: from_filter,
       to_time: to_filter,
       service: "", // FIXME
-      tags: filterTags,
+      includeTags: includeTags,
+      excludeTags: excludeTags
     },
     {
       refetchOnMountOrArgChange: true,
@@ -180,7 +183,8 @@ export function FlowList() {
                 <Tag
                   key={tag}
                   tag={tag}
-                  disabled={!filterTags.includes(tag)}
+                  disabled={!includeTags.includes(tag)}
+                  excluded={excludeTags.includes(tag)}
                   onClick={() => dispatch(toggleFilterTag(tag))}
                 ></Tag>
               ))}
