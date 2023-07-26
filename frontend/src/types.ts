@@ -55,7 +55,8 @@ export interface FlowsQuery {
   dst_port?: number;
   from_time?: string;
   to_time?: string;
-  tags: string[];
+  includeTags: string[];
+  excludeTags: string[];
 }
 
 export interface StatsQuery {

@@ -20,6 +20,9 @@ export const tulipApi = createApi({
     getServices: builder.query<Service[], void>({
       query: () => "/services",
     }),
+    getFlagRegex: builder.query<string, void>({
+      query: () => "/flag_regex",
+    }),
     getFlow: builder.query<FullFlow, string>({
       query: (id) => `/flow/${id}`,
     }),
@@ -35,7 +38,8 @@ export const tulipApi = createApi({
         // Diederik gives you a beer once this has been fixed
         body: JSON.stringify({
           ...query,
-          tags: query.tags.length > 0 ? query.tags : undefined,
+          includeTags: query.includeTags.length > 0 ? query.includeTags : undefined,
+          excludeTags: query.excludeTags.length > 0 ? query.excludeTags : undefined,
         }),
       }),
     }),
@@ -128,6 +132,7 @@ export const tulipApi = createApi({
 
 export const {
   useGetServicesQuery,
+  useGetFlagRegexQuery,
   useGetFlowQuery,
   useGetFlowsQuery,
   useLazyGetFlowsQuery,

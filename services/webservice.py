@@ -107,6 +107,11 @@ def getServices():
     return return_json_response(services)
 
 
+@application.route('/flag_regex')
+def getFlagRegex():
+    return return_json_response(flag_regex)
+
+
 @application.route('/flow/<id>')
 def getFlowDetail(id):
     to_ret = return_json_response(db.getFlowDetail(id))
