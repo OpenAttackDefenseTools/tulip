@@ -265,8 +265,9 @@ func processPcapHandle(handle *pcap.Handle, fname string) {
 
 	var nextFlush time.Time
 	var flushDuration time.Duration
+	var err error
 	if *flushAfter != "" {
-		flushDuration, err := time.ParseDuration(*flushAfter)
+		flushDuration, err = time.ParseDuration(*flushAfter)
 		if err != nil {
 			log.Fatal("invalid flush duration: ", *flushAfter)
 		}
@@ -286,9 +287,9 @@ func processPcapHandle(handle *pcap.Handle, fname string) {
 		if !nextFlush.IsZero() {
 			// Check to see if we should flush the streams we have that haven't seen any new data in a while.
 			// Note that pcapOpenOfflineFile is blocking so we need at least see some packets passing by to get here.
-			if time.Now().After(nextFlush) {
+			if time.Since(nextFlush) > 0 {
 				log.Printf("flushing all streams that haven't seen packets in the last %s", *flushAfter)
-				assembler.FlushCloseOlderThan(time.Now().Add(flushDuration))
+				assembler.FlushCloseOlderThan(time.Now().Add(-flushDuration))
 				nextFlush = time.Now().Add(flushDuration / 2)
 			}
 		}
