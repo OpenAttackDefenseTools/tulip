@@ -19,6 +19,7 @@ export interface Flow {
 export interface TickInfo {
   startDate: string;
   tickLength: number;
+  flagLifetime: number;
 }
 
 export interface FullFlow extends Flow {
@@ -82,3 +83,10 @@ export type Service = {
   port: number;
   name: string;
 };
+
+export type TicksAttackInfo = Record<number, Record<string, number>>;
+
+export interface TicksAttackQuery {
+  from_tick: number;
+  to_tick: number;
+}
