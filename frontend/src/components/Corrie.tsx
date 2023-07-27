@@ -8,6 +8,7 @@ import {
   END_FILTER_KEY,
   CORRELATION_MODE_KEY,
   FLOW_LIST_REFETCH_INTERVAL_MS,
+  UNDER_ATTACK_REFETCH_INTERVAL_MS,
 } from "../const";
 import useDebounce from "../hooks/useDebounce";
 
@@ -141,6 +142,9 @@ export const Corrie = () => {
     {
       from_tick: tickStuff.startTick,
       to_tick: tickStuff.endTick + (tickInfoData?.flagLifetime || 0),
+    },
+    {
+      pollingInterval: UNDER_ATTACK_REFETCH_INTERVAL_MS,
     }
   ).data;
 
