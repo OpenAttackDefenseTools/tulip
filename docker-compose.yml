@@ -41,6 +41,8 @@ services:
       FLAG_REGEX: ${FLAG_REGEX}
       TICK_START: ${TICK_START}
       TICK_LENGTH: ${TICK_LENGTH}
+      VISUALIZER_URL: ${VISUALIZER_URL}
+      VIRTUAL_HOST: tulip.h4xx.eu
 
   assembler:
     build:
