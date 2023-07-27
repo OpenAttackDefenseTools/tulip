@@ -44,6 +44,8 @@ type FlowEntry struct {
 	Flow         []FlowItem
 	Tags         []string
 	Size         int
+	Flags        []string
+	Flagids      []string
 }
 
 type Database struct {
@@ -72,6 +74,7 @@ func (db Database) ConfigureDatabase() {
 	db.InsertTag("starred")
 	db.InsertTag("tcp")
 	db.InsertTag("udp")
+	db.InsertTag("flagid")
 	db.ConfigureIndexes()
 }
 

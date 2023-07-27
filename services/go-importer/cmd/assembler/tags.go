@@ -19,7 +19,7 @@ func EnsureRegex(reg *string) {
 	}
 }
 
-func containsTag(s []string, e string) bool {
+func contains(s []string, e string) bool {
 	for _, a := range s {
 		if a == e {
 			return true
@@ -41,15 +41,26 @@ func ApplyFlagTags(flow *db.FlowEntry, reg *string) {
 
 	for idx := 0; idx < len(flow.Flow); idx++ {
 		flowItem := &flow.Flow[idx]
-		if flagRegex.MatchString(flowItem.Data) {
+		matches := flagRegex.FindAllStringSubmatch(flowItem.Data, -1)
+		if len(matches) > 0 {
 			var tag string
 			if flowItem.From == "c" {
 				tag = "flag-in"
 			} else {
 				tag = "flag-out"
 			}
+
+			// Add the flag if it doesn't already exist
+			for _, match := range matches {
+				var flag string
+				flag = match[0]
+				if !contains(flow.Flags, flag) {
+					flow.Flags = append(flow.Flags, flag)
+				}
+			}
+
 			// Add the tag if it doesn't already exist
-			if !containsTag(flow.Tags, tag) {
+			if !contains(flow.Tags, tag) {
 				flow.Tags = append(flow.Tags, tag)
 			}
 		}
