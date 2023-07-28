@@ -42,7 +42,7 @@ func ApplyFlagTags(flow *db.FlowEntry, reg *string) {
 	for idx := 0; idx < len(flow.Flow[0].Flow); idx++ {
 		flowItem := &flow.Flow[0].Flow[idx]
 
-		matches := len(flagRegex.FindAllStringIndex(flowItem.Data, -1))
+		matches := len(flagRegex.FindAllIndex(flowItem.RawData, -1))
 
 		if matches > 0 {
 			var tag string

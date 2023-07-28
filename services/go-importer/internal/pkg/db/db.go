@@ -18,11 +18,13 @@ import (
 type FlowItem struct {
 	/// From: "s" / "c" for server or client
 	From string
+	/// RawData, the raw packet bytes used only for assembler's internal use
+	RawData []byte `bson:"-"`
 	/// Data, in a somewhat readable format
 	Data string `msgpack:"-"`
 	/// The raw data, base64 encoded.
 	// TODO; Replace this with gridfs
-	B64 string
+	B64 string `msgpack:"-"`
 	/// Timestamp of the first packet in the flow (Epoch / ms)
 	Time int
 }
@@ -124,17 +126,18 @@ func (db Database) InsertFlow(flow FlowEntry) {
 	flowCollection := db.client.Database("pcap").Collection("pcap")
 
 	// Process the data, so it works well in mongodb
+	// TODO: loop through representations
 	for idx := 0; idx < len(flow.Flow[0].Flow); idx++ {
 		flowItem := &flow.Flow[0].Flow[idx]
 		// Base64 encode the raw data string
-		flowItem.B64 = base64.StdEncoding.EncodeToString([]byte(flowItem.Data))
+		flowItem.B64 = base64.StdEncoding.EncodeToString(flowItem.RawData)
 		// filter the data string down to only printable characters
 		flowItem.Data = strings.Map(func(r rune) rune {
 			if r < 128 {
 				return r
 			}
 			return -1
-		}, flowItem.Data)
+		}, string(flowItem.RawData))
 	}
 
 	if len(flow.Fingerprints) > 0 {

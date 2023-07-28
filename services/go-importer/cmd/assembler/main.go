@@ -1,8 +1,8 @@
 package main
 
 import (
-	"go-importer/internal/converters"
 	"fmt"
+	"go-importer/internal/converters"
 	"go-importer/internal/pkg/db"
 	"net"
 
@@ -53,6 +53,9 @@ func reassemblyCallback(entry db.FlowEntry) {
 	// Parsing HTTP will decode encodings to a plaintext format
 	ParseHttpFlow(&entry)
 
+	// TODO: this most likely should be parallelized in some controlled manner (queue on separate goroutine?)
+	converters.RunPipeline(entry)
+
 	// Apply flag in / flagout
 	if *flag_regex != "" {
 		ApplyFlagTags(&entry, flag_regex)
@@ -60,12 +63,6 @@ func reassemblyCallback(entry db.FlowEntry) {
 
 	// Finally, insert the new entry
 	g_db.InsertFlow(entry)
-
-	// TODO: this most likely should be parallelized in some controlled manner (queue on separate goroutine)
-	// TODO: apply flag tags
-	for _, converterEntry := range converters.RunPipeline(entry) {
-		g_db.InsertFlow(converterEntry)
-	}
 }
 
 func main() {

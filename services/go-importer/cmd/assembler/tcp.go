@@ -136,7 +136,7 @@ func (t *tcpStream) ReassembledSG(sg reassembly.ScatterGather, ac reassembly.Ass
 	if length < 0 {
 		length = 0
 	}
-	string_data := string(data[:length])
+	data = data[:length]
 
 	var from string
 	if dir == reassembly.TCPDirClientToServer {
@@ -149,7 +149,7 @@ func (t *tcpStream) ReassembledSG(sg reassembly.ScatterGather, ac reassembly.Ass
 	l := len(t.FlowItems)
 	if l > 0 {
 		if t.FlowItems[l-1].From == from {
-			t.FlowItems[l-1].Data += string_data
+			t.FlowItems[l-1].RawData = append(t.FlowItems[l-1].RawData, data...)
 			// All done, no need to add a new item
 			return
 		}
@@ -157,9 +157,9 @@ func (t *tcpStream) ReassembledSG(sg reassembly.ScatterGather, ac reassembly.Ass
 
 	// Add a FlowItem based on the data we just reassembled
 	t.FlowItems = append(t.FlowItems, db.FlowItem{
-		Data: string_data,
-		From: from,
-		Time: int(timestamp.UnixNano() / 1000000), // TODO; maybe use int64?
+		From:    from,
+		RawData: data,
+		Time:    int(timestamp.UnixNano() / 1000000), // TODO; maybe use int64?
 	})
 
 }

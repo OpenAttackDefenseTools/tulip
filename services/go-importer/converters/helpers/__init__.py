@@ -101,24 +101,18 @@ class Converter:
                 stream_chunks = []
                 for chunk in data[b'Flow']:
                     stream_chunks.append(StreamChunk(
-                        Content=base64.b64decode(chunk[b'B64']),
+                        Content=chunk[b'RawData'],
                         Direction=Direction.CLIENTTOSERVER if chunk[b'From'] == 'c' else Direction.SERVERTOCLIENT,
                     ))
 
                 stream = Stream(metadata, stream_chunks)
                 result = self.handle_stream(stream)
 
-                formatted_chunks = [
-                    # TODO: remove this sample chunk when we can easily identify converter runs
-                    {
-                        'from': 's',
-                        'base64_content': base64.b64encode(f"CONVERTER: {self.__class__.__name__}".encode()).decode(),
-                    },
-                ]
+                formatted_chunks = []
                 for chunk in result.Chunks:
                     formatted_chunks.append({
                         'from': 'c' if chunk.Direction == Direction.CLIENTTOSERVER else 's',
-                        'base64_content': base64.b64encode(chunk.Content).decode(),
+                        'content': chunk.Content,
                     })
 
                 sys.stdout.buffer.write(

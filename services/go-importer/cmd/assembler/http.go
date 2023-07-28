@@ -2,16 +2,15 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"compress/gzip"
+	"github.com/andybalholm/brotli"
 	"go-importer/internal/pkg/db"
 	"hash/crc32"
 	"io"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
-	"strings"
-
-	"github.com/andybalholm/brotli"
 )
 
 const DecompressionSizeLimit = int64(streamdoc_limit)
@@ -38,7 +37,7 @@ func ParseHttpFlow(flow *db.FlowEntry) {
 	for idx := 0; idx < len(flow.Flow[0].Flow); idx++ {
 		flowItem := &flow.Flow[0].Flow[idx]
 		// TODO; rethink the flowItem format to make this less clunky
-		reader := bufio.NewReader(strings.NewReader(flowItem.Data))
+		reader := bufio.NewReader(bytes.NewReader(flowItem.RawData))
 
 		if flowItem.From == "c" {
 			// HTTP Request
@@ -108,9 +107,9 @@ func ParseHttpFlow(flow *db.FlowEntry) {
 				}
 				// This can exceed the mongo document limit, so we need to make sure
 				// the replacement will fit
-				new_size := flow.Size + (len(replacement) - len(flowItem.Data))
+				new_size := flow.Size + (len(replacement) - len(flowItem.RawData))
 				if new_size <= streamdoc_limit {
-					flowItem.Data = string(replacement)
+					flowItem.RawData = replacement
 					flow.Size = new_size
 				}
 			}
