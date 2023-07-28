@@ -1,4 +1,4 @@
-import { useSearchParams, Link, useParams } from "react-router-dom";
+import { useSearchParams, Link, useParams, useNavigate } from "react-router-dom";
 import React, { useDeferredValue, useEffect, useState } from "react";
 import { useHotkeys } from 'react-hotkeys-hook';
 import { FlowData, FullFlow } from "../types";
@@ -10,6 +10,8 @@ import {
 import {
   ArrowCircleLeftIcon,
   ArrowCircleRightIcon,
+  ArrowCircleUpIcon,
+  ArrowCircleDownIcon,
   DownloadIcon,
 } from "@heroicons/react/solid";
 import { format } from "date-fns";
@@ -375,6 +377,7 @@ function FlowOverview({ flow }: { flow: FullFlow }) {
 export function FlowView() {
   let [searchParams] = useSearchParams();
   const params = useParams();
+  const navigate = useNavigate();
 
   const id = params.id;
 
@@ -461,6 +464,38 @@ export function FlowView() {
         className="sticky shadow-md top-0 bg-white overflow-auto border-b border-b-gray-200 flex"
         style={{ height: SECONDARY_NAVBAR_HEIGHT, zIndex: 100 }}
       >
+          {(flow?.child_id?.$oid != "000000000000000000000000" || flow?.parent_id?.$oid != "000000000000000000000000") ? (
+            <div className="flex align-middle p-2 gap-3">
+            <button
+            className="bg-yellow-700 text-white px-2 text-sm rounded-md disabled:opacity-50"
+            key={"parent"+flow.parent_id.$oid}
+            disabled={flow?.parent_id?.$oid === "000000000000000000000000"}
+            onMouseDown={(e) => {
+              if( e.button === 1 ) { // handle opening in new tab
+                window.open(`/flow/${flow.parent_id.$oid}?${searchParams}`, '_blank')
+              } else if (e.button === 0) {
+                navigate(`/flow/${flow.parent_id.$oid}?${searchParams}`)
+              }
+            }}
+            >
+              <ArrowCircleUpIcon className="inline-flex items-baseline w-5 h-5"></ArrowCircleUpIcon> Parent
+            </button>
+            <button
+            className="bg-yellow-700 text-white px-2 text-sm rounded-md disabled:opacity-50"
+            key={"child"+flow.child_id.$oid}
+            disabled={flow?.child_id?.$oid === "000000000000000000000000"}
+            onMouseDown={(e) => {
+              if( e.button === 1 ) { // handle opening in new tab
+                window.open(`/flow/${flow.child_id.$oid}?${searchParams}`, '_blank')
+              } else if (e.button === 0) {
+                navigate(`/flow/${flow.child_id.$oid}?${searchParams}`)
+              }
+            }}
+            >
+              <ArrowCircleDownIcon className="inline-flex items-baseline w-5 h-5"></ArrowCircleDownIcon> Child
+            </button>
+            </div>
+          ) : undefined}
         <div className="flex align-middle p-2 gap-3 ml-auto">
           <button
             className="bg-gray-700 text-white px-2 text-sm rounded-md"
@@ -477,15 +512,6 @@ export function FlowView() {
           </button>
         </div>
       </div>
-      {flow?.parent_id?.$oid != "000000000000000000000000" ? (
-        <Link
-          to={`/flow/${flow.parent_id.$oid}?${searchParams}`}
-          key={flow.parent_id.$oid}
-          className="focus-visible:rounded-md"
-        >
-          Parent
-        </Link>
-      ) : undefined}
 
       {flow ? <FlowOverview flow={flow}></FlowOverview> : undefined}
       {flow?.flow.map((flow_data, i, a) => {
@@ -500,16 +526,6 @@ export function FlowView() {
           ></Flow>
         );
       })}
-
-      {flow?.child_id?.$oid != "000000000000000000000000" ? (
-        <Link
-          to={`/flow/${flow.child_id.$oid}?${searchParams}`}
-          key={flow.child_id.$oid}
-          className="focus-visible:rounded-md"
-        >
-          Child
-        </Link>
-      ) : undefined}
     </div>
   );
 }
