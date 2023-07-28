@@ -76,14 +76,7 @@ function highlightText(flowText: string, search_string: string, flag_string: str
   try {
     const flag_regex = new RegExp(`(${flag_string})`, 'g');
     const search_regex = new RegExp(`(${search_string})`, 'gi');
-    const combined_regex = new RegExp(`${
-      search_regex.source.split('').map(c => {
-        if (!c.match(/[a-z]/i)) {
-          return c
-        }
-        return '['+c.toLowerCase()+c.toUpperCase()+']' // HACK: this is a hack to make the search case insensitive, but the flag case sensitive
-      }).join('')
-      }|${flag_regex.source}`, 'g');
+    const combined_regex = new RegExp(`${search_regex.source}|${flag_regex.source}`, 'gi');
     let parts;
     if (search_string !== '') {
       parts = flowText.split(combined_regex);
