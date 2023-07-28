@@ -24,11 +24,16 @@ export interface TickInfo {
 
 export interface FullFlow extends Flow {
   signatures: Signature[];
-  flow: FlowData[];
+  flow: FlowRepresentation[];
 }
 
 export interface Id {
   $oid: string;
+}
+
+export interface FlowRepresentation {
+  type: string;
+  flow: FlowData[];
 }
 
 export interface FlowData {

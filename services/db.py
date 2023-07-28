@@ -53,7 +53,13 @@ class DB:
     def getFlowList(self, filters):
         f = {}
         if "flow.data" in filters:
-            f["flow.data"] = re.compile(filters["flow.data"], re.IGNORECASE)
+            # The data filter is allowed to match on any representation of the data
+            # Use elemMatch to match on any element of the array
+            #f["flow.data"] = re.compile(filters["flow.data"], re.IGNORECASE)
+            f["flow"] = {"$elemMatch": {
+                # Match on the "flow" field
+                "flow.data": re.compile(filters["flow.data"], re.IGNORECASE)
+            }}
         if "dst_ip" in filters:
             f["dst_ip"] = filters["dst_ip"]
         if "dst_port" in filters:

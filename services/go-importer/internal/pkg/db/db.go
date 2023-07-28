@@ -27,6 +27,14 @@ type FlowItem struct {
 	Time int
 }
 
+type FlowRepresentation struct {
+	/// A textual description of the type of flow data
+	/// e.g raw, http2, gopher, etc.
+	Type string
+	/// The flow data
+	Flow []FlowItem
+}
+
 type FlowEntry struct {
 	Src_port     int
 	Dst_port     int
@@ -41,11 +49,11 @@ type FlowEntry struct {
 	Child_id     primitive.ObjectID
 	Fingerprints []uint32
 	Suricata     []int
-	Flow         []FlowItem
+	Flow         []FlowRepresentation
 	Tags         []string
 	Size         int
-	Flags_In		 int
-	Flags_Out		 int
+	Flags_In     int
+	Flags_Out    int
 }
 
 type Database struct {
@@ -116,8 +124,8 @@ func (db Database) InsertFlow(flow FlowEntry) {
 	flowCollection := db.client.Database("pcap").Collection("pcap")
 
 	// Process the data, so it works well in mongodb
-	for idx := 0; idx < len(flow.Flow); idx++ {
-		flowItem := &flow.Flow[idx]
+	for idx := 0; idx < len(flow.Flow[0].Flow); idx++ {
+		flowItem := &flow.Flow[0].Flow[idx]
 		// Base64 encode the raw data string
 		flowItem.B64 = base64.StdEncoding.EncodeToString([]byte(flowItem.Data))
 		// filter the data string down to only printable characters

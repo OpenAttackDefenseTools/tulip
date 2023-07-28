@@ -1,5 +1,5 @@
 import { useSearchParams, Link, useParams } from "react-router-dom";
-import React, { useDeferredValue, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useHotkeys } from 'react-hotkeys-hook';
 import { FlowData, FullFlow } from "../types";
 import { Buffer } from "buffer";
@@ -16,7 +16,7 @@ import { format } from "date-fns";
 
 import { hexy } from "hexy";
 import { useCopy } from "../hooks/useCopy";
-import { RadioGroup, RadioGroupProps } from "../components/RadioGroup";
+import { RadioGroup } from "../components/RadioGroup";
 import {
   useGetFlowQuery,
   useLazyToFullPythonRequestQuery,
@@ -25,7 +25,6 @@ import {
   useGetFlagRegexQuery,
 } from "../api";
 import { API_BASE_PATH } from "../const";
-import { produceWithPatches } from "immer";
 
 const SECONDARY_NAVBAR_HEIGHT = 50;
 
@@ -380,6 +379,8 @@ export function FlowView() {
   const params = useParams();
 
   const id = params.id;
+  // TODO: Add this to the front-end
+  const reprId = parseInt(searchParams.get("reprId") ?? "0");
 
   const { data: flow, isError, isLoading } = useGetFlowQuery(id!, { skip: id === undefined });
 
@@ -491,7 +492,7 @@ export function FlowView() {
       ) : undefined}
 
       {flow ? <FlowOverview flow={flow}></FlowOverview> : undefined}
-      {flow?.flow.map((flow_data, i, a) => {
+      {flow?.flow[reprId].flow.map((flow_data, i, a) => {
         const delta_time = a[i].time - (a[i - 1]?.time ?? a[i].time);
         return (
           <Flow

@@ -57,8 +57,8 @@ const deriveDisplayMode = (
       i++
     ) {
       if (
-        !isASCII(firstFlow.flow[i].data) ||
-        !isASCII(secondFlow.flow[i].data)
+        !isASCII(firstFlow.flow[0].flow[i].data) ||
+        !isASCII(secondFlow.flow[0].flow[i].data)
       ) {
         return displayOptions[1];
       }
@@ -116,7 +116,7 @@ export function DiffView() {
             {
               length: Math.min(firstFlow!.flow.length, secondFlow!.flow.length),
             },
-            (_, i) => Flow(firstFlow!.flow[i].data, secondFlow!.flow[i].data)
+            (_, i) => Flow(firstFlow!.flow[0].flow[i].data, secondFlow!.flow[0].flow[i].data)
           )}
         </div>
       )}
@@ -130,8 +130,8 @@ export function DiffView() {
             },
             (_, i) =>
               Flow(
-                hexy(Buffer.from(firstFlow!.flow[i].b64, 'base64'), { format: "twos" }),
-                hexy(Buffer.from(secondFlow!.flow[i].b64, 'base64'), { format: "twos" })
+                hexy(Buffer.from(firstFlow!.flow[0].flow[i].b64, 'base64'), { format: "twos" }),
+                hexy(Buffer.from(secondFlow!.flow[0].flow[i].b64, 'base64'), { format: "twos" })
               )
           )}
         </div>
