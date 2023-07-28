@@ -70,7 +70,6 @@ function HexFlow({ flow }: { flow: FlowData }) {
   return <FlowContainer copyText={hex}>{hex}</FlowContainer>;
 }
 function highlightText(flowText: string, search_string: string, flag_string: string) {
-  console.log(search_string, flag_string)
   if (flowText.length > MAX_LENGTH_FOR_HIGHLIGHT || flag_string === '') {
     return flowText
   }
@@ -88,11 +87,9 @@ function highlightText(flowText: string, search_string: string, flag_string: str
     let parts;
     if (search_string !== '') {
       parts = flowText.split(combined_regex);
-      console.log(combined_regex.source)
     } else {
       parts = flowText.split(flag_regex);
     }
-    console.log(parts)
     const searchClasses = "bg-orange-200 rounded-sm"
     const flagClasses = "bg-red-200 rounded-sm"
     return <span>{ parts.map((part, i) => 
