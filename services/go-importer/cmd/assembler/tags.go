@@ -39,24 +39,36 @@ func ApplyFlagTags(flow *db.FlowEntry, reg *string) {
 		return
 	}
 
-	for idx := 0; idx < len(flow.Flow[0].Flow); idx++ {
-		flowItem := &flow.Flow[0].Flow[idx]
+	flagsIn := 0
+	flagsOut := 0
+	for reprIdx := 0; reprIdx < len(flow.Flow); reprIdx++ {
+		for idx := 0; idx < len(flow.Flow[reprIdx].Flow); idx++ {
+			flowItem := &flow.Flow[reprIdx].Flow[idx]
 
-		matches := len(flagRegex.FindAllIndex(flowItem.RawData, -1))
+			matches := len(flagRegex.FindAllIndex(flowItem.RawData, -1))
 
-		if matches > 0 {
-			var tag string
-			if flowItem.From == "c" {
-				tag = "flag-in"
-				flow.Flags_In += matches
-			} else {
-				tag = "flag-out"
-				flow.Flags_Out += matches
-			}
-			// Add the tag if it doesn't already exist
-			if !containsTag(flow.Tags, tag) {
-				flow.Tags = append(flow.Tags, tag)
+			if matches > 0 {
+				var tag string
+				if flowItem.From == "c" {
+					tag = "flag-in"
+					if matches > flagsIn {
+						flagsIn = matches
+					}
+				} else {
+					tag = "flag-out"
+					if matches > flagsOut {
+						flagsOut = matches
+					}
+				}
+				// Add the tag if it doesn't already exist
+				if !containsTag(flow.Tags, tag) {
+					flow.Tags = append(flow.Tags, tag)
+				}
 			}
 		}
 	}
+
+	// Different repr may have multiple duplicate flags between each other, so assume that the "max" inside a repr is the most accurate value
+	flow.Flags_In += flagsIn
+	flow.Flags_Out += flagsOut
 }
