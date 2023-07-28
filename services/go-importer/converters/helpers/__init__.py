@@ -5,8 +5,9 @@ from enum import Enum
 from typing import List
 import base64
 import datetime
-import json
+import os
 import sys
+import msgpack
 
 
 class Protocol(Enum):
@@ -82,47 +83,53 @@ class Converter:
         result of the handle_stream method is then written to stdout.
         """
         self.current_stream_id = -1
-        # TODO: move this back to a while true loop so we can use this on-demand
-        try:
-            stdin_input = sys.stdin.buffer.readline().decode("utf-8")
-            flow_entry = json.loads(stdin_input)
-            metadata = StreamMetadata(
-                StreamID=0,  # TODO: is this needed?
-                ClientHost=flow_entry['Src_ip'],
-                ClientPort=flow_entry['Src_port'],
-                ServerHost=flow_entry['Dst_ip'],
-                ServerPort=flow_entry['Dst_port'],
-                Protocol=Protocol.TCP,  # TODO: Is this correct assumption?
-            )
+        stdin = os.fdopen(sys.stdin.fileno(), 'rb', buffering=0)
+        unpacker = msgpack.Unpacker(stdin, raw=True)
 
-            self.current_stream_id = metadata.StreamID
-            stream_chunks = []
-            for chunk in flow_entry['Flow']:
-                stream_chunks.append(StreamChunk(
-                    Content=base64.b64decode(chunk['B64']),
-                    Direction=Direction.CLIENTTOSERVER if chunk['From'] == 'c' else Direction.SERVERTOCLIENT,
-                ))
+        for data in unpacker:
+            try:
+                metadata = StreamMetadata(
+                    StreamID=0,  # TODO: is this needed?
+                    ClientHost=data[b'Src_ip'],
+                    ClientPort=data[b'Src_port'],
+                    ServerHost=data[b'Dst_ip'],
+                    ServerPort=data[b'Dst_port'],
+                    Protocol=Protocol.TCP,
+                )
 
-            stream = Stream(metadata, stream_chunks)
-            result = self.handle_stream(stream)
+                self.current_stream_id = metadata.StreamID
+                stream_chunks = []
+                for chunk in data[b'Flow']:
+                    stream_chunks.append(StreamChunk(
+                        Content=base64.b64decode(chunk[b'B64']),
+                        Direction=Direction.CLIENTTOSERVER if chunk[b'From'] == 'c' else Direction.SERVERTOCLIENT,
+                    ))
 
-            formatted_chunks = [
-                # TODO: remove this sample chunk when we can easily identify converter runs
-                {
-                    'from': 's',
-                    'base64_content': base64.b64encode(f"CONVERTER: {self.__class__.__name__}\nDATA:\n{stdin_input}".encode()).decode(),
-                },
-            ]
-            for chunk in result.Chunks:
-                formatted_chunks.append({
-                    'from': 'c' if chunk.Direction == Direction.CLIENTTOSERVER else 's',
-                    'base64_content': base64.b64encode(chunk.Content).decode(),
-                })
+                stream = Stream(metadata, stream_chunks)
+                result = self.handle_stream(stream)
 
-            json.dump(formatted_chunks, sys.stdout)
-            sys.stdout.flush()
-        except KeyboardInterrupt:
-            return
+                formatted_chunks = [
+                    # TODO: remove this sample chunk when we can easily identify converter runs
+                    {
+                        'from': 's',
+                        'base64_content': base64.b64encode(f"CONVERTER: {self.__class__.__name__}".encode()).decode(),
+                    },
+                ]
+                for chunk in result.Chunks:
+                    formatted_chunks.append({
+                        'from': 'c' if chunk.Direction == Direction.CLIENTTOSERVER else 's',
+                        'base64_content': base64.b64encode(chunk.Content).decode(),
+                    })
+
+                sys.stdout.buffer.write(
+                    msgpack.packb(formatted_chunks, use_bin_type=True)
+                )
+                sys.stdout.buffer.flush()
+            except KeyboardInterrupt:
+                return
+            except:
+                # TODO: do something so stdout does not hang
+                pass
 
     def handle_stream(self, stream: Stream) -> Result:
         """

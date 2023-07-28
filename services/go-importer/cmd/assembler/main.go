@@ -53,7 +53,7 @@ func reassemblyCallback(entry db.FlowEntry) {
 	// Finally, insert the new entry
 	g_db.InsertFlow(entry)
 
-	// TODO: this most likely should be parallelized in some controlled manner
+	// TODO: this most likely should be parallelized in some controlled manner (queue on separate goroutine)
 	// TODO: apply flag tags
 	for _, converterEntry := range converters.RunPipeline(entry) {
 		g_db.InsertFlow(converterEntry)
@@ -89,6 +89,9 @@ func main() {
 	db_string := "mongodb://" + *mongodb
 	g_db = db.ConnectMongo(db_string)
 	g_db.ConfigureDatabase()
+
+	// TODO: flag to disable converters in case something goes really wrong
+	converters.StartWorkers()
 
 	// Pass positional arguments to the pcap handler
 	handlePcaps(flag.Args())

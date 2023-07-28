@@ -1,27 +1,11 @@
 package converters
 
 import (
-	"bytes"
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"go-importer/internal/pkg/db"
 	"log"
-	"os/exec"
 )
-
-// TODO: we need some configuration file for this/re-use configuration.py somehow
-// Waterfall-like effect, each stage's outputs keep falling towards next group, e.g.
-// using 2 converters will cause the next group to get the output of those two passed to it.
-// Additionally, the original entry is always sent to all of the groups.
-var serviceConfig = map[int][][]string{
-	3003: {
-		// Protocol
-		{"websockets"},
-		// Various encodings one could use (should always be last)
-		//{"b64decode"},
-	},
-}
 
 func RunPipeline(originalEntry db.FlowEntry) []db.FlowEntry {
 	// TODO: should we also check src port?
@@ -61,54 +45,29 @@ type StreamChunk struct {
 	Base64Content string `json:"base64_content"`
 }
 
-// TODO: consider dropping json, too slow
 func TryConverter(converter string, entry db.FlowEntry) (db.FlowEntry, error) {
-	// TODO: cache this
-	path, err := exec.LookPath("python3")
+	process, err := GetWorker(converter)
 	if err != nil {
-		return db.FlowEntry{}, fmt.Errorf("failed to find python3: %v", err)
+		return db.FlowEntry{}, fmt.Errorf("failed to get worker for converter %s: %w", converter, err)
 	}
+	process.Mutex.Lock()
+	defer process.Mutex.Unlock()
 
-	// TODO: timeout
-	cmd := exec.Command(path, fmt.Sprintf("converters/%s.py", converter))
+	// TODO: some kind of timeout mechanism
 
-	stdin, err := cmd.StdinPipe()
-	if err != nil {
-		return db.FlowEntry{}, fmt.Errorf("failed to create stdin pipe: %v", err)
-	}
-
-	stdout := bytes.Buffer{}
-	cmd.Stdout = &stdout
-
-	stderr := bytes.Buffer{}
-	cmd.Stderr = &stderr
-
-	if err := cmd.Start(); err != nil {
-		return db.FlowEntry{}, fmt.Errorf("failed starting decoder: %v", err)
-	}
-
-	data, err := json.Marshal(entry)
-	if err != nil {
-		return db.FlowEntry{}, fmt.Errorf("failed to marshal flow entry: %v", err)
-	}
-
-	if _, err := stdin.Write(append(data, 0xa)); err != nil {
-		return db.FlowEntry{}, fmt.Errorf("failed to write to stdin the flow entry: %v", err)
-	}
-
-	if err := cmd.Wait(); err != nil {
-		return db.FlowEntry{}, fmt.Errorf("decoder failed running: %v", err)
+	if err := process.Encoder.Encode(entry); err != nil {
+		return db.FlowEntry{}, fmt.Errorf("failed to marshal flow entry: %w", err)
 	}
 
 	var streamChunks []StreamChunk
-	if err := json.Unmarshal(stdout.Bytes(), &streamChunks); err != nil {
-		// TODO: remove after debug
-		fmt.Println(string(data))
-		fmt.Println(stdout.String())
-		return db.FlowEntry{}, fmt.Errorf("failed unmarshaling decoder output: %v", err)
+	if err := process.Decoder.Decode(&streamChunks); err != nil {
+		return db.FlowEntry{}, fmt.Errorf("failed to unmarshal stream chunks: %w", err)
 	}
 
-	// TODO: we need some checks to guarantee the output actually changes - otherwise it's of no value to us
+	// TODO: pkappa2 does some post-processing here - same direction streams are merged into one (is this worth the effort?)
+	// TODO: if streamChunks is empty, assume error/failure
+
+	// TODO: we need some checks to guarantee the output actually changes (on python side?) - otherwise it's of no value to us
 	var flowItems []db.FlowItem
 	for _, chunk := range streamChunks {
 		// TODO: refactor how data is passed around in tulip to []byte?

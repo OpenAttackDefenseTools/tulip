@@ -19,7 +19,7 @@ type FlowItem struct {
 	/// From: "s" / "c" for server or client
 	From string
 	/// Data, in a somewhat readable format
-	Data string
+	Data string `msgpack:"-"`
 	/// The raw data, base64 encoded.
 	// TODO; Replace this with gridfs
 	B64 string

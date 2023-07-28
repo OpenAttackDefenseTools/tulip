@@ -125,35 +125,35 @@ func updateEve(eve_file string, ratchet int64) int64 {
 }
 
 /*
-{
-	"timestamp": "2022-05-17T19:39:57.283547+0000",
-	"flow_id": 1905964640824789,
-	"in_iface": "eth0",
-	"event_type": "alert",
-	"src_ip": "131.155.9.104",
-	"src_port": 53604,
-	"dest_ip": "165.232.89.44",
-	"dest_port": 1337,
-	"proto": "TCP",
-	"pkt_src": "stream (flow timeout)",
-	"alert": {
-		"action": "allowed",
-		"gid": 1,
-		"signature_id": 1338,
-		"rev": 1,
-		"signature": "Detected too many A's (smart)",
-		"category": "",
-		"severity": 3
-	},
-	"app_proto": "failed",
-	"flow": {
-		"pkts_toserver": 6,
-		"pkts_toclient": 6,
-		"bytes_toserver": 437,
-		"bytes_toclient": 477,
-		"start": "2022-05-17T19:37:02.978389+0000"
+	{
+		"timestamp": "2022-05-17T19:39:57.283547+0000",
+		"flow_id": 1905964640824789,
+		"in_iface": "eth0",
+		"event_type": "alert",
+		"src_ip": "131.155.9.104",
+		"src_port": 53604,
+		"dest_ip": "165.232.89.44",
+		"dest_port": 1337,
+		"protobufs": "TCP",
+		"pkt_src": "stream (flow timeout)",
+		"alert": {
+			"action": "allowed",
+			"gid": 1,
+			"signature_id": 1338,
+			"rev": 1,
+			"signature": "Detected too many A's (smart)",
+			"category": "",
+			"severity": 3
+		},
+		"app_proto": "failed",
+		"flow": {
+			"pkts_toserver": 6,
+			"pkts_toclient": 6,
+			"bytes_toserver": 437,
+			"bytes_toclient": 477,
+			"start": "2022-05-17T19:37:02.978389+0000"
+		}
 	}
-}
 */
 type suricataLog struct {
 	flow      db.FlowID

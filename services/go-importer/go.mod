@@ -7,5 +7,6 @@ require (
 	github.com/fsnotify/fsnotify v1.5.4
 	github.com/google/gopacket v1.1.19
 	github.com/tidwall/gjson v1.14.1
+	github.com/vmihailenco/msgpack/v5 v5.3.5
 	go.mongodb.org/mongo-driver v1.9.1
 )
