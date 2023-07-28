@@ -214,7 +214,7 @@ func (t *tcpStream) ReassemblyComplete(ac reassembly.AssemblerContext) bool {
 		Tags:        make([]string, 0),
 		Suricata:    make([]int, 0),
 		Filename:    t.source,
-		Flow:        t.FlowItems,
+		Flow:        []db.FlowRepresentation{{Type: "raw", Flow: t.FlowItems}},
 		Size:        t.total_size,
 	}
 

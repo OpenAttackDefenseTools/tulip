@@ -1,5 +1,6 @@
 import { format, parse } from "date-fns";
 import { Suspense, useState } from "react";
+import { useHotkeys } from 'react-hotkeys-hook';
 import {
   Link,
   useParams,
@@ -67,11 +68,18 @@ function ServiceSelection() {
 function TextSearch() {
   const FILTER_KEY = TEXT_FILTER_KEY;
   let [searchParams, setSearchParams] = useSearchParams();
+  useHotkeys('s', (e) => {
+    let el = document.getElementById('search') as HTMLInputElement;
+    el?.focus();
+    el?.select();
+    e.preventDefault()
+  });
   return (
     <div>
       <input
         type="text"
         placeholder="regex"
+        id="search"
         value={searchParams.get(FILTER_KEY) || ""}
         onChange={(event) => {
           let textFilter = event.target.value;
@@ -170,6 +178,7 @@ function StartDateSelection() {
     <div>
       <input
         className="w-20"
+        id="startdateselection"
         type="number"
         placeholder="from"
         value={startTick}
@@ -188,6 +197,7 @@ function EndDateSelection() {
     <div>
       <input
         className="w-20"
+        id="enddateselection"
         type="number"
         placeholder="to"
         value={endTick}
@@ -275,7 +285,15 @@ function Diff() {
 
 export function Header() {
   let [searchParams] = useSearchParams();
-  const { setToLastnTicks, currentTick } = useMessyTimeStuff();
+  const { setToLastnTicks, currentTick, setTimeParam } = useMessyTimeStuff();
+
+  useHotkeys('a', () => setToLastnTicks(5));
+  useHotkeys('d', () => {
+    (document.getElementById("startdateselection") as HTMLInputElement).value = "";
+    (document.getElementById("enddateselection") as HTMLInputElement).value = "";
+    setTimeParam("", START_FILTER_KEY);
+    setTimeParam("", END_FILTER_KEY);
+  });
 
   return (
     <>

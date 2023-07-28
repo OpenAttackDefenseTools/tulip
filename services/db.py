@@ -29,7 +29,8 @@ from pymongo import MongoClient
 from pymongo.errors import ServerSelectionTimeoutError
 import sys
 import pprint
-from configurations import mongo_server, services
+from configurations import mongo_server, services, start_date, tick_length
+from dateutil import parser as dateparser
 
 
 class DB:
@@ -52,7 +53,13 @@ class DB:
     def getFlowList(self, filters):
         f = {}
         if "flow.data" in filters:
-            f["flow.data"] = re.compile(filters["flow.data"], re.IGNORECASE)
+            # The data filter is allowed to match on any representation of the data
+            # Use elemMatch to match on any element of the array
+            #f["flow.data"] = re.compile(filters["flow.data"], re.IGNORECASE)
+            f["flow"] = {"$elemMatch": {
+                # Match on the "flow" field
+                "flow.data": re.compile(filters["flow.data"], re.IGNORECASE)
+            }}
         if "dst_ip" in filters:
             f["dst_ip"] = filters["dst_ip"]
         if "dst_port" in filters:
@@ -68,15 +75,86 @@ class DB:
         if "from_time" in filters and "to_time" in filters:
             f["time"] = {"$gte": int(filters["from_time"]),
                          "$lt": int(filters["to_time"])}
-        if "tags" in filters:
-            f["tags"] = {
-                "$all": [str(elem) for elem in filters["tags"]]
-            }
+        
+        tag_queries = {}
+        if "includeTags" in filters:
+            tag_queries["$all"] = [str(elem) for elem in filters["includeTags"]]
+        if "excludeTags" in filters:
+            tag_queries["$nin"] = [str(elem) for elem in filters["excludeTags"]]
+
+        if len(tag_queries.keys()) > 0:
+            f["tags"] = tag_queries
 
         print("query:")
         pprint.pprint(f)
 
         return self.pcap_coll.find(f, {"flow": 0}).sort("time", -1).limit(2000)
+    
+    def getStats(self, service, filters):
+        f = {}
+        
+        if service != "all" and isinstance(service, str):
+            for s in services:
+                if s["name"] == service:
+                    f["dst_port"] = s["port"]
+                    break
+                
+            if "dst_port" not in f:
+                return []
+
+        if "tick" in filters:
+            start = dateparser.parse(start_date).timestamp() * 1000 + int(filters.get("tick")) * int(tick_length)
+
+            f["time"] = {
+                "$gte": int(start),
+                "$lt": int(start + int(tick_length))
+            }
+        elif "from_tick" in filters and "to_tick" in filters:
+            start = dateparser.parse(start_date).timestamp() * 1000 + int(filters.get("from_tick")) * int(tick_length)
+            end = dateparser.parse(start_date).timestamp() * 1000 + int(filters.get("to_tick")) * int(tick_length)
+
+            f["time"] = {
+                "$gte": int(start),
+                "$lt": int(end)
+            }
+        elif "from_time" in filters and "to_time" in filters:
+            f["time"] = {
+                "$gte": int(filters["from_time"]),
+                "$lt": int(filters["to_time"])
+            }
+        else:
+            return []
+
+        group =  {
+            "_id": "$tick",
+
+            "requests": { "$sum": { "$size": "$flow" } },
+
+            # this is hardcoded because we dont want all tags and because python messes up the order in $cond
+            "tag_flag_in": { "$sum": { "$cond": { "if": { "$in": ["flag-in", "$tags"] }, "then": 1, "else": 0 } } },
+            "tag_flag_out": { "$sum": { "$cond": { "if": { "$in": ["flag-out", "$tags"] }, "then": 1, "else": 0 } } },
+            "tag_blocked": { "$sum": { "$cond": { "if": { "$in": ["blocked", "$tags"] }, "then": 1, "else": 0 } } },
+            "tag_suricata": { "$sum": { "$cond": { "if": { "$in": ["suricata", "$tags"] }, "then": 1, "else": 0 } } },
+            "tag_enemy": { "$sum": { "$cond": { "if": { "$in": ["enemy", "$tags"] }, "then": 1, "else": 0 } } },
+
+            "flag_in": { "$sum": "$flags_in" },
+            "flag_out": { "$sum": "$flags_out" }
+        }
+        
+        return self.pcap_coll.aggregate([
+            { "$match": f },
+            { "$addFields": { 
+                "tick": {
+                    "$floor": {
+                        "$divide": [
+                            { "$subtract": [ "$time", dateparser.parse(start_date).timestamp() * 1000 ] },
+                            int(tick_length)
+                        ]
+                    }
+                }
+            }},
+            { "$group": group }
+        ])
 
     def getTagList(self):
         a = [i["_id"] for i in self.tag_col.find()]

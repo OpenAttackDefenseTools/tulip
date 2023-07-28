@@ -1,21 +1,28 @@
 import { useSearchParams, Link, useParams } from "react-router-dom";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import { useHotkeys } from 'react-hotkeys-hook';
 import { FlowData, FullFlow } from "../types";
-
+import { Buffer } from "buffer";
+import {
+  TEXT_FILTER_KEY,
+  MAX_LENGTH_FOR_HIGHLIGHT,
+} from "../const";
 import {
   ArrowCircleLeftIcon,
   ArrowCircleRightIcon,
+  DownloadIcon,
 } from "@heroicons/react/solid";
 import { format } from "date-fns";
 
 import { hexy } from "hexy";
 import { useCopy } from "../hooks/useCopy";
-import { RadioGroup, RadioGroupProps } from "../components/RadioGroup";
+import { RadioGroup } from "../components/RadioGroup";
 import {
   useGetFlowQuery,
   useLazyToFullPythonRequestQuery,
   useLazyToPwnToolsQuery,
   useToSinglePythonRequestQuery,
+  useGetFlagRegexQuery,
 } from "../api";
 import { API_BASE_PATH } from "../const";
 
@@ -58,12 +65,53 @@ function FlowContainer({
 }
 
 function HexFlow({ flow }: { flow: FlowData }) {
-  const hex = hexy(atob(flow.b64), { format: "twos" });
+  const hex = hexy(Buffer.from(flow.b64, 'base64'), { format: "twos" });
   return <FlowContainer copyText={hex}>{hex}</FlowContainer>;
+}
+function highlightText(flowText: string, search_string: string, flag_string: string) {
+  console.log(search_string, flag_string)
+  if (flowText.length > MAX_LENGTH_FOR_HIGHLIGHT || flag_string === '') {
+    return flowText
+  }
+  try {
+    const flag_regex = new RegExp(`(${flag_string})`, 'g');
+    const search_regex = new RegExp(`(${search_string})`, 'gi');
+    const combined_regex = new RegExp(`${
+      search_regex.source.split('').map(c => {
+        if (!c.match(/[a-z]/i)) {
+          return c
+        }
+        return '['+c.toLowerCase()+c.toUpperCase()+']' // HACK: this is a hack to make the search case insensitive, but the flag case sensitive
+      }).join('')
+      }|${flag_regex.source}`, 'g');
+    let parts;
+    if (search_string !== '') {
+      parts = flowText.split(combined_regex);
+      console.log(combined_regex.source)
+    } else {
+      parts = flowText.split(flag_regex);
+    }
+    console.log(parts)
+    const searchClasses = "bg-orange-200 rounded-sm"
+    const flagClasses = "bg-red-200 rounded-sm"
+    return <span>{ parts.map((part, i) => 
+        <span key={i} className={ (search_string !== '' && search_regex.test(part)) ? searchClasses : (flag_regex.test(part) ? flagClasses : '') }>
+            { part }
+        </span>)
+    }</span>;
+  } catch(error) {
+    console.log(error)
+    return flowText;
+  }
 }
 
 function TextFlow({ flow }: { flow: FlowData }) {
-  return <FlowContainer copyText={flow.data}>{flow.data}</FlowContainer>;
+  let [searchParams] = useSearchParams();
+  const text_filter = searchParams.get(TEXT_FILTER_KEY);
+  const { data: flag_regex } = useGetFlagRegexQuery();
+  const text = highlightText(flow.data, text_filter ?? '', flag_regex ?? '');
+
+  return <FlowContainer copyText={flow.data}>{text}</FlowContainer>;
 }
 
 function WebFlow({ flow }: { flow: FlowData }) {
@@ -107,26 +155,41 @@ interface FlowProps {
   full_flow: FullFlow;
   flow: FlowData;
   delta_time: number;
+  id: string;
 }
 
 function detectType(flow: FlowData) {
   const firstLine = flow.data.split("\n")[0];
   if (firstLine.includes("HTTP")) {
-    return "Plain";
+    return "Web";
   }
 
   return "Plain";
 }
 
-function Flow({ full_flow, flow, delta_time }: FlowProps) {
+function getFlowBody(flow: FlowData, flowType: string) {
+  if (flowType == "Web") {
+    const contentType = flow.data.match(/Content-Type: ([^\s;]+)/im)?.[1];
+    if (contentType) {
+      const body = Buffer.from(flow.b64, 'base64').subarray(flow.data.indexOf('\r\n\r\n')+4);
+      return [contentType, body]
+    }
+  }
+  return null
+}
+
+function Flow({ full_flow, flow, delta_time, id }: FlowProps) {
   const formatted_time = format(new Date(flow.time), "HH:mm:ss:SSS");
   const displayOptions = ["Plain", "Hex", "Web", "PythonRequest"];
 
   // Basic type detection, currently unused
-  const [displayOption, setDisplayOption] = useState(detectType(flow));
+  const [displayOption, setDisplayOption] = useState("Plain");
+
+  const flowType = detectType(flow);
+  const flowBody = getFlowBody(flow, flowType);
 
   return (
-    <div className=" text-mono">
+    <div className="text-mono" id={id}>
       <div
         className="sticky shadow-md bg-white overflow-auto py-1 border-y"
         style={{ top: SECONDARY_NAVBAR_HEIGHT }}
@@ -152,8 +215,61 @@ function Flow({ full_flow, flow, delta_time }: FlowProps) {
               );
             }}
           >
-            Open in cyberchef
+            Open in CC
           </button>
+          {flowType == "Web" && flowBody && (
+            <button
+            className="bg-gray-200 py-1 px-2 rounded-md text-sm ml-2"
+            onClick={async () => {
+              window.open(
+                "https://gchq.github.io/CyberChef/#input=" +
+                  encodeURIComponent(flowBody[1].toString('base64'))
+              );
+            }}
+          >
+            Open body in CC
+          </button>
+          )}
+          <button
+            className="bg-gray-200 py-1 px-2 rounded-md text-sm ml-2"
+            onClick={async () => {
+              const blob = new Blob([Buffer.from(flow.b64, 'base64')], {
+                type: "application/octet-stream",
+              });
+              const url = window.URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.style.display = 'none';
+              a.href = url;
+              a.download = "tulip-dl-"+id+".dat";
+              document.body.appendChild(a);
+              a.click();
+              window.URL.revokeObjectURL(url);
+              a.remove();
+            }}
+          >
+            Download
+          </button>
+          {flowType == "Web" && flowBody && (
+            <button
+            className="bg-gray-200 py-1 px-2 rounded-md text-sm ml-2"
+            onClick={async () => {
+              const blob = new Blob([flowBody[1]], {
+                type: flowBody[0].toString(),
+              });
+              const url = window.URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.style.display = 'none';
+              a.href = url;
+              a.download = "tulip-dl-"+id+".dat";
+              document.body.appendChild(a);
+              a.click();
+              window.URL.revokeObjectURL(url);
+              a.remove();
+            }}
+          >
+            Download body
+          </button>
+          )}
           <RadioGroup
             options={displayOptions}
             value={displayOption}
@@ -232,6 +348,7 @@ function FlowOverview({ flow }: { flow: FullFlow }) {
           <div className="font-bold">
             <a href={`${API_BASE_PATH}/download/?file=${flow.filename}`}>
               {flow.filename}
+              <DownloadIcon className="inline-flex items-baseline w-5 h-5" />
             </a>
           </div>
           <div></div>
@@ -262,8 +379,10 @@ export function FlowView() {
   const params = useParams();
 
   const id = params.id;
+  // TODO: Add this to the front-end
+  const reprId = parseInt(searchParams.get("reprId") ?? "0");
 
-  const { data: flow } = useGetFlowQuery(id!, { skip: id === undefined });
+  const { data: flow, isError, isLoading } = useGetFlowQuery(id!, { skip: id === undefined });
 
   const [triggerPwnToolsQuery] = useLazyToPwnToolsQuery();
   const [triggerFullPythonRequestQuery] = useLazyToFullPythonRequestQuery();
@@ -305,7 +424,38 @@ export function FlowView() {
     },
   });
 
-  if (flow === undefined) {
+  // TODO: account for user scrolling - update currentFlow accordingly
+  const [currentFlow, setCurrentFlow] = useState<number>(-1);
+
+  useHotkeys('h', () => {
+    // we do this for the scroll to top
+    if (currentFlow === 0) {
+      document.getElementById(`${id}-${currentFlow}`)?.scrollIntoView(true)
+    }
+    setCurrentFlow(fi => Math.max(0, fi - 1))
+  }, [currentFlow]);
+  useHotkeys('l', () => {
+    if (currentFlow === (flow?.flow?.length ?? 1)-1) {
+      document.getElementById(`${id}-${currentFlow}`)?.scrollIntoView(true)
+    }
+    setCurrentFlow(fi => Math.min((flow?.flow?.length ?? 1)-1, fi + 1))
+  }, [currentFlow, flow?.flow?.length]);
+
+  useEffect(
+    () => {
+      if (currentFlow < 0) {
+        return
+      }
+      document.getElementById(`${id}-${currentFlow}`)?.scrollIntoView(true)
+    },
+    [currentFlow]
+  )
+
+  if (isError) {
+    return <div>Error while fetching flow</div>;
+  }
+
+  if (isLoading || flow == undefined) {
     return <div>Loading...</div>;
   }
 
@@ -342,14 +492,15 @@ export function FlowView() {
       ) : undefined}
 
       {flow ? <FlowOverview flow={flow}></FlowOverview> : undefined}
-      {flow?.flow.map((flow_data, i, a) => {
+      {flow?.flow[reprId].flow.map((flow_data, i, a) => {
         const delta_time = a[i].time - (a[i - 1]?.time ?? a[i].time);
         return (
           <Flow
             flow={flow_data}
             delta_time={delta_time}
             full_flow={flow}
-            key={flow._id.$oid + " " + i}
+            key={flow._id.$oid + "-" + i}
+            id={flow._id.$oid + "-" + i}
           ></Flow>
         );
       })}

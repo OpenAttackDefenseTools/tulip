@@ -36,11 +36,13 @@ services:
     volumes:
       - ${TRAFFIC_DIR_HOST}:${TRAFFIC_DIR_DOCKER}:ro
     environment:
-      TULIP_MONGO: mongo:27017
+      TULIP_MONGO: ${TULIP_MONGO}
       TULIP_TRAFFIC_DIR: ${TRAFFIC_DIR_DOCKER}
       FLAG_REGEX: ${FLAG_REGEX}
       TICK_START: ${TICK_START}
       TICK_LENGTH: ${TICK_LENGTH}
+      VISUALIZER_URL: ${VISUALIZER_URL}
+      VIRTUAL_HOST: tulip.h4xx.eu
 
   assembler:
     build:

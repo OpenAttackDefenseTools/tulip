@@ -16,6 +16,7 @@ import (
 
 var eve_file = flag.String("eve", "", "Eve file to watch for suricata's tags")
 var mongodb = flag.String("mongo", "", "MongoDB dns name + port (e.g. mongo:27017)")
+var tag_flowbits = flag.Bool("flowbits", true, "Tag flows with their flowbits")
 var rescan_period = flag.Int("t", 30, "rescan period (in seconds).")
 
 var g_db db.Database
@@ -177,14 +178,7 @@ func handleEveLine(json string) (bool, error) {
 	sig_action := gjson.Get(json, "alert.action")
 	tag := ""
 	jtag := gjson.Get(json, "alert.metadata.tag.0")
-	if jtag.Exists() {
-		tag = jtag.String()
-	}
-
-	// If no action was taken, there's no need for us to do anything with this line.
-	if !sig_action.Exists() {
-		return false, nil
-	}
+	flowbits := gjson.Get(json, "metadata.flowbits")
 
 	// canonicalize the IP address notation to make sure it matches what the assembler entered
 	// into the database.
@@ -195,6 +189,15 @@ func handleEveLine(json string) (bool, error) {
 
 	// TODO; Double check this, might be broken for non-UTC?
 	start_time_obj, _ := time.Parse("2006-01-02T15:04:05.999999999-0700", start_time.String())
+
+	if jtag.Exists() {
+		tag = jtag.String()
+	}
+
+	// If no action was taken, there's no need for us to do anything with this line.
+	if !(sig_action.Exists() || (flowbits.Exists() && *tag_flowbits)) {
+		return false, nil
+	}
 
 	id := db.FlowID{
 		Src_port: int(src_port.Int()),
@@ -212,15 +215,33 @@ func handleEveLine(json string) (bool, error) {
 		Time:     start_time_obj,
 	}
 
-	sig := db.Signature{
-		ID:     int(sig_id.Int()),
-		Msg:    sig_msg.String(),
-		Action: sig_action.String(),
-		Tag:    tag,
+	ret := false
+	if sig_action.Exists() {
+
+		sig := db.Signature{
+			ID:     int(sig_id.Int()),
+			Msg:    sig_msg.String(),
+			Action: sig_action.String(),
+			Tag:    tag,
+		}
+
+		// TODO; use one, sensible query instead of just trying both cases
+		ret = g_db.AddSignatureToFlow(id, sig, WINDOW)
+		ret = ret || g_db.AddSignatureToFlow(id_rev, sig, WINDOW)
 	}
 
+	if !(flowbits.Exists() && *tag_flowbits) {
+		return ret, nil
+	}
+
+	tags := []string{}
+	flowbits.ForEach(func(key, value gjson.Result) bool {
+		tags = append(tags, value.String())
+		return true // keep iterating
+	})
+
 	// TODO; use one, sensible query instead of just trying both cases
-	ret := g_db.AddSignatureToFlow(id, sig, WINDOW)
-	ret = ret || g_db.AddSignatureToFlow(id_rev, sig, WINDOW)
+	ret = g_db.AddTagsToFlow(id, tags, WINDOW)
+	ret = ret || g_db.AddTagsToFlow(id_rev, tags, WINDOW)
 	return ret, nil
 }

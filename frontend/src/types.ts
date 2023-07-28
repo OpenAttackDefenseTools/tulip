@@ -19,15 +19,21 @@ export interface Flow {
 export interface TickInfo {
   startDate: string;
   tickLength: number;
+  flagLifetime: number;
 }
 
 export interface FullFlow extends Flow {
   signatures: Signature[];
-  flow: FlowData[];
+  flow: FlowRepresentation[];
 }
 
 export interface Id {
   $oid: string;
+}
+
+export interface FlowRepresentation {
+  type: string;
+  flow: FlowData[];
 }
 
 export interface FlowData {
@@ -54,11 +60,38 @@ export interface FlowsQuery {
   dst_port?: number;
   from_time?: string;
   to_time?: string;
-  tags: string[];
+  includeTags: string[];
+  excludeTags: string[];
 }
+
+export interface StatsQuery {
+  service: string;
+  from_tick: number;
+  to_tick: number;
+}
+
+export interface Stats {
+  [key: string]: number; // little hack to make typescript happy
+  _id: number;
+  requests: number;
+  tag_flag_in: number;
+  tag_flag_out: number;
+  tag_blocked: number;
+  tag_suricata: number;
+  tag_enemy: number;
+  flag_in: number;
+  flag_out: number;
+};
 
 export type Service = {
   ip: string;
   port: number;
   name: string;
 };
+
+export type TicksAttackInfo = Record<number, Record<string, number>>;
+
+export interface TicksAttackQuery {
+  from_tick: number;
+  to_tick: number;
+}

@@ -35,8 +35,8 @@ func ParseHttpFlow(flow *db.FlowEntry) {
 	// Use a set to get rid of duplicates
 	fingerprintsSet := make(map[uint32]bool)
 
-	for idx := 0; idx < len(flow.Flow); idx++ {
-		flowItem := &flow.Flow[idx]
+	for idx := 0; idx < len(flow.Flow[0].Flow); idx++ {
+		flowItem := &flow.Flow[0].Flow[idx]
 		// TODO; rethink the flowItem format to make this less clunky
 		reader := bufio.NewReader(strings.NewReader(flowItem.Data))
 
