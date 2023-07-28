@@ -6,7 +6,7 @@ import (
 	"log"
 )
 
-func RunPipeline(entry db.FlowEntry) {
+func RunPipeline(entry *db.FlowEntry) {
 	// TODO: should we also check src port?
 	config, ok := serviceConfig[entry.Dst_port]
 	if !ok {
@@ -15,7 +15,10 @@ func RunPipeline(entry db.FlowEntry) {
 
 	for _, converters := range config {
 		for _, converter := range converters {
-			for _, flow := range entry.Flow {
+			flowLen := len(entry.Flow)
+			for idx := 0; idx < flowLen; idx++ {
+				flow := &entry.Flow[idx]
+
 				converterFlow, err := TryConverter(converter, entry, flow.Flow)
 				if err != nil {
 					// This is most likely a useless print outside debug purposes
@@ -32,12 +35,20 @@ func RunPipeline(entry db.FlowEntry) {
 	}
 }
 
-type StreamChunk struct {
-	From    string
-	Content []byte
+type RequestChunk struct {
+	Src_ip   string
+	Src_port int
+	Dst_ip   string
+	Dst_port int
+	Flow     []db.FlowItem
 }
 
-func TryConverter(converter string, entry db.FlowEntry, flow []db.FlowItem) ([]db.FlowItem, error) {
+type ProcessedChunk struct {
+	From    string
+	RawData []byte
+}
+
+func TryConverter(converter string, entry *db.FlowEntry, flow []db.FlowItem) ([]db.FlowItem, error) {
 	process, err := GetWorker(converter)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get worker for converter %s: %w", converter, err)
@@ -45,16 +56,23 @@ func TryConverter(converter string, entry db.FlowEntry, flow []db.FlowItem) ([]d
 	process.Mutex.Lock()
 	defer process.Mutex.Unlock()
 
-	// TODO: some kind of timeout mechanism
+	// TODO: some kind of timeout mechanism?
 
-	if err := process.Encoder.Encode(entry); err != nil {
+	if err := process.Encoder.Encode(RequestChunk{
+		Src_ip:   entry.Src_ip,
+		Src_port: entry.Src_port,
+		Dst_ip:   entry.Dst_ip,
+		Dst_port: entry.Dst_port,
+		Flow:     flow,
+	}); err != nil {
 		return nil, fmt.Errorf("failed to marshal flow entry: %w", err)
 	}
 
-	var streamChunks []StreamChunk
+	var streamChunks []ProcessedChunk
 	if err := process.Decoder.Decode(&streamChunks); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal stream chunks: %w", err)
 	}
+	log.Println(streamChunks)
 
 	// TODO: pkappa2 does some post-processing here - same direction streams are merged into one (is this worth the effort?)
 	// TODO: if streamChunks is empty, assume error/failure
@@ -64,7 +82,7 @@ func TryConverter(converter string, entry db.FlowEntry, flow []db.FlowItem) ([]d
 	for _, chunk := range streamChunks {
 		flowItems = append(flowItems, db.FlowItem{
 			From:    chunk.From,
-			RawData: chunk.Content,
+			RawData: chunk.RawData,
 			Time:    0, // TODO: how much do we need this?
 		})
 	}

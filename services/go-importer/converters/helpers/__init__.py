@@ -102,7 +102,7 @@ class Converter:
                 for chunk in data[b'Flow']:
                     stream_chunks.append(StreamChunk(
                         Content=chunk[b'RawData'],
-                        Direction=Direction.CLIENTTOSERVER if chunk[b'From'] == 'c' else Direction.SERVERTOCLIENT,
+                        Direction=Direction.CLIENTTOSERVER if chunk[b'From'] == b'c' else Direction.SERVERTOCLIENT,
                     ))
 
                 stream = Stream(metadata, stream_chunks)
@@ -111,8 +111,8 @@ class Converter:
                 formatted_chunks = []
                 for chunk in result.Chunks:
                     formatted_chunks.append({
-                        'from': 'c' if chunk.Direction == Direction.CLIENTTOSERVER else 's',
-                        'content': chunk.Content,
+                        'From': 'c' if chunk.Direction == Direction.CLIENTTOSERVER else 's',
+                        'RawData': chunk.Content,
                     })
 
                 sys.stdout.buffer.write(

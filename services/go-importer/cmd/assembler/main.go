@@ -51,10 +51,11 @@ var g_db db.Database
 // TODO; FIXME; RDJ; this is kinda gross, but this is PoC level code
 func reassemblyCallback(entry db.FlowEntry) {
 	// Parsing HTTP will decode encodings to a plaintext format
+	// TODO: should this be run for every flow repr?
 	ParseHttpFlow(&entry)
 
 	// TODO: this most likely should be parallelized in some controlled manner (queue on separate goroutine?)
-	converters.RunPipeline(entry)
+	converters.RunPipeline(&entry)
 
 	// Apply flag in / flagout
 	if *flag_regex != "" {

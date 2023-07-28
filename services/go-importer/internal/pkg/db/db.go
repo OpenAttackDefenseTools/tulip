@@ -126,18 +126,19 @@ func (db Database) InsertFlow(flow FlowEntry) {
 	flowCollection := db.client.Database("pcap").Collection("pcap")
 
 	// Process the data, so it works well in mongodb
-	// TODO: loop through representations
-	for idx := 0; idx < len(flow.Flow[0].Flow); idx++ {
-		flowItem := &flow.Flow[0].Flow[idx]
-		// Base64 encode the raw data string
-		flowItem.B64 = base64.StdEncoding.EncodeToString(flowItem.RawData)
-		// filter the data string down to only printable characters
-		flowItem.Data = strings.Map(func(r rune) rune {
-			if r < 128 {
-				return r
-			}
-			return -1
-		}, string(flowItem.RawData))
+	for reprIdx := 0; reprIdx < len(flow.Flow); reprIdx++ {
+		for idx := 0; idx < len(flow.Flow[reprIdx].Flow); idx++ {
+			flowItem := &flow.Flow[reprIdx].Flow[idx]
+			// Base64 encode the raw data string
+			flowItem.B64 = base64.StdEncoding.EncodeToString(flowItem.RawData)
+			// filter the data string down to only printable characters
+			flowItem.Data = strings.Map(func(r rune) rune {
+				if r < 128 {
+					return r
+				}
+				return -1
+			}, string(flowItem.RawData))
+		}
 	}
 
 	if len(flow.Fingerprints) > 0 {
