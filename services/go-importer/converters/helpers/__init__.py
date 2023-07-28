@@ -3,7 +3,7 @@
 from dataclasses import dataclass
 from enum import Enum
 from typing import List
-import base64
+import traceback
 import datetime
 import os
 import sys
@@ -115,15 +115,30 @@ class Converter:
                         'RawData': chunk.Content,
                     })
 
+                # Naive implementation of checking if it looks like the output data changed at all, if it seems
+                # like it didn't, avoid showing it
+                # TODO: is just comparing full payload a good idea? should it be implemented on converter-level instead?
+                changed = False
+                if len(stream_chunks) != len(formatted_chunks):
+                    changed = True
+                else:
+                    for stream_chunk, formatted_chunk in zip(stream_chunks, formatted_chunks):
+                        if len(stream_chunk.Content) != len(formatted_chunk['RawData']):
+                            changed = True
+                            break
+
                 sys.stdout.buffer.write(
-                    msgpack.packb(formatted_chunks, use_bin_type=True)
+                    msgpack.packb(formatted_chunks if changed else [], use_bin_type=True)
                 )
                 sys.stdout.buffer.flush()
             except KeyboardInterrupt:
                 return
-            except:
-                # TODO: do something so stdout does not hang
-                pass
+            except Exception as e:
+                print(f'Ran into an exception: {e}\n{traceback.format_exc()}', file=sys.stderr, flush=True)
+                sys.stdout.buffer.write(
+                    msgpack.packb([], use_bin_type=True)
+                )
+                sys.stdout.buffer.flush()
 
     def handle_stream(self, stream: Stream) -> Result:
         """

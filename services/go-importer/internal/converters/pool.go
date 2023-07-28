@@ -5,9 +5,6 @@ import (
 	"sync/atomic"
 )
 
-// TODO: make me configurable
-var workerCountPerConverter = 4
-
 // TODO: we need some configuration file for this/re-use configuration.py somehow
 // Waterfall-like effect, each stage's outputs keep falling towards next group, e.g.
 // using 2 converters will cause the next group to get the output of those two passed to it.
@@ -37,7 +34,7 @@ func GetWorker(converter string) (*Process, error) {
 	return workers[counter%uint64(len(workers))], nil
 }
 
-func StartWorkers() {
+func StartWorkers(workerCountPerConverter int) {
 	var converters = map[string]bool{}
 	for _, service := range serviceConfig {
 		for _, stages := range service {

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"go-importer/internal/pkg/db"
 	"log"
+	"time"
 )
 
 func RunPipeline(entry *db.FlowEntry) {
@@ -21,8 +22,12 @@ func RunPipeline(entry *db.FlowEntry) {
 
 				converterFlow, err := TryConverter(converter, entry, flow.Flow)
 				if err != nil {
-					// This is most likely a useless print outside debug purposes
 					log.Printf("WARN: Failed to run converter %s: %s\n", converter, err.Error())
+					continue
+				}
+
+				// Something went wrong or there's no difference in the data
+				if len(converterFlow) == 0 {
 					continue
 				}
 
@@ -56,28 +61,45 @@ func TryConverter(converter string, entry *db.FlowEntry, flow []db.FlowItem) ([]
 	process.Mutex.Lock()
 	defer process.Mutex.Unlock()
 
-	// TODO: some kind of timeout mechanism?
-
-	if err := process.Encoder.Encode(RequestChunk{
-		Src_ip:   entry.Src_ip,
-		Src_port: entry.Src_port,
-		Dst_ip:   entry.Dst_ip,
-		Dst_port: entry.Dst_port,
-		Flow:     flow,
-	}); err != nil {
-		return nil, fmt.Errorf("failed to marshal flow entry: %w", err)
-	}
+	ch := make(chan error, 1)
 
 	var streamChunks []ProcessedChunk
-	if err := process.Decoder.Decode(&streamChunks); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal stream chunks: %w", err)
+	go func() {
+		if err := process.Encoder.Encode(RequestChunk{
+			Src_ip:   entry.Src_ip,
+			Src_port: entry.Src_port,
+			Dst_ip:   entry.Dst_ip,
+			Dst_port: entry.Dst_port,
+			Flow:     flow,
+		}); err != nil {
+			ch <- fmt.Errorf("failed to marshal flow entry: %w", err)
+			return
+		}
+
+		if err := process.Decoder.Decode(&streamChunks); err != nil {
+			ch <- fmt.Errorf("failed to unmarshal stream chunks: %w", err)
+			return
+		}
+
+		ch <- nil
+	}()
+
+	select {
+	case <-time.After(time.Second):
+		log.Printf("WARN: Converter %s somehow timed out, killing it...\n", converter)
+		if err := process.Cmd.Process.Kill(); err != nil {
+			log.Printf("WARN: Failed to kill the converter: %s\n", err.Error())
+		}
+
+		return nil, fmt.Errorf("timed out encoding flow entry")
+	case err := <-ch:
+		if err != nil {
+			return nil, err
+		}
 	}
-	log.Println(streamChunks)
 
 	// TODO: pkappa2 does some post-processing here - same direction streams are merged into one (is this worth the effort?)
-	// TODO: if streamChunks is empty, assume error/failure
 
-	// TODO: we need some checks to guarantee the output actually changes (on python side?) - otherwise it's of no value to us
 	var flowItems []db.FlowItem
 	for _, chunk := range streamChunks {
 		flowItems = append(flowItems, db.FlowItem{
