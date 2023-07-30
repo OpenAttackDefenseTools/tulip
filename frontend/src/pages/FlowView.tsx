@@ -346,7 +346,7 @@ function FlowOverview({ flow }: { flow: FullFlow }) {
           <div>Tags: </div>
           <div className="font-bold">[{flow.tags.join(", ")}]</div>
           <div></div>
-          <div>Source - Target: </div>
+          <div>Source - Target (Duration): </div>
           <div className="flex items-center gap-1">
             <div>
               {" "}
@@ -357,6 +357,9 @@ function FlowOverview({ flow }: { flow: FullFlow }) {
             <div>
               <span>{formatIP(flow.dst_ip)}</span>:
               <span className="font-bold">{flow.dst_port}</span>
+            </div>
+            <div>
+              <span className="italic">({flow.duration} ms)</span>
             </div>
           </div>
         </div>
