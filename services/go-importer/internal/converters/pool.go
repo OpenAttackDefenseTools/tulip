@@ -10,11 +10,39 @@ import (
 // using 2 converters will cause the next group to get the output of those two passed to it.
 // Additionally, the original entry is always sent to all of the groups.
 var serviceConfig = map[int][][]string{
+	// CyberUniAuth
+	1234: {
+		{"b64decode"},
+	},
+	// ExamNotes
+	1235: {
+		{"b64decode"},
+	},
+	// EncryptedNotes
+	1236: {
+		{"b64decode"},
+	},
+	1237: {
+		{"b64decode"},
+	},
+	// RPN
+	1337: {
+		{"b64decode"},
+	},
+	// closedsea
 	3003: {
 		// Protocol
 		{"websockets"},
 		// Various encodings one could use (should always be last)
-		//{"b64decode"},
+		{"b64decode"},
+	},
+	// closedseaMinter
+	3004: {
+		{"b64decode"},
+	},
+	// Trademark
+	5000: {
+		{"b64decode"},
 	},
 }
 

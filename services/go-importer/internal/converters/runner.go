@@ -58,6 +58,15 @@ func TryConverter(converter string, entry *db.FlowEntry, flow []db.FlowItem) ([]
 	if err != nil {
 		return nil, fmt.Errorf("failed to get worker for converter %s: %w", converter, err)
 	}
+
+	process.RestartMutex.RLock()
+	restarting := process.Restarting
+	process.RestartMutex.RUnlock()
+
+	if restarting {
+		<-process.RestartWaiter
+	}
+
 	process.Mutex.Lock()
 	defer process.Mutex.Unlock()
 
@@ -86,11 +95,12 @@ func TryConverter(converter string, entry *db.FlowEntry, flow []db.FlowItem) ([]
 
 	select {
 	case <-time.After(time.Second):
-		log.Printf("WARN: Converter %s somehow timed out, killing it...\n", converter)
-		if err := process.Cmd.Process.Kill(); err != nil {
-			log.Printf("WARN: Failed to kill the converter: %s\n", err.Error())
+		log.Printf("WARN: Converter %s somehow timed out, restarting it...\n", converter)
+		if err := process.Restart(); err != nil {
+			log.Printf("WARN: Failed to restart the converter: %s\n", err.Error())
 		}
 
+		// Trying again will (most likely) just lead to it crashing again
 		return nil, fmt.Errorf("timed out encoding flow entry")
 	case err := <-ch:
 		if err != nil {
