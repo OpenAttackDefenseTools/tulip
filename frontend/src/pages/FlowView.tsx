@@ -1,11 +1,12 @@
 import { useSearchParams, Link, useParams } from "react-router-dom";
-import React, { useEffect, useState } from "react";
+import React, { ChangeEvent, useEffect, useState } from "react";
 import { useHotkeys } from 'react-hotkeys-hook';
 import { FlowData, FullFlow } from "../types";
 import { Buffer } from "buffer";
 import {
   TEXT_FILTER_KEY,
   MAX_LENGTH_FOR_HIGHLIGHT,
+  REPR_ID_KEY,
 } from "../const";
 import {
   ArrowCircleLeftIcon,
@@ -69,7 +70,6 @@ function HexFlow({ flow }: { flow: FlowData }) {
   return <FlowContainer copyText={hex}>{hex}</FlowContainer>;
 }
 function highlightText(flowText: string, search_string: string, flag_string: string) {
-  console.log(search_string, flag_string)
   if (flowText.length > MAX_LENGTH_FOR_HIGHLIGHT || flag_string === '') {
     return flowText
   }
@@ -87,11 +87,9 @@ function highlightText(flowText: string, search_string: string, flag_string: str
     let parts;
     if (search_string !== '') {
       parts = flowText.split(combined_regex);
-      console.log(combined_regex.source)
     } else {
       parts = flowText.split(flag_regex);
     }
-    console.log(parts)
     const searchClasses = "bg-orange-200 rounded-sm"
     const flagClasses = "bg-red-200 rounded-sm"
     return <span>{ parts.map((part, i) => 
@@ -375,12 +373,12 @@ function FlowOverview({ flow }: { flow: FullFlow }) {
 }
 
 export function FlowView() {
-  let [searchParams] = useSearchParams();
+  let [searchParams, setSearchParams] = useSearchParams();
   const params = useParams();
 
   const id = params.id;
-  // TODO: Add this to the front-end
-  const reprId = parseInt(searchParams.get("reprId") ?? "0");
+
+  const [reprId, setReprId] = useState(parseInt(searchParams.get(REPR_ID_KEY) ?? "0"));
 
   const { data: flow, isError, isLoading } = useGetFlowQuery(id!, { skip: id === undefined });
 
@@ -435,11 +433,11 @@ export function FlowView() {
     setCurrentFlow(fi => Math.max(0, fi - 1))
   }, [currentFlow]);
   useHotkeys('l', () => {
-    if (currentFlow === (flow?.flow?.length ?? 1)-1) {
+    if (currentFlow === (flow?.flow[reprId]?.flow?.length ?? 1)-1) {
       document.getElementById(`${id}-${currentFlow}`)?.scrollIntoView(true)
     }
-    setCurrentFlow(fi => Math.min((flow?.flow?.length ?? 1)-1, fi + 1))
-  }, [currentFlow, flow?.flow?.length]);
+    setCurrentFlow(fi => Math.min((flow?.flow[reprId]?.flow?.length ?? 1)-1, fi + 1))
+  }, [currentFlow, flow?.flow[reprId]?.flow?.length, reprId]);
 
   useEffect(
     () => {
@@ -449,6 +447,20 @@ export function FlowView() {
       document.getElementById(`${id}-${currentFlow}`)?.scrollIntoView(true)
     },
     [currentFlow]
+  )
+
+  useEffect(
+    () => {
+      if (flow?.flow.length == undefined || flow?.flow.length === 0) {
+        return
+      }
+      if ((flow?.flow.length-1) < reprId) {
+        setReprId(0)
+        searchParams.delete(REPR_ID_KEY)
+        setSearchParams(searchParams)
+      }
+    },
+    [flow?.flow.length]
   )
 
   if (isError) {
@@ -466,6 +478,26 @@ export function FlowView() {
         style={{ height: SECONDARY_NAVBAR_HEIGHT, zIndex: 100 }}
       >
         <div className="flex align-middle p-2 gap-3 ml-auto">
+          <p className="my-auto">Decoders <abbr title={"Total number of decoders available: "+flow?.flow.length}>({flow?.flow.length})</abbr>:</p>
+          <select
+            id="repr-select"
+            value={reprId}
+            className="border-2 border-gray-700 text-black px-2 text-sm rounded-md"
+            onChange={(e) => {
+                const target = e.target as HTMLSelectElement;
+                const newreprid = parseInt(target.value);
+                setReprId(newreprid);
+                if (newreprid === 0) {
+                  searchParams.delete(REPR_ID_KEY)
+                  setSearchParams(searchParams)
+                  return
+                }
+                searchParams.set(REPR_ID_KEY, target.value);
+                setSearchParams(searchParams)
+            }}
+          >
+            {flow?.flow.map((e, i) => <option key={id+"reprselect"+i} value={i}>{e['type']}</option>)}
+          </select>
           <button
             className="bg-gray-700 text-white px-2 text-sm rounded-md"
             onClick={copyPwn}
@@ -492,7 +524,7 @@ export function FlowView() {
       ) : undefined}
 
       {flow ? <FlowOverview flow={flow}></FlowOverview> : undefined}
-      {flow?.flow[reprId].flow.map((flow_data, i, a) => {
+      {flow?.flow[(reprId < flow?.flow.length) ? reprId : 0].flow.map((flow_data, i, a) => {
         const delta_time = a[i].time - (a[i - 1]?.time ?? a[i].time);
         return (
           <Flow
