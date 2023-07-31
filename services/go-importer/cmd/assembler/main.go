@@ -61,7 +61,6 @@ func reassemblyCallback(entry db.FlowEntry) {
 	// times out.
 	callbackWorkers.Submit(func() {
 		// Parsing HTTP will decode encodings to a plaintext format
-		// TODO: should this be run for every flow repr?
 		ParseHttpFlow(&entry)
 
 		if !*disableConverters {

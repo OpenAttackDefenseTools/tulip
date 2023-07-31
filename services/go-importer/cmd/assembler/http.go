@@ -98,6 +98,9 @@ func ParseHttpFlow(flow *db.FlowEntry) {
 			if err == nil && newReader != nil {
 				// Limit the reader to prevent potential decompression bombs
 				res.Body = io.NopCloser(io.LimitReader(newReader, DecompressionSizeLimit))
+				// Delete the content-encoding header as we've basically skipped its purpose (otherwise, pkappa converters will have issues as they think it's still encoded).
+				// In case of multiple values there, this logic wouldn't be hit anyway
+				res.Header.Del("Content-Encoding")
 				// invalidate the content length, since decompressing the body will change its value.
 				res.ContentLength = -1
 				replacement, err := httputil.DumpResponse(res, true)
