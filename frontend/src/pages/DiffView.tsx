@@ -70,8 +70,12 @@ const deriveDisplayMode = (
 
 export function DiffView() {
   let [searchParams] = useSearchParams();
-  const firstFlowId = searchParams.get(FIRST_DIFF_KEY);
-  const secondFlowId = searchParams.get(SECOND_DIFF_KEY);
+  const firstFlowParam = searchParams.get(FIRST_DIFF_KEY);
+  const firstFlowId = firstFlowParam?.split(":")[0];
+  const firstFlowRepr = parseInt(firstFlowParam?.split(":")[1] ?? "0");
+  const secondFlowParam = searchParams.get(SECOND_DIFF_KEY);
+  const secondFlowId = secondFlowParam?.split(":")[0];
+  const secondFlowRepr = parseInt(secondFlowParam?.split(":")[1] ?? "0");
 
   let { data: firstFlow, isLoading: firstFlowLoading, isError: firstFlowError } = useGetFlowQuery(
     firstFlowId!,
@@ -114,9 +118,9 @@ export function DiffView() {
         <div>
           {Array.from(
             {
-              length: Math.min(firstFlow!.flow.length, secondFlow!.flow.length),
+              length: Math.min(firstFlow!.flow[firstFlowRepr].flow.length, secondFlow!.flow[secondFlowRepr].flow.length),
             },
-            (_, i) => Flow(firstFlow!.flow[0].flow[i].data, secondFlow!.flow[0].flow[i].data)
+            (_, i) => Flow(firstFlow!.flow[firstFlowRepr].flow[i].data, secondFlow!.flow[secondFlowRepr].flow[i].data)
           )}
         </div>
       )}
@@ -126,12 +130,12 @@ export function DiffView() {
         <div>
           {Array.from(
             {
-              length: Math.min(firstFlow!.flow.length, secondFlow!.flow.length),
+              length: Math.min(firstFlow!.flow[firstFlowRepr].flow.length, secondFlow!.flow[secondFlowRepr].flow.length),
             },
             (_, i) =>
               Flow(
-                hexy(Buffer.from(firstFlow!.flow[0].flow[i].b64, 'base64'), { format: "twos" }),
-                hexy(Buffer.from(secondFlow!.flow[0].flow[i].b64, 'base64'), { format: "twos" })
+                hexy(Buffer.from(firstFlow!.flow[firstFlowRepr].flow[i].b64, 'base64'), { format: "twos" }),
+                hexy(Buffer.from(secondFlow!.flow[secondFlowRepr].flow[i].b64, 'base64'), { format: "twos" })
               )
           )}
         </div>

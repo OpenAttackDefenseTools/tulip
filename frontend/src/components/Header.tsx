@@ -18,6 +18,7 @@ import {
   SECOND_DIFF_KEY,
   SERVICE_REFETCH_INTERVAL_MS,
   TICK_REFETCH_INTERVAL_MS,
+  REPR_ID_KEY,
 } from "../const";
 import {
   useGetFlowQuery,
@@ -219,19 +220,28 @@ function FirstDiff() {
   return (
     <input
       type="text"
+      className="md:w-72"
       placeholder="First Diff ID"
       readOnly
       value={firstFlow}
       onClick={(event) => {
         let textFilter = params.id;
+        let reprId = searchParams.get(REPR_ID_KEY);
+        let reprIdSlug =  reprId ? `${textFilter}:${reprId}` : `${textFilter}`
         if (textFilter) {
-          searchParams.set(FIRST_DIFF_KEY, textFilter);
-          setFirstFlow(textFilter);
+          searchParams.set(FIRST_DIFF_KEY, reprIdSlug);
+          setFirstFlow(reprIdSlug);
         } else {
           searchParams.delete(FIRST_DIFF_KEY);
           setFirstFlow("");
         }
         setSearchParams(searchParams);
+      }}
+      onContextMenu={(event) => {
+        searchParams.delete(FIRST_DIFF_KEY);
+        setFirstFlow("");
+        setSearchParams(searchParams);
+        event.preventDefault();
       }}
     ></input>
   );
@@ -247,19 +257,28 @@ function SecondDiff() {
   return (
     <input
       type="text"
+      className="md:w-72"
       placeholder="Second Flow ID"
       readOnly
       value={secondFlow}
       onClick={(event) => {
         let textFilter = params.id;
+        let reprId = searchParams.get(REPR_ID_KEY);
+        let reprIdSlug =  reprId ? `${textFilter}:${reprId}` : `${textFilter}`
         if (textFilter) {
-          searchParams.set(SECOND_DIFF_KEY, textFilter);
-          setSecondFlow(textFilter);
+          searchParams.set(SECOND_DIFF_KEY, reprIdSlug);
+          setSecondFlow(reprIdSlug);
         } else {
           searchParams.delete(SECOND_DIFF_KEY);
           setSecondFlow("");
         }
         setSearchParams(searchParams);
+      }}
+      onContextMenu={(event) => {
+        searchParams.delete(SECOND_DIFF_KEY);
+        setSecondFlow("");
+        setSearchParams(searchParams);
+        event.preventDefault();
       }}
     ></input>
   );
