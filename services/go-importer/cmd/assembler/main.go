@@ -40,7 +40,7 @@ var flag_regex = flag.String("flag", "", "flag regex, used for flag in/out taggi
 var pcap_over_ip = flag.String("pcap-over-ip", "", "PCAP-over-IP host + port (e.g. remote:1337)")
 var bpf = flag.String("bpf", "", "BPF filter")
 var nonstrict = flag.Bool("nonstrict", false, "Do not check strict TCP / FSM flags")
-var experimental = flag.Bool("experimental", false, "Enable experimental features.")
+var http_session_tracking = flag.Bool("http-session-tracking", false, "Enable http session tracking.")
 var flushAfter = flag.String("flush-after", "", `Connections which have buffered packets (they've gotten packets out of order and
 are waiting for old packets to fill the gaps) can be flushed after they're this old
 (their oldest gap is skipped). This is particularly useful for pcap-over-ip captures.
