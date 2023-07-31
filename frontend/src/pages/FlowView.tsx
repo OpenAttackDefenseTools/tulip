@@ -449,6 +449,25 @@ export function FlowView() {
     [currentFlow]
   )
 
+  useHotkeys('m', () => {
+    setReprId(ri => (ri + 1) % (flow?.flow.length ?? 1))
+  }, [reprId, flow?.flow.length]);
+
+  // when the reprId changes, we update the url
+  useEffect(
+    () => {
+      if (reprId === 0) {
+        searchParams.delete(REPR_ID_KEY)
+        setSearchParams(searchParams)
+        return
+      }
+      searchParams.set(REPR_ID_KEY, reprId.toString());
+      setSearchParams(searchParams)
+    },
+    [reprId]
+  )
+
+  // if the flow doesn't have the representation we're looking for, we fallback to raw
   useEffect(
     () => {
       if (flow?.flow.length == undefined || flow?.flow.length === 0) {
@@ -456,8 +475,6 @@ export function FlowView() {
       }
       if ((flow?.flow.length-1) < reprId) {
         setReprId(0)
-        searchParams.delete(REPR_ID_KEY)
-        setSearchParams(searchParams)
       }
     },
     [flow?.flow.length]
@@ -487,13 +504,6 @@ export function FlowView() {
                 const target = e.target as HTMLSelectElement;
                 const newreprid = parseInt(target.value);
                 setReprId(newreprid);
-                if (newreprid === 0) {
-                  searchParams.delete(REPR_ID_KEY)
-                  setSearchParams(searchParams)
-                  return
-                }
-                searchParams.set(REPR_ID_KEY, target.value);
-                setSearchParams(searchParams)
             }}
           >
             {flow?.flow.map((e, i) => <option key={id+"reprselect"+i} value={i}>{e['type']}</option>)}

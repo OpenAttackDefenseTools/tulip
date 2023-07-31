@@ -3,12 +3,15 @@ const shortcutTableData = [
     { key: 'j/k', action: 'Down/Up in FlowList' },
     { key: 's', action: 'Focus search bar' },
     { key: 'esc', action: 'Unfocus search bar' },
-    { key: 'i/o', action: 'Toggle flag in/out filters' },
   ],
   [
     { key: 'h/l', action: 'Up/Down in Flow' },
     { key: 'a', action: 'Last 5 ticks' },
     { key: 'd', action: 'Clear time selection' },
+  ],
+  [
+    { key: 'i/o', action: 'Toggle flag in/out filters' },
+    { key: 'm', action: 'Switch between decoders' },
     { key: 'r', action: 'Refresh flows' },
   ]
 ];
