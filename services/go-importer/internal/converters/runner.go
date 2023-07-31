@@ -15,8 +15,8 @@ func RunPipeline(entry *db.FlowEntry) {
 	}
 
 	for _, converters := range config {
+		flowLen := len(entry.Flow) // This is calculated here so that we don't run previous converter in same stage
 		for _, converter := range converters {
-			flowLen := len(entry.Flow)
 			for idx := 0; idx < flowLen; idx++ {
 				flow := &entry.Flow[idx]
 
