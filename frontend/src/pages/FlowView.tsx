@@ -478,7 +478,7 @@ export function FlowView() {
         style={{ height: SECONDARY_NAVBAR_HEIGHT, zIndex: 100 }}
       >
         <div className="flex align-middle p-2 gap-3 ml-auto">
-          <p className="my-auto">Decoders <abbr title={"Total number of decoders available: "+flow?.flow.length}>({flow?.flow.length})</abbr>:</p>
+          <p className="my-auto">Decoders <abbr title={"Number of decoders available for this flow: "+flow?.flow.length}>({flow?.flow.length})</abbr>:</p>
           <select
             id="repr-select"
             value={reprId}
