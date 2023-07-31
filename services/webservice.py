@@ -25,7 +25,7 @@
 from flask import Flask, Response, send_file
 from requests import get
 
-from configurations import services, traffic_dir, start_date, tick_length, visualizer_url, flag_lifetime
+from configurations import services, traffic_dir, start_date, tick_length, visualizer_url, flag_lifetime, flag_regex
 from pathlib import Path
 from data2req import convert_flow_to_http_requests, convert_single_http_requests
 from base64 import b64decode
