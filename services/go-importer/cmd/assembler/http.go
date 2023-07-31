@@ -44,15 +44,16 @@ func ParseHttpFlow(flow *db.FlowEntry) {
 			// HTTP Request
 			req, err := http.ReadRequest(reader)
 			if err != nil {
-				if *experimental {
-					// Parse cookie and grab fingerprints
-					AddFingerprints(req.Cookies(), fingerprintsSet)
-				}
 				continue
-				//TODO; replace the HTTP data.
-				// Remember to use a `LimitReader` when implementing this to prevent
-				// decompressions bombs / DOS!
 			}
+			if *http_session_tracking {
+				// Parse cookie and grab fingerprints
+				AddFingerprints(req.Cookies(), fingerprintsSet)
+			}
+			continue
+			//TODO; replace the HTTP data.
+			// Remember to use a `LimitReader` when implementing this to prevent
+			// decompressions bombs / DOS!
 
 		} else if flowItem.From == "s" {
 			// Parse HTTP Response
@@ -61,7 +62,7 @@ func ParseHttpFlow(flow *db.FlowEntry) {
 				continue
 			}
 
-			if *experimental {
+			if *http_session_tracking {
 				// Parse cookie and grab fingerprints
 				AddFingerprints(res.Cookies(), fingerprintsSet)
 			}
@@ -117,7 +118,7 @@ func ParseHttpFlow(flow *db.FlowEntry) {
 		}
 	}
 
-	if *experimental {
+	if *http_session_tracking {
 		// Use maps.Keys(fingerprintsSet) in the future
 		flow.Fingerprints = make([]uint32, 0, len(fingerprintsSet))
 		for k := range fingerprintsSet {
