@@ -105,7 +105,6 @@ func (t *tcpStream) Accept(tcp *layers.TCP, ci gopacket.CaptureInfo, dir reassem
 		}
 	}
 
-	// We just ignore the Checksum
 	return true
 }
 

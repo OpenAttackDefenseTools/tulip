@@ -40,6 +40,7 @@ var flag_regex = flag.String("flag", "", "flag regex, used for flag in/out taggi
 var pcap_over_ip = flag.String("pcap-over-ip", "", "PCAP-over-IP host + port (e.g. remote:1337)")
 var bpf = flag.String("bpf", "", "BPF filter")
 var nonstrict = flag.Bool("nonstrict", false, "Do not check strict TCP / FSM flags")
+var skipchecksum = flag.Bool("skipchecksum", false, "Do not check the TCP checksum")
 var http_session_tracking = flag.Bool("http-session-tracking", false, "Enable http session tracking.")
 var flushAfter = flag.String("flush-after", "", `Connections which have buffered packets (they've gotten packets out of order and
 are waiting for old packets to fill the gaps) can be flushed after they're this old
@@ -350,6 +351,21 @@ func processPcapHandle(handle *pcap.Handle, fname string) {
 			tcp := transport.(*layers.TCP)
 			c := Context{
 				CaptureInfo: packet.Metadata().CaptureInfo,
+			}
+
+			if !*skipchecksum {
+				// Compute the checksum
+				tcp.SetNetworkLayerForChecksum(packet.NetworkLayer())
+				csum, err := tcp.ComputeChecksum()
+				if err != nil {
+					fmt.Printf("Failed to compute checksum: %s\n", err)
+					break
+				}
+				// check if the checksum is valid
+				if csum != 0x0 {
+					fmt.Printf("Invalid checksum: 0x%x\n", csum)
+					break
+				}
 			}
 			assembler.AssembleWithContext(packet.NetworkLayer().NetworkFlow(), tcp, &c)
 			break
