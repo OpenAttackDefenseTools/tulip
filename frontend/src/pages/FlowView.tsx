@@ -1,4 +1,4 @@
-import { useSearchParams, Link, useParams } from "react-router-dom";
+import { useSearchParams, Link, useParams, useNavigate } from "react-router-dom";
 import React, { ChangeEvent, useEffect, useState } from "react";
 import { useHotkeys } from 'react-hotkeys-hook';
 import { FlowData, FullFlow } from "../types";
@@ -7,11 +7,14 @@ import {
   TEXT_FILTER_KEY,
   MAX_LENGTH_FOR_HIGHLIGHT,
   REPR_ID_KEY,
+  FIRST_DIFF_KEY,
+  SECOND_DIFF_KEY,
 } from "../const";
 import {
   ArrowCircleLeftIcon,
   ArrowCircleRightIcon,
   DownloadIcon,
+  LightningBoltIcon,
 } from "@heroicons/react/solid";
 import { format } from "date-fns";
 
@@ -374,6 +377,7 @@ function FlowOverview({ flow }: { flow: FullFlow }) {
 
 export function FlowView() {
   let [searchParams, setSearchParams] = useSearchParams();
+  let navigate = useNavigate();
   const params = useParams();
 
   const id = params.id;
@@ -508,6 +512,17 @@ export function FlowView() {
           >
             {flow?.flow.map((e, i) => <option key={id+"reprselect"+i} value={i}>{e['type']}</option>)}
           </select>
+          { reprId > 0 ? <button
+            className="bg-gray-700 text-white px-2 text-sm rounded-md"
+            title="Diff this representation with the base"
+            onClick={(e) => {
+              searchParams.set(FIRST_DIFF_KEY, `${id}`);
+              searchParams.set(SECOND_DIFF_KEY, `${id}:${reprId}`);
+              navigate(`/diff/${id ?? ""}?${searchParams}`, { replace: true });
+            }}
+          >
+            <LightningBoltIcon className="h-5 w-5"></LightningBoltIcon>
+          </button> : undefined}
           <button
             className="bg-gray-700 text-white px-2 text-sm rounded-md"
             onClick={copyPwn}
