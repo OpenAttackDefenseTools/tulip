@@ -53,7 +53,13 @@ class DB:
     def getFlowList(self, filters):
         f = {}
         if "flow.data" in filters:
-            f["flow.data"] = re.compile(filters["flow.data"], re.IGNORECASE)
+            # The data filter is allowed to match on any representation of the data
+            # Use elemMatch to match on any element of the array
+            #f["flow.data"] = re.compile(filters["flow.data"], re.IGNORECASE)
+            f["flow"] = {"$elemMatch": {
+                # Match on the "flow" field
+                "flow.data": re.compile(filters["flow.data"], re.IGNORECASE)
+            }}
         if "dst_ip" in filters:
             f["dst_ip"] = filters["dst_ip"]
         if "dst_port" in filters:
@@ -69,10 +75,15 @@ class DB:
         if "from_time" in filters and "to_time" in filters:
             f["time"] = {"$gte": int(filters["from_time"]),
                          "$lt": int(filters["to_time"])}
-        if "tags" in filters:
-            f["tags"] = {
-                "$all": [str(elem) for elem in filters["tags"]]
-            }
+        
+        tag_queries = {}
+        if "includeTags" in filters:
+            tag_queries["$all"] = [str(elem) for elem in filters["includeTags"]]
+        if "excludeTags" in filters:
+            tag_queries["$nin"] = [str(elem) for elem in filters["excludeTags"]]
+
+        if len(tag_queries.keys()) > 0:
+            f["tags"] = tag_queries
 
         print("query:")
         pprint.pprint(f)

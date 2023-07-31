@@ -18,6 +18,7 @@ import {
   SECOND_DIFF_KEY,
   SERVICE_REFETCH_INTERVAL_MS,
   TICK_REFETCH_INTERVAL_MS,
+  REPR_ID_KEY,
 } from "../const";
 import {
   useGetFlowQuery,
@@ -216,22 +217,37 @@ function FirstDiff() {
     searchParams.get(FIRST_DIFF_KEY) ?? ""
   );
 
+  function setFirstDiffFlow() {
+    let textFilter = params.id;
+    let reprId = searchParams.get(REPR_ID_KEY);
+    let reprIdSlug =  reprId ? `${textFilter}:${reprId}` : `${textFilter}`
+    if (textFilter) {
+      searchParams.set(FIRST_DIFF_KEY, reprIdSlug);
+      setFirstFlow(reprIdSlug);
+    } else {
+      searchParams.delete(FIRST_DIFF_KEY);
+      setFirstFlow("");
+    }
+    setSearchParams(searchParams);
+  }
+
+  useHotkeys("f", () => {
+    setFirstDiffFlow();
+  });
+
   return (
     <input
       type="text"
+      className="md:w-72"
       placeholder="First Diff ID"
       readOnly
       value={firstFlow}
-      onClick={(event) => {
-        let textFilter = params.id;
-        if (textFilter) {
-          searchParams.set(FIRST_DIFF_KEY, textFilter);
-          setFirstFlow(textFilter);
-        } else {
-          searchParams.delete(FIRST_DIFF_KEY);
-          setFirstFlow("");
-        }
+      onClick={(event) => setFirstDiffFlow()}
+      onContextMenu={(event) => {
+        searchParams.delete(FIRST_DIFF_KEY);
+        setFirstFlow("");
         setSearchParams(searchParams);
+        event.preventDefault();
       }}
     ></input>
   );
@@ -244,22 +260,37 @@ function SecondDiff() {
     searchParams.get(SECOND_DIFF_KEY) ?? ""
   );
 
+  function setSecondDiffFlow() {
+    let textFilter = params.id;
+    let reprId = searchParams.get(REPR_ID_KEY);
+    let reprIdSlug =  reprId ? `${textFilter}:${reprId}` : `${textFilter}`
+    if (textFilter) {
+      searchParams.set(SECOND_DIFF_KEY, reprIdSlug);
+      setSecondFlow(reprIdSlug);
+    } else {
+      searchParams.delete(SECOND_DIFF_KEY);
+      setSecondFlow("");
+    }
+    setSearchParams(searchParams);
+  }
+
+  useHotkeys("g", () => {
+    setSecondDiffFlow();
+  });
+
   return (
     <input
       type="text"
+      className="md:w-72"
       placeholder="Second Flow ID"
       readOnly
       value={secondFlow}
-      onClick={(event) => {
-        let textFilter = params.id;
-        if (textFilter) {
-          searchParams.set(SECOND_DIFF_KEY, textFilter);
-          setSecondFlow(textFilter);
-        } else {
-          searchParams.delete(SECOND_DIFF_KEY);
-          setSecondFlow("");
-        }
+      onClick={(event) => setSecondDiffFlow()}
+      onContextMenu={(event) => {
+        searchParams.delete(SECOND_DIFF_KEY);
+        setSecondFlow("");
         setSearchParams(searchParams);
+        event.preventDefault();
       }}
     ></input>
   );
@@ -271,11 +302,20 @@ function Diff() {
   let [searchParams] = useSearchParams();
 
   let navigate = useNavigate();
+
+  function navigateToDiff() {
+    navigate(`/diff/${params.id ?? ""}?${searchParams}`, { replace: true });
+  }
+
+  useHotkeys("d", () => {
+    navigateToDiff();
+  });
+
   return (
     <button
       className=" bg-amber-100 text-gray-800 rounded-md px-2 py-1"
       onClick={() => {
-        navigate(`/diff/${params.id ?? ""}?${searchParams}`, { replace: true });
+        navigateToDiff()
       }}
     >
       Diff
@@ -288,7 +328,7 @@ export function Header() {
   const { setToLastnTicks, currentTick, setTimeParam } = useMessyTimeStuff();
 
   useHotkeys('a', () => setToLastnTicks(5));
-  useHotkeys('d', () => {
+  useHotkeys('c', () => {
     (document.getElementById("startdateselection") as HTMLInputElement).value = "";
     (document.getElementById("enddateselection") as HTMLInputElement).value = "";
     setTimeParam("", START_FILTER_KEY);

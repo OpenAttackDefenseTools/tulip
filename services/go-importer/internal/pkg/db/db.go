@@ -18,13 +18,23 @@ import (
 type FlowItem struct {
 	/// From: "s" / "c" for server or client
 	From string
+	/// RawData, the raw packet bytes used only for assembler's internal use
+	RawData []byte `bson:"-"`
 	/// Data, in a somewhat readable format
-	Data string
+	Data string `msgpack:"-"`
 	/// The raw data, base64 encoded.
 	// TODO; Replace this with gridfs
-	B64 string
+	B64 string `msgpack:"-"`
 	/// Timestamp of the first packet in the flow (Epoch / ms)
 	Time int
+}
+
+type FlowRepresentation struct {
+	/// A textual description of the type of flow data
+	/// e.g raw, http2, gopher, etc.
+	Type string
+	/// The flow data
+	Flow []FlowItem
 }
 
 type FlowEntry struct {
@@ -41,11 +51,11 @@ type FlowEntry struct {
 	Child_id     primitive.ObjectID
 	Fingerprints []uint32
 	Suricata     []int
-	Flow         []FlowItem
+	Flow         []FlowRepresentation
 	Tags         []string
 	Size         int
-	Flags_In		 int
-	Flags_Out		 int
+	Flags_In     int
+	Flags_Out    int
 }
 
 type Database struct {
@@ -116,17 +126,19 @@ func (db Database) InsertFlow(flow FlowEntry) {
 	flowCollection := db.client.Database("pcap").Collection("pcap")
 
 	// Process the data, so it works well in mongodb
-	for idx := 0; idx < len(flow.Flow); idx++ {
-		flowItem := &flow.Flow[idx]
-		// Base64 encode the raw data string
-		flowItem.B64 = base64.StdEncoding.EncodeToString([]byte(flowItem.Data))
-		// filter the data string down to only printable characters
-		flowItem.Data = strings.Map(func(r rune) rune {
-			if r < 128 {
-				return r
-			}
-			return -1
-		}, flowItem.Data)
+	for reprIdx := 0; reprIdx < len(flow.Flow); reprIdx++ {
+		for idx := 0; idx < len(flow.Flow[reprIdx].Flow); idx++ {
+			flowItem := &flow.Flow[reprIdx].Flow[idx]
+			// Base64 encode the raw data string
+			flowItem.B64 = base64.StdEncoding.EncodeToString(flowItem.RawData)
+			// filter the data string down to only printable characters
+			flowItem.Data = strings.Map(func(r rune) rune {
+				if r < 128 {
+					return r
+				}
+				return -1
+			}, string(flowItem.RawData))
+		}
 	}
 
 	if len(flow.Fingerprints) > 0 {
@@ -239,17 +251,11 @@ func (db Database) AddSignature(sig Signature) string {
 	}
 }
 
-func (db Database) AddSignatureToFlow(flow FlowID, sig Signature, window int) bool {
-	// Add the signature to the collection
-	sig_id := db.AddSignature(sig)
-	if sig_id == "" {
-		return false
-	}
-
+func (db Database) findFlowInDB(flow FlowID, window int) (mongo.Collection, bson.M) {
 	// Find a flow that more or less matches the one we're looking for
 	flowCollection := db.client.Database("pcap").Collection("pcap")
 	epoch := int(flow.Time.UnixNano() / 1000000)
-	query := bson.M{
+	filter := bson.M{
 		"src_port": flow.Src_port,
 		"dst_port": flow.Dst_port,
 		"src_ip":   flow.Src_ip,
@@ -260,18 +266,40 @@ func (db Database) AddSignatureToFlow(flow FlowID, sig Signature, window int) bo
 		},
 	}
 
-	tags := []string{"suricata"}
+	return *flowCollection, filter
+}
 
-	// A tag from the signature if it contained one
+func (db Database) updateFlowInDB(flowCollection mongo.Collection, filter bson.M, update bson.M) bool {
+	// Enrich the flow with tag information
+	res, err := flowCollection.UpdateOne(context.TODO(), filter, update)
+	if err != nil {
+		log.Println("Error occured while editing record:", err)
+		return false
+	}
+
+	return res.MatchedCount > 0
+}
+
+func (db Database) AddSignatureToFlow(flow FlowID, sig Signature, window int) bool {
+	// Add the signature to the collection
+	sig_id := db.AddSignature(sig)
+	if sig_id == "" {
+		return false
+	}
+
+	tags := []string{"suricata"}
+	flowCollection, filter := db.findFlowInDB(flow, window)
+
+	// Add tag from the signature if it contained one
 	if sig.Tag != "" {
 		db.InsertTag(sig.Tag)
 		tags = append(tags, sig.Tag)
 	}
 
-	var info bson.M
+	var update bson.M
 	// TODO; This can probably be done more elegantly, right?
 	if sig.Action == "blocked" {
-		info = bson.M{
+		update = bson.M{
 			"$set": bson.M{
 				"blocked": true,
 			},
@@ -283,7 +311,7 @@ func (db Database) AddSignatureToFlow(flow FlowID, sig Signature, window int) bo
 			},
 		}
 	} else {
-		info = bson.M{
+		update = bson.M{
 			"$addToSet": bson.M{
 				"tags": bson.M{
 					"$each": tags,
@@ -293,17 +321,30 @@ func (db Database) AddSignatureToFlow(flow FlowID, sig Signature, window int) bo
 		}
 	}
 
-	// enrich the flow with suricata information
-	res, err := flowCollection.UpdateOne(context.TODO(), query, info)
-
-	if err != nil {
-		log.Println("Error occured while editing record:", err)
-		return false
-	}
-
-	return res.MatchedCount > 0
+	return db.updateFlowInDB(flowCollection, filter, update)
 }
 
+func (db Database) AddTagsToFlow(flow FlowID, tags []string, window int) bool {
+	flowCollection, filter := db.findFlowInDB(flow, window)
+
+	// Add tags to tag collection
+	for _, tag := range tags {
+		db.InsertTag(tag)
+	}
+
+	// Update this flow with the tags
+	update := bson.M{
+		"$addToSet": bson.M{
+			"tags": bson.M{
+				"$each": tags,
+			},
+		},
+	}
+
+	// Apply update to database
+	return db.updateFlowInDB(flowCollection, filter, update)
+
+}
 func (db Database) InsertTag(tag string) {
 	tagCollection := db.client.Database("pcap").Collection("tags")
 	// Yeah this will err... A lot.... Two more dev days till Athens, this will do.

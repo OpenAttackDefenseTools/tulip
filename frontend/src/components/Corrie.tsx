@@ -1,6 +1,6 @@
-import { useSearchParams, useParams, useNavigate } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { useCallback } from "react";
-import { Flow, Stats } from "../types";
+import { Flow, Stats, TicksAttackInfo } from "../types";
 import {
   SERVICE_FILTER_KEY,
   TEXT_FILTER_KEY,
@@ -8,12 +8,19 @@ import {
   END_FILTER_KEY,
   CORRELATION_MODE_KEY,
   FLOW_LIST_REFETCH_INTERVAL_MS,
+  UNDER_ATTACK_REFETCH_INTERVAL_MS,
 } from "../const";
 import useDebounce from "../hooks/useDebounce";
 
 import ReactApexChart from "react-apexcharts";
 import { ApexOptions } from "apexcharts";
-import { useGetFlowsQuery, useGetServicesQuery, useGetTickInfoQuery, useGetStatsQuery } from "../api";
+import {
+  useGetFlowsQuery,
+  useGetServicesQuery,
+  useGetTickInfoQuery,
+  useGetStatsQuery,
+  useGetUnderAttackQuery
+} from "../api";
 import { TICK_REFETCH_INTERVAL_MS } from "../const";
 import { TickInfo } from "../types";
 import { useAppSelector } from "../store";
@@ -28,6 +35,7 @@ interface TickInfoWithTimeStuff extends TickInfo {
 interface GraphProps {
   flowList: Flow[];
   statsList: Stats[];
+  underAttackData: TicksAttackInfo;
   mode: string;
   searchParams: URLSearchParams;
   setSearchParams: (a: URLSearchParams) => void;
@@ -66,7 +74,8 @@ function getTickStuffFromTimeParams(tickInfoData: TickInfo | undefined, searchPa
 
 export const Corrie = () => {
   const { data: services } = useGetServicesQuery();
-  const filterTags = useAppSelector((state) => state.filter.filterTags);
+  const includeTags = useAppSelector((state) => state.filter.includeTags);
+  const excludeTags = useAppSelector((state) => state.filter.excludeTags);
 
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -119,13 +128,25 @@ export const Corrie = () => {
       from_time: from_filter,
       to_time: to_filter,
       service: "", // FIXME
-      tags: filterTags,
+      includeTags: includeTags,
+      excludeTags: excludeTags,
     },
     {
       refetchOnMountOrArgChange: true,
       pollingInterval: FLOW_LIST_REFETCH_INTERVAL_MS,
     }
   ).data : [];
+
+  // TODO: this fetches under attack data always - not sure how to fetch it only in under-attack mode due to react hooks having to be called in same order always
+  const underAttackData = useGetUnderAttackQuery(
+    {
+      from_tick: tickStuff.startTick,
+      to_tick: tickStuff.endTick + (tickInfoData?.flagLifetime || 0),
+    },
+    {
+      pollingInterval: UNDER_ATTACK_REFETCH_INTERVAL_MS,
+    }
+  ).data;
 
   // TODO: fix the below transformation - move it to server
   // Diederik gives you a beer once it has been fixed
@@ -139,11 +160,12 @@ export const Corrie = () => {
   const graphProps: GraphProps = {
     flowList: transformedFlowData || [],
     statsList: statsData || [],
+    underAttackData: underAttackData || {},
     mode: mode,
     searchParams: searchParams,
     setSearchParams: setSearchParams,
     onClickNavigate: onClickNavigate,
-    tickInfoData: Object.assign(tickStuff, tickInfoData)
+    tickInfoData: Object.assign(tickStuff, tickInfoData),
   };
 
   return (
@@ -183,12 +205,19 @@ export const Corrie = () => {
           >
             flags
           </button>
+          <button
+            className={mode == "under-attack" ? activeButtonClass : inactiveButtonClass}
+            onClick={() => setCorrelationMode("under-attack")}
+          >
+            under attack
+          </button>
         </div>
       </div>
       <div className="flex-1 w-full overflow-hidden p-4">
         {(mode == "packets" || mode == "time") && TimePacketGraph(graphProps)}
         {mode == "volume" && VolumeGraph(graphProps)}
         {(mode == "tags" || mode == "flags") && BarPerTickGraph(graphProps, mode)}
+        {(mode == "under-attack") && UnderAttackGraph(graphProps)}
       </div>
     </div>
   );
@@ -467,4 +496,119 @@ function VolumeGraph(graphProps: GraphProps) {
   };
 
   return <ReactApexChart options={options} series={series_out} type="line" />;
+}
+
+function UnderAttackGraph(graphProps: GraphProps) {
+  const underAttackData = graphProps.underAttackData;
+  const tickInfoData = graphProps?.tickInfoData;
+  const tickToUnixTime = tickInfoData.tickToUnixTime;
+  const searchParams = graphProps.searchParams;
+  const setSearchParams = graphProps.setSearchParams;
+
+  const options: ApexOptions = {
+    plotOptions: {
+      bar: {
+        horizontal: true,
+        barHeight: '30%',
+        rangeBarGroupRows: true,
+      },
+    },
+    tooltip: {
+      custom: (opts) => {
+        if (opts.y1 === opts.y2 - 1) return `Tick ${opts.y1}`;
+  
+        return `Ticks ${opts.y1} - ${opts.y2 - 1}`;
+      },
+    },
+    legend: {
+      show: false,
+    },
+    xaxis: {
+      min: tickInfoData.startTick,
+      max: tickInfoData.endTick,
+      tickAmount: Math.min(Math.abs(tickInfoData.startTick - tickInfoData.endTick), 25),
+      decimalsInFloat: 0,
+      title: {
+        text: "Tick",
+      },
+    },
+    yaxis: {
+      tickAmount: 0,
+    },
+    chart: {
+      animations: {
+        enabled: false,
+      },
+      events: {
+        dataPointSelection: (event, ctx, config) => {
+          const y = config.w.config.series[config.seriesIndex].data[0].y;
+          const start = Math.floor(tickToUnixTime(y[0]));
+          const end = Math.ceil(tickToUnixTime(y[1]));
+          searchParams.set(START_FILTER_KEY, start.toString());
+          searchParams.set(END_FILTER_KEY, end.toString());
+          setSearchParams(searchParams);
+        },
+        beforeZoom: function (chartContext, { xaxis }) {
+          const start = Math.floor(tickToUnixTime(xaxis.min));
+          const end = Math.ceil(tickToUnixTime(xaxis.max));
+          searchParams.set(START_FILTER_KEY, start.toString());
+          searchParams.set(END_FILTER_KEY, end.toString());
+          setSearchParams(searchParams);
+        },
+      },
+    }
+  };
+
+  // TODO: service names between visualizer and tulip don't necessarily match, how should we consider filters?
+  const ranges: Record<string, {from_tick: number, to_tick: number}[]> = {};
+  const lastSeen: Record<string, number | undefined> = {};
+  for(const tick in underAttackData) {
+    const tickNumber = Number(tick);
+    let from_tick = Math.max(0, tickNumber - ((tickInfoData?.flagLifetime || 1) - 1));
+
+    const services = underAttackData[tick];
+    for(const service in services) {
+      const value = services[service];
+      if (value <= 0) continue;
+
+      ranges[service] = ranges[service] || [];
+      
+      // Heuristic: if we had previous ticks where we lost the flags, most likely an attack occured afterward
+      if (lastSeen[service] !== undefined) from_tick = Math.max(from_tick, lastSeen[service]!);
+
+      ranges[service].push({
+        from_tick: from_tick,
+        to_tick: tickNumber + 1,
+      })
+      lastSeen[service] = tickNumber + 1;
+    }
+  }
+
+  const series: ApexAxisChartSeries = [];
+  for(const service in ranges) {
+    for(const range of ranges[service]) {
+      series.push({
+        data: [
+          {
+            x: service,
+            y: [range.from_tick, range.to_tick],
+            goals: [
+              {
+                name: 'tick start',
+                value: range.to_tick - 1,
+                strokeColor: '#CD2F2A',
+              },
+              {
+                name: 'tick end',
+                value: range.to_tick,
+                strokeColor: '#CD2F2A',
+              }
+            ],
+          },
+        ],
+      })
+    }
+  }
+
+  return <ReactApexChart options={options} series={series} type="rangeBar" />;
 }

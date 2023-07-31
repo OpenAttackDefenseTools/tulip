@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"github.com/gammazero/workerpool"
+	"go-importer/internal/converters"
 	"go-importer/internal/pkg/db"
 	"net"
 
@@ -39,26 +41,41 @@ var pcap_over_ip = flag.String("pcap-over-ip", "", "PCAP-over-IP host + port (e.
 var bpf = flag.String("bpf", "", "BPF filter")
 var nonstrict = flag.Bool("nonstrict", false, "Do not check strict TCP / FSM flags")
 var skipchecksum = flag.Bool("skipchecksum", false, "Do not check the TCP checksum")
-var experimental = flag.Bool("experimental", false, "Enable experimental features.")
-var flushAfter = flag.String("flush-after", "", `
-Connections which have buffered packets (they've gotten packets out of order and
+var http_session_tracking = flag.Bool("http-session-tracking", false, "Enable http session tracking.")
+var flushAfter = flag.String("flush-after", "", `Connections which have buffered packets (they've gotten packets out of order and
 are waiting for old packets to fill the gaps) can be flushed after they're this old
 (their oldest gap is skipped). This is particularly useful for pcap-over-ip captures.
-Any string parsed by time. ParseDuration is acceptable here. No flushing is done if
+Any string parsed by time.ParseDuration is acceptable here (ie. "3m", "2h45m"). No flushing is done if
 kept empty.`)
+var disableConverters = flag.Bool("disable-converters", false, "Disable converters in case they cause issues")
+var concurrentConverters = flag.Int("concurrent-converters", 2, "How many processes should be started per single converter")
+var concurrentFlows = flag.Int("concurrent-flows", 4, "How many flows should be processed at the same time")
 
 var g_db db.Database
 
+var callbackWorkers *workerpool.WorkerPool
+
 // TODO; FIXME; RDJ; this is kinda gross, but this is PoC level code
 func reassemblyCallback(entry db.FlowEntry) {
-	// Parsing HTTP will decode encodings to a plaintext format
-	ParseHttpFlow(&entry)
-	// Apply flag in / flagout
-	if *flag_regex != "" {
-		ApplyFlagTags(&entry, flag_regex)
-	}
-	// Finally, insert the new entry
-	g_db.InsertFlow(entry)
+	// By default, the callback passed is blocking per single packet. If for some reason converters hang,
+	// we *really* don't want to end up in a situation where we don't get any packets ingested until the converter
+	// times out.
+	callbackWorkers.Submit(func() {
+		// Parsing HTTP will decode encodings to a plaintext format
+		ParseHttpFlow(&entry)
+
+		if !*disableConverters {
+			converters.RunPipeline(&entry)
+		}
+
+		// Apply flag in / flagout
+		if *flag_regex != "" {
+			ApplyFlagTags(&entry, flag_regex)
+		}
+
+		// Finally, insert the new entry
+		g_db.InsertFlow(entry)
+	})
 }
 
 func main() {
@@ -68,6 +85,8 @@ func main() {
 	if flag.NArg() < 1 && *watch_dir == "" {
 		log.Fatal("Usage: ./go-importer <file0.pcap> ... <fileN.pcap>")
 	}
+
+	callbackWorkers = workerpool.New(*concurrentFlows)
 
 	// If no mongo DB was supplied, try the env variable
 	if *mongodb == "" {
@@ -100,6 +119,10 @@ func main() {
 	g_db = db.ConnectMongo(db_string)
 	log.Println("Connected, configuring MongoDB database")
 	g_db.ConfigureDatabase()
+
+	if !*disableConverters {
+		converters.StartWorkers(*concurrentConverters)
+	}
 
 	if *pcap_over_ip != "" {
 		log.Println("Connecting to PCAP-over-IP:", *pcap_over_ip)
@@ -267,8 +290,9 @@ func processPcapHandle(handle *pcap.Handle, fname string) {
 
 	var nextFlush time.Time
 	var flushDuration time.Duration
+	var err error
 	if *flushAfter != "" {
-		flushDuration, err := time.ParseDuration(*flushAfter)
+		flushDuration, err = time.ParseDuration(*flushAfter)
 		if err != nil {
 			log.Fatal("invalid flush duration: ", *flushAfter)
 		}
@@ -288,9 +312,9 @@ func processPcapHandle(handle *pcap.Handle, fname string) {
 		if !nextFlush.IsZero() {
 			// Check to see if we should flush the streams we have that haven't seen any new data in a while.
 			// Note that pcapOpenOfflineFile is blocking so we need at least see some packets passing by to get here.
-			if time.Now().After(nextFlush) {
+			if time.Since(nextFlush) > 0 {
 				log.Printf("flushing all streams that haven't seen packets in the last %s", *flushAfter)
-				assembler.FlushCloseOlderThan(time.Now().Add(flushDuration))
+				assembler.FlushCloseOlderThan(time.Now().Add(-flushDuration))
 				nextFlush = time.Now().Add(flushDuration / 2)
 			}
 		}
@@ -365,6 +389,7 @@ func processPcapHandle(handle *pcap.Handle, fname string) {
 	// the never sent a FIN. This case is _super_ common in ctf captures
 	assembler.FlushAll()
 	streamFactory.WaitGoRoutines()
+	// Slight flaw: we don't wait for worker pool to finish (which could be a bad idea if something hangs for a long time somehow)
 
 	log.Println("Processed file:", fname)
 	g_db.InsertPcap(fname)

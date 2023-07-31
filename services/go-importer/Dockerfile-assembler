@@ -1,10 +1,10 @@
 FROM golang:1.18-alpine
 
-COPY . /app
+RUN apk add --no-cache git make build-base libpcap-dev python3 py3-pip python3-dev bsd-compat-headers openssl-dev
 
+COPY . /app
 WORKDIR /app
 
-RUN apk add --no-cache git make build-base libpcap-dev
-
+RUN python3 -m pip install -r ./converters/helpers/requirements.txt
 RUN go mod download
 RUN go build ./cmd/assembler

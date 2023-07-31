@@ -2,16 +2,15 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"compress/gzip"
+	"github.com/andybalholm/brotli"
 	"go-importer/internal/pkg/db"
 	"hash/crc32"
 	"io"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
-	"strings"
-
-	"github.com/andybalholm/brotli"
 )
 
 const DecompressionSizeLimit = int64(streamdoc_limit)
@@ -35,24 +34,25 @@ func ParseHttpFlow(flow *db.FlowEntry) {
 	// Use a set to get rid of duplicates
 	fingerprintsSet := make(map[uint32]bool)
 
-	for idx := 0; idx < len(flow.Flow); idx++ {
-		flowItem := &flow.Flow[idx]
+	for idx := 0; idx < len(flow.Flow[0].Flow); idx++ {
+		flowItem := &flow.Flow[0].Flow[idx]
 		// TODO; rethink the flowItem format to make this less clunky
-		reader := bufio.NewReader(strings.NewReader(flowItem.Data))
+		reader := bufio.NewReader(bytes.NewReader(flowItem.RawData))
 
 		if flowItem.From == "c" {
 			// HTTP Request
 			req, err := http.ReadRequest(reader)
 			if err != nil {
-				if *experimental {
-					// Parse cookie and grab fingerprints
-					AddFingerprints(req.Cookies(), fingerprintsSet)
-				}
 				continue
-				//TODO; replace the HTTP data.
-				// Remember to use a `LimitReader` when implementing this to prevent
-				// decompressions bombs / DOS!
 			}
+			if *http_session_tracking {
+				// Parse cookie and grab fingerprints
+				AddFingerprints(req.Cookies(), fingerprintsSet)
+			}
+			continue
+			//TODO; replace the HTTP data.
+			// Remember to use a `LimitReader` when implementing this to prevent
+			// decompressions bombs / DOS!
 
 		} else if flowItem.From == "s" {
 			// Parse HTTP Response
@@ -61,7 +61,7 @@ func ParseHttpFlow(flow *db.FlowEntry) {
 				continue
 			}
 
-			if *experimental {
+			if *http_session_tracking {
 				// Parse cookie and grab fingerprints
 				AddFingerprints(res.Cookies(), fingerprintsSet)
 			}
@@ -99,6 +99,9 @@ func ParseHttpFlow(flow *db.FlowEntry) {
 			if err == nil && newReader != nil {
 				// Limit the reader to prevent potential decompression bombs
 				res.Body = io.NopCloser(io.LimitReader(newReader, DecompressionSizeLimit))
+				// Delete the content-encoding header as we've basically skipped its purpose (otherwise, pkappa converters will have issues as they think it's still encoded).
+				// In case of multiple values there, this logic wouldn't be hit anyway
+				res.Header.Del("Content-Encoding")
 				// invalidate the content length, since decompressing the body will change its value.
 				res.ContentLength = -1
 				replacement, err := httputil.DumpResponse(res, true)
@@ -108,16 +111,16 @@ func ParseHttpFlow(flow *db.FlowEntry) {
 				}
 				// This can exceed the mongo document limit, so we need to make sure
 				// the replacement will fit
-				new_size := flow.Size + (len(replacement) - len(flowItem.Data))
+				new_size := flow.Size + (len(replacement) - len(flowItem.RawData))
 				if new_size <= streamdoc_limit {
-					flowItem.Data = string(replacement)
+					flowItem.RawData = replacement
 					flow.Size = new_size
 				}
 			}
 		}
 	}
 
-	if *experimental {
+	if *http_session_tracking {
 		// Use maps.Keys(fingerprintsSet) in the future
 		flow.Fingerprints = make([]uint32, 0, len(fingerprintsSet))
 		for k := range fingerprintsSet {
