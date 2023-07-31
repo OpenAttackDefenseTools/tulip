@@ -8,8 +8,14 @@ const shortcutTableData = [
   [
     { key: 'h/l', action: 'Up/Down in Flow' },
     { key: 'a', action: 'Last 5 ticks' },
-    { key: 'd', action: 'Clear time selection' },
+    { key: 'c', action: 'Clear time selection' },
     { key: 'r', action: 'Refresh flows' },
+  ],
+  [
+    { key: 'm', action: 'Switch between decoders' },
+    { key: 'd', action: 'Diff view' },
+    { key: 'f', action: 'Load flow to first diff slot' },
+    { key: 'g', action: 'Load flow to second diff slot' },
   ]
 ];
 

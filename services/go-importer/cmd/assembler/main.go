@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"github.com/gammazero/workerpool"
+	"go-importer/internal/converters"
 	"go-importer/internal/pkg/db"
 	"net"
 
@@ -44,19 +46,35 @@ are waiting for old packets to fill the gaps) can be flushed after they're this 
 (their oldest gap is skipped). This is particularly useful for pcap-over-ip captures.
 Any string parsed by time.ParseDuration is acceptable here (ie. "3m", "2h45m"). No flushing is done if
 kept empty.`)
+var disableConverters = flag.Bool("disable-converters", false, "Disable converters in case they cause issues")
+var concurrentConverters = flag.Int("concurrent-converters", 2, "How many processes should be started per single converter")
+var concurrentFlows = flag.Int("concurrent-flows", 4, "How many flows should be processed at the same time")
 
 var g_db db.Database
 
+var callbackWorkers *workerpool.WorkerPool
+
 // TODO; FIXME; RDJ; this is kinda gross, but this is PoC level code
 func reassemblyCallback(entry db.FlowEntry) {
-	// Parsing HTTP will decode encodings to a plaintext format
-	ParseHttpFlow(&entry)
-	// Apply flag in / flagout
-	if *flag_regex != "" {
-		ApplyFlagTags(&entry, flag_regex)
-	}
-	// Finally, insert the new entry
-	g_db.InsertFlow(entry)
+	// By default, the callback passed is blocking per single packet. If for some reason converters hang,
+	// we *really* don't want to end up in a situation where we don't get any packets ingested until the converter
+	// times out.
+	callbackWorkers.Submit(func() {
+		// Parsing HTTP will decode encodings to a plaintext format
+		ParseHttpFlow(&entry)
+
+		if !*disableConverters {
+			converters.RunPipeline(&entry)
+		}
+
+		// Apply flag in / flagout
+		if *flag_regex != "" {
+			ApplyFlagTags(&entry, flag_regex)
+		}
+
+		// Finally, insert the new entry
+		g_db.InsertFlow(entry)
+	})
 }
 
 func main() {
@@ -66,6 +84,8 @@ func main() {
 	if flag.NArg() < 1 && *watch_dir == "" {
 		log.Fatal("Usage: ./go-importer <file0.pcap> ... <fileN.pcap>")
 	}
+
+	callbackWorkers = workerpool.New(*concurrentFlows)
 
 	// If no mongo DB was supplied, try the env variable
 	if *mongodb == "" {
@@ -98,6 +118,10 @@ func main() {
 	g_db = db.ConnectMongo(db_string)
 	log.Println("Connected, configuring MongoDB database")
 	g_db.ConfigureDatabase()
+
+	if !*disableConverters {
+		converters.StartWorkers(*concurrentConverters)
+	}
 
 	if *pcap_over_ip != "" {
 		log.Println("Connecting to PCAP-over-IP:", *pcap_over_ip)
@@ -349,6 +373,7 @@ func processPcapHandle(handle *pcap.Handle, fname string) {
 	// the never sent a FIN. This case is _super_ common in ctf captures
 	assembler.FlushAll()
 	streamFactory.WaitGoRoutines()
+	// Slight flaw: we don't wait for worker pool to finish (which could be a bad idea if something hangs for a long time somehow)
 
 	log.Println("Processed file:", fname)
 	g_db.InsertPcap(fname)

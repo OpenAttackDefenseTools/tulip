@@ -1,22 +1,26 @@
-import { useSearchParams, Link, useParams } from "react-router-dom";
-import React, { useDeferredValue, useEffect, useState } from "react";
+import { useSearchParams, Link, useParams, useNavigate } from "react-router-dom";
+import React, { ChangeEvent, useEffect, useState } from "react";
 import { useHotkeys } from 'react-hotkeys-hook';
 import { FlowData, FullFlow } from "../types";
 import { Buffer } from "buffer";
 import {
   TEXT_FILTER_KEY,
   MAX_LENGTH_FOR_HIGHLIGHT,
+  REPR_ID_KEY,
+  FIRST_DIFF_KEY,
+  SECOND_DIFF_KEY,
 } from "../const";
 import {
   ArrowCircleLeftIcon,
   ArrowCircleRightIcon,
   DownloadIcon,
+  LightningBoltIcon,
 } from "@heroicons/react/solid";
 import { format } from "date-fns";
 
 import { hexy } from "hexy";
 import { useCopy } from "../hooks/useCopy";
-import { RadioGroup, RadioGroupProps } from "../components/RadioGroup";
+import { RadioGroup } from "../components/RadioGroup";
 import {
   useGetFlowQuery,
   useLazyToFullPythonRequestQuery,
@@ -25,7 +29,6 @@ import {
   useGetFlagRegexQuery,
 } from "../api";
 import { API_BASE_PATH } from "../const";
-import { produceWithPatches } from "immer";
 
 const SECONDARY_NAVBAR_HEIGHT = 50;
 
@@ -369,10 +372,13 @@ function FlowOverview({ flow }: { flow: FullFlow }) {
 }
 
 export function FlowView() {
-  let [searchParams] = useSearchParams();
+  let [searchParams, setSearchParams] = useSearchParams();
+  let navigate = useNavigate();
   const params = useParams();
 
   const id = params.id;
+
+  const [reprId, setReprId] = useState(parseInt(searchParams.get(REPR_ID_KEY) ?? "0"));
 
   const { data: flow, isError, isLoading } = useGetFlowQuery(id!, { skip: id === undefined });
 
@@ -427,11 +433,11 @@ export function FlowView() {
     setCurrentFlow(fi => Math.max(0, fi - 1))
   }, [currentFlow]);
   useHotkeys('l', () => {
-    if (currentFlow === (flow?.flow?.length ?? 1)-1) {
+    if (currentFlow === (flow?.flow[reprId]?.flow?.length ?? 1)-1) {
       document.getElementById(`${id}-${currentFlow}`)?.scrollIntoView(true)
     }
-    setCurrentFlow(fi => Math.min((flow?.flow?.length ?? 1)-1, fi + 1))
-  }, [currentFlow, flow?.flow?.length]);
+    setCurrentFlow(fi => Math.min((flow?.flow[reprId]?.flow?.length ?? 1)-1, fi + 1))
+  }, [currentFlow, flow?.flow[reprId]?.flow?.length, reprId]);
 
   useEffect(
     () => {
@@ -441,6 +447,37 @@ export function FlowView() {
       document.getElementById(`${id}-${currentFlow}`)?.scrollIntoView(true)
     },
     [currentFlow]
+  )
+
+  useHotkeys('m', () => {
+    setReprId(ri => (ri + 1) % (flow?.flow.length ?? 1))
+  }, [reprId, flow?.flow.length]);
+
+  // when the reprId changes, we update the url
+  useEffect(
+    () => {
+      if (reprId === 0) {
+        searchParams.delete(REPR_ID_KEY)
+        setSearchParams(searchParams)
+        return
+      }
+      searchParams.set(REPR_ID_KEY, reprId.toString());
+      setSearchParams(searchParams)
+    },
+    [reprId]
+  )
+
+  // if the flow doesn't have the representation we're looking for, we fallback to raw
+  useEffect(
+    () => {
+      if (flow?.flow.length == undefined || flow?.flow.length === 0) {
+        return
+      }
+      if ((flow?.flow.length-1) < reprId) {
+        setReprId(0)
+      }
+    },
+    [flow?.flow.length]
   )
 
   if (isError) {
@@ -458,6 +495,30 @@ export function FlowView() {
         style={{ height: SECONDARY_NAVBAR_HEIGHT, zIndex: 100 }}
       >
         <div className="flex align-middle p-2 gap-3 ml-auto">
+          <p className="my-auto">Decoders <abbr title={"Number of decoders available for this flow: "+flow?.flow.length}>({flow?.flow.length})</abbr>:</p>
+          <select
+            id="repr-select"
+            value={reprId}
+            className="border-2 border-gray-700 text-black px-2 text-sm rounded-md"
+            onChange={(e) => {
+                const target = e.target as HTMLSelectElement;
+                const newreprid = parseInt(target.value);
+                setReprId(newreprid);
+            }}
+          >
+            {flow?.flow.map((e, i) => <option key={id+"reprselect"+i} value={i}>{e['type']}</option>)}
+          </select>
+          { reprId > 0 ? <button
+            className="bg-gray-700 text-white px-2 text-sm rounded-md"
+            title="Diff this representation with the base"
+            onClick={(e) => {
+              searchParams.set(FIRST_DIFF_KEY, `${id}`);
+              searchParams.set(SECOND_DIFF_KEY, `${id}:${reprId}`);
+              navigate(`/diff/${id ?? ""}?${searchParams}`, { replace: true });
+            }}
+          >
+            <LightningBoltIcon className="h-5 w-5"></LightningBoltIcon>
+          </button> : undefined}
           <button
             className="bg-gray-700 text-white px-2 text-sm rounded-md"
             onClick={copyPwn}
@@ -484,7 +545,7 @@ export function FlowView() {
       ) : undefined}
 
       {flow ? <FlowOverview flow={flow}></FlowOverview> : undefined}
-      {flow?.flow.map((flow_data, i, a) => {
+      {flow?.flow[(reprId < flow?.flow.length) ? reprId : 0].flow.map((flow_data, i, a) => {
         const delta_time = a[i].time - (a[i - 1]?.time ?? a[i].time);
         return (
           <Flow
