@@ -375,7 +375,6 @@ function FlowOverview({ flow }: { flow: FullFlow }) {
 
 export function FlowView() {
   let [searchParams, setSearchParams] = useSearchParams();
-  let navigate = useNavigate();
   const params = useParams();
   const navigate = useNavigate();
 
