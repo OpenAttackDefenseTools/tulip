@@ -2,10 +2,11 @@ package main
 
 import (
 	"fmt"
-	"github.com/gammazero/workerpool"
 	"go-importer/internal/converters"
 	"go-importer/internal/pkg/db"
 	"net"
+
+	"github.com/gammazero/workerpool"
 
 	"flag"
 	"io/ioutil"
@@ -232,7 +233,7 @@ func handlePcapUri(fname string, bpf string) {
 	}
 	defer handle.Close()
 
-	if g_db.ContainsPcap(fname) {
+	if fname != "-" && g_db.ContainsPcap(fname) {
 		log.Println("Skipped: ", fname)
 		return
 	}

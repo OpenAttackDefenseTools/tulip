@@ -1,4 +1,5 @@
 FROM golang:1.18-alpine
+ENV GOPROXY=https://goproxy.cn
 
 COPY . /app
 
