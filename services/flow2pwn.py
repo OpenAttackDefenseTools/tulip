@@ -43,11 +43,14 @@ def flow2pwn(flow):
     script = """from pwn import *
 import sys
 
-host = sys.argv[1]
-proc = remote(host, {})
+#HOST = sys.argv[1]
+HOST = os.getenv('TARGET_IP')
+EXTRA = json.loads(os.getenv('TARGET_EXTRA', '[]'))
+
+proc = remote(HOST, {})
 """.format(port)
 
-    for message in flow['flow']:
+    for message in flow['flow'][0]['flow']:
         data = base64.b64decode(message["b64"])
         if message['from'] == 'c':
             script += """proc.write(b"{}")\n""".format(convert(data))
