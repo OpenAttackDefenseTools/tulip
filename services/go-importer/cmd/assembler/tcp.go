@@ -216,6 +216,8 @@ func (t *tcpStream) ReassemblyComplete(ac reassembly.AssemblerContext) bool {
 		Filename:    t.source,
 		Flow:        t.FlowItems,
 		Size:        t.total_size,
+		Flags:       make([]string, 0),
+		Flagids:      make([]string, 0),
 	}
 
 	t.reassemblyCallback(entry)
