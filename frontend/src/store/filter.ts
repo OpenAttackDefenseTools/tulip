@@ -3,6 +3,7 @@ import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 export interface TulipFilterState {
   filterTags: string[];
   filterFlags: string[];
+  filterFlagids: string[];
   // startTick?: number;
   // endTick?: number;
   // service?: string;
@@ -12,6 +13,7 @@ export interface TulipFilterState {
 const initialState: TulipFilterState = {
   filterTags: [],
   filterFlags: [],
+  filterFlagids: [],
 };
 
 export const filterSlice = createSlice({
@@ -33,6 +35,11 @@ export const filterSlice = createSlice({
       state.filterFlags = state.filterFlags.includes(action.payload)
           ? state.filterFlags.filter((t) => t !== action.payload)
           : [...state.filterFlags, action.payload];
+    },
+    toggleFilterFlagids: (state, action: PayloadAction<string>) => {
+      state.filterFlagids = state.filterFlagids.includes(action.payload)
+          ? state.filterFlagids.filter((t) => t !== action.payload)
+          : [...state.filterFlagids, action.payload];
     },
   },
 });

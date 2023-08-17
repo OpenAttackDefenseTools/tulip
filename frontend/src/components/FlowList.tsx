@@ -41,6 +41,7 @@ export function FlowList() {
 
   const filterTags = useAppSelector((state) => state.filter.filterTags);
   const filterFlags = useAppSelector((state) => state.filter.filterFlags);
+  const filterFlagids = useAppSelector((state) => state.filter.filterFlagids);
   const dispatch = useAppDispatch();
 
   const [starFlow] = useStarFlowMutation();
@@ -69,6 +70,7 @@ export function FlowList() {
       service: "", // FIXME
       tags: filterTags,
       flags: filterFlags,
+      flagids: filterFlagids,
     },
     {
       refetchOnMountOrArgChange: true,

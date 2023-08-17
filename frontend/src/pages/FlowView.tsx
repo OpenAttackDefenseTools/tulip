@@ -239,6 +239,8 @@ function FlowOverview({ flow }: { flow: FullFlow }) {
           <div className="font-bold">[{flow.tags.join(", ")}]</div>
           <div>Flags: </div>
           <div className="font-bold">[{flow.flags.join(", ")}]</div>
+          <div>Flagids: </div>
+          <div className="font-bold">[{flow.flagids.join(", ")}]</div>
           <div></div>
           <div>Source - Target: </div>
           <div className="flex items-center gap-1">
