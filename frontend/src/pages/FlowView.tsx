@@ -238,9 +238,33 @@ function FlowOverview({ flow }: { flow: FullFlow }) {
           <div>Tags: </div>
           <div className="font-bold">[{flow.tags.join(", ")}]</div>
           <div>Flags: </div>
-          <div className="font-bold">[{flow.flags.join(", ")}]</div>
+          <div className="font-bold">
+            [{flow.flags.map((query, i) => (
+            <span>
+              {i > 0 ? ', ' : ''}
+              <a
+                  key={query}
+                  href={`/?text=${encodeURIComponent(query)}`}
+              >
+              {query}
+              </a>
+            </span>
+            ))}]
+          </div>
           <div>Flagids: </div>
-          <div className="font-bold">[{flow.flagids.join(", ")}]</div>
+          <div className="font-bold">
+            [{flow.flagids.map((query, i) => (
+                <span>
+                {i > 0 ? ', ' : ''}
+                  <a
+                      key={query}
+                      href={`/?text=${encodeURIComponent(query)}`}
+                  >
+                {query}
+              </a>
+              </span>
+            ))}]
+          </div>
           <div></div>
           <div>Source - Target: </div>
           <div className="flex items-center gap-1">
