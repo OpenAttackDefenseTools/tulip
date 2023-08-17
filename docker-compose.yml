@@ -18,6 +18,7 @@ services:
       - "3000:3000"
     depends_on:
       - mongo
+      - api
     networks:
       - internal
     environment:
@@ -58,6 +59,7 @@ services:
     environment:
       TULIP_MONGO: ${TULIP_MONGO}
       FLAG_REGEX: ${FLAG_REGEX}
+      TICK_LENGTH: ${TICK_LENGTH}
       PCAP_OVER_IP: ${PCAP_OVER_IP}
     extra_hosts:
       - "host.docker.internal:host-gateway"
