@@ -41,6 +41,7 @@ export function FlowList() {
 
   const filterTags = useAppSelector((state) => state.filter.filterTags);
   const filterFlags = useAppSelector((state) => state.filter.filterFlags);
+  const filterFlagids = useAppSelector((state) => state.filter.filterFlagids);
   const includeTags = useAppSelector((state) => state.filter.includeTags);
   const excludeTags = useAppSelector((state) => state.filter.excludeTags);
 
@@ -72,6 +73,7 @@ export function FlowList() {
       service: "", // FIXME
       tags: filterTags,
       flags: filterFlags,
+      flagids: filterFlagids,
       includeTags: includeTags,
       excludeTags: excludeTags
     },

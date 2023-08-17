@@ -30,6 +30,7 @@ export const Corrie = () => {
   const excludeTags = useAppSelector((state) => state.filter.excludeTags);
   const filterTags = useAppSelector((state) => state.filter.filterTags);
   const filterFlags = useAppSelector((state) => state.filter.filterFlags);
+  const filterFlagids = useAppSelector((state) => state.filter.filterFlagids);
 
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -54,6 +55,7 @@ export const Corrie = () => {
       excludeTags: excludeTags,
       tags: filterTags,
       flags: filterFlags,
+      flagids: filterFlagids,
     },
     {
       refetchOnMountOrArgChange: true,
