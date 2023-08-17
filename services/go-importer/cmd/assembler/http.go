@@ -43,22 +43,31 @@ func ParseHttpFlow(flow *db.FlowEntry) {
 		if flowItem.From == "c" {
 			// HTTP Request
 			req, err := http.ReadRequest(reader)
-			if err != nil {
-				if *experimental {
-					// Parse cookie and grab fingerprints
-					AddFingerprints(req.Cookies(), fingerprintsSet)
-				}
+			if err != nil || req == nil {
 				continue
-				//TODO; replace the HTTP data.
-				// Remember to use a `LimitReader` when implementing this to prevent
-				// decompressions bombs / DOS!
 			}
 
+			if !containsTag(flow.Tags, "http") {
+				flow.Tags = append(flow.Tags, "http")
+			}
+
+			if *experimental {
+				// Parse cookie and grab fingerprints
+				AddFingerprints(req.Cookies(), fingerprintsSet)
+			}
+
+			//TODO; replace the HTTP data.
+			// Remember to use a `LimitReader` when implementing this to prevent
+			// decompressions bombs / DOS!
 		} else if flowItem.From == "s" {
 			// Parse HTTP Response
 			res, err := http.ReadResponse(reader, nil)
-			if err != nil {
+			if err != nil || res == nil {
 				continue
+			}
+
+			if !containsTag(flow.Tags, "http") {
+				flow.Tags = append(flow.Tags, "http")
 			}
 
 			if *experimental {
@@ -79,20 +88,21 @@ func ParseHttpFlow(flow *db.FlowEntry) {
 				// Failed to fully read the body. Bail out here
 				continue
 			}
+
 			switch encoding[0] {
-			case "gzip":
-				newReader, err = handleGzip(res.Body)
-				break
-			case "br":
-				newReader, err = handleBrotili(res.Body)
-				break
-			case "deflate":
-				//TODO; verify this is correct
-				newReader, err = handleGzip(res.Body)
-				break
-			default:
-				// Skipped, unknown or identity encoding
-				continue
+				case "gzip":
+					newReader, err = handleGzip(res.Body)
+					break
+				case "br":
+					newReader, err = handleBrotili(res.Body)
+					break
+				case "deflate":
+					//TODO; verify this is correct
+					newReader, err = handleGzip(res.Body)
+					break
+				default:
+					// Skipped, unknown or identity encoding
+					continue
 			}
 
 			// Replace the reader to allow for in-place decompression
