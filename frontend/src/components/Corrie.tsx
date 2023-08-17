@@ -27,6 +27,7 @@ interface GraphProps {
 export const Corrie = () => {
   const { data: services } = useGetServicesQuery();
   const filterTags = useAppSelector((state) => state.filter.filterTags);
+  const filterFlags = useAppSelector((state) => state.filter.filterFlags);
 
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -48,6 +49,7 @@ export const Corrie = () => {
       to_time: to_filter,
       service: "", // FIXME
       tags: filterTags,
+      flags: filterFlags,
     },
     {
       refetchOnMountOrArgChange: true,

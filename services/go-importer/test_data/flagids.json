@@ -1,0 +1,19 @@
+{
+  "availableTeams": [
+    "10.10.3.1"
+  ],
+
+  "services": {
+    "cc_market": {
+      "10.10.3.1": {
+        "7": [
+          [ "CletusAlbion" ]
+
+        ],
+        "8": [
+          [ "KailaAlpha" ]
+        ]
+      }
+    }
+  }
+}
