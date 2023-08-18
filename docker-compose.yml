@@ -6,7 +6,7 @@ services:
       - internal
     restart: always
     ports:
-      - "127.0.0.1:27017:27017"
+      - "27017:27017"
 
   frontend:
     build:
@@ -37,11 +37,12 @@ services:
     volumes:
       - ${TRAFFIC_DIR_HOST}:${TRAFFIC_DIR_DOCKER}:ro
     environment:
-      TULIP_MONGO: mongo:27017
+      TULIP_MONGO: ${TULIP_MONGO}
       TULIP_TRAFFIC_DIR: ${TRAFFIC_DIR_DOCKER}
       FLAG_REGEX: ${FLAG_REGEX}
       TICK_START: ${TICK_START}
       TICK_LENGTH: ${TICK_LENGTH}
+      VM_IP: ${VM_IP}
 
   assembler:
     build:
@@ -60,6 +61,7 @@ services:
       TULIP_MONGO: ${TULIP_MONGO}
       FLAG_REGEX: ${FLAG_REGEX}
       TICK_LENGTH: ${TICK_LENGTH}
+      FLAG_LIFETIME: ${FLAG_LIFETIME}
       PCAP_OVER_IP: ${PCAP_OVER_IP}
     extra_hosts:
       - "host.docker.internal:host-gateway"
@@ -80,6 +82,34 @@ services:
     command: "./enricher -eve ${TRAFFIC_DIR_DOCKER}/eve.json"
     environment:
       TULIP_MONGO: ${TULIP_MONGO}
+
+  # Only for testing
+  flagidendpoint:
+    build:
+      context: services/go-importer/test_data
+    image: flagid-endpoint:latest
+    depends_on:
+      - mongo
+    networks:
+      - internal
+    ports:
+      - "8000:8000"
+
+  # flagids:
+  #   build:
+  #     context: services/flagids
+  #   image: flagid-endpoint:latest
+  #   depends_on:
+  #     - mongo
+  #     - flagidendpoint # only for testing
+  #   networks:
+  #     - internal
+  #   environment:
+  #     TULIP_MONGO: ${TULIP_MONGO}
+  #     TICK_START: ${TICK_START}
+  #     TICK_LENGTH: ${TICK_LENGTH}
+  #     VM_IP: ${VM_IP}
+  #     FLAGID_ENDPOINT: ${FLAGID_ENDPOINT}
 
 networks:
   internal:
