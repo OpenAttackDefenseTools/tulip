@@ -8,12 +8,12 @@
 # Copyright ©2018 Brunello Simone
 # Copyright ©2018 Alessio Marotta
 # DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
-# 
+#
 # Flower is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # Flower is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -24,7 +24,7 @@
 
 from flask import Flask, Response, send_file
 
-from configurations import services, traffic_dir, start_date, tick_length
+from configurations import services, traffic_dir, dump_pcaps_dir, start_date, tick_length
 from pathlib import Path
 from data2req import convert_flow_to_http_requests, convert_single_http_requests
 from base64 import b64decode
@@ -136,13 +136,13 @@ def downloadFile():
     if filepath is None:
         return return_text_response("There was an error while downloading the requested file:\n{}: {}".format("Invalid 'file'", "No 'file' given"))
     filepath = Path(filepath)
-    
+
     # Check for path traversal by resolving the file first.
     filepath = filepath.resolve()
-    if not traffic_dir in filepath.parents:
-        return return_text_response("There was an error while downloading the requested file:\n{}: {}".format("Invalid 'file'", "'file' was not in a subdirectory of traffic_dir"))
+    if traffic_dir not in filepath.parents and dump_pcaps_dir not in filepath.parents:
+        return return_text_response("There was an error while downloading the requested file:\n{}: {}".format("Invalid 'file'", "'file' was not in a subdirectory of traffic_dir or dump_pcaps_dir"))
 
-    try: 
+    try:
         return send_file(filepath, as_attachment=True)
     except FileNotFoundError:
         return return_text_response("There was an error while downloading the requested file:\n{}: {}".format("Invalid 'file'", "'file' not found"))

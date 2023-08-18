@@ -41,6 +41,7 @@ services:
       FLAG_REGEX: ${FLAG_REGEX}
       TICK_START: ${TICK_START}
       TICK_LENGTH: ${TICK_LENGTH}
+      DUMP_PCAPS: ${DUMP_PCAPS}
 
   assembler:
     build:
@@ -52,11 +53,14 @@ services:
     networks:
       - internal
     volumes:
-      - ${TRAFFIC_DIR_HOST}:${TRAFFIC_DIR_DOCKER}:ro
+      - ${TRAFFIC_DIR_HOST}:${TRAFFIC_DIR_DOCKER}:rw
     command: "./assembler -dir ${TRAFFIC_DIR_DOCKER}"
     environment:
       TULIP_MONGO: ${TULIP_MONGO}
       FLAG_REGEX: ${FLAG_REGEX}
+      DUMP_PCAPS: ${DUMP_PCAPS}
+      DUMP_PCAPS_INTERVAL: ${DUMP_PCAPS_INTERVAL}
+      DUMP_PCAPS_FILENAME: ${DUMP_PCAPS_FILENAME}
 
   enricher:
     build:
