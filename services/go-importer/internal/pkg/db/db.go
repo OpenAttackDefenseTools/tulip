@@ -72,6 +72,8 @@ func (db Database) ConfigureDatabase() {
 	db.InsertTag("blocked")
 	db.InsertTag("suricata")
 	db.InsertTag("starred")
+	db.InsertTag("flagid-in")
+	db.InsertTag("flagid-out")
 	db.InsertTag("tcp")
 	db.InsertTag("udp")
 	db.InsertTag("flagid")
