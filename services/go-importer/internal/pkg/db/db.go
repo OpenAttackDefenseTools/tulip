@@ -312,7 +312,12 @@ func (db Database) InsertTag(tag string) {
 	tagCollection.InsertOne(context.TODO(), bson.M{"_id": tag})
 }
 
-func (db Database) GetFlagids() ([]string, error) {
+type Flagid struct {
+	ID   string `bson:"_id"`
+	Time int    `bson:"time"`
+}
+
+func (db Database) GetFlagids() ([]Flagid, error) {
 	// Create a context with a timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -327,15 +332,15 @@ func (db Database) GetFlagids() ([]string, error) {
 	}
 	defer cur.Close(ctx)
 
-	var flagids []string
+	var flagids []Flagid
 
 	// Iterate through the cursor and extract _id values
 	for cur.Next(ctx) {
-		var result bson.M
-		if err := cur.Decode(&result); err != nil {
+		var flagid Flagid
+		if err := cur.Decode(&flagid); err != nil {
 			return nil, err
 		}
-		flagids = append(flagids, result["_id"].(string))
+		flagids = append(flagids, flagid)
 	}
 
 	if err := cur.Err(); err != nil {
