@@ -75,10 +75,6 @@ func (db Database) ConfigureDatabase() {
 	db.InsertTag("flagid-in")
 	db.InsertTag("flagid-out")
 	db.ConfigureIndexes()
-	// TODO: This is only for testing, REMOVE
-	flagidCollection := db.client.Database("pcap").Collection("flagids")
-	flagidCollection.InsertOne(context.TODO(), bson.M{"_id": "CletusAlbion", "time": 1})
-	flagidCollection.InsertOne(context.TODO(), bson.M{"_id": "KailaAlpha", "time": 2})
 }
 
 func (db Database) ConfigureIndexes() {

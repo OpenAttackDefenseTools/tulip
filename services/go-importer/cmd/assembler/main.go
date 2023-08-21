@@ -49,7 +49,6 @@ var g_db db.Database
 
 // TODO; FIXME; RDJ; this is kinda gross, but this is PoC level code
 func reassemblyCallback(entry db.FlowEntry) {
-	log.Print("DEBUG: Callback")
 	// Parsing HTTP will decode encodings to a plaintext format
 	ParseHttpFlow(&entry)
 
@@ -62,9 +61,6 @@ func reassemblyCallback(entry db.FlowEntry) {
 	flagids, err := g_db.GetFlagids()
 	if err != nil {
 		log.Fatal(err)
-	}
-	if len(flagids) == 0 {
-		log.Print("WARNING: no flagids found")
 	}
 
 	ApplyFlagids(&entry, flagids)
