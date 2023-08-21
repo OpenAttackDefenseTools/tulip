@@ -77,10 +77,14 @@ func ApplyFlagids(flow *db.FlowEntry, flagids []string) {
 		flowItem := &flow.Flow[idx]
 		data := flowItem.Data
 		for _, flagid := range flagids {
-			log.Print("DEBUG: " + flagid)
 			if strings.Contains(data, flagid) {
-				log.Print("DEBUG: Found Match")
-				tag := "flagid"
+				var tag string
+				if flowItem.From == "c" {
+					tag = "flagid-in"
+				} else {
+
+					tag = "flagid-out"
+				}
 
 				if !contains(flow.Flagids, flagid) {
 					flow.Flagids = append(flow.Flagids, flagid)

@@ -219,7 +219,7 @@ function FlowListEntry({ flow, isActive, onHeartClick }: FlowListEntryProps) {
             </div>
             <div className="text-gray-500 ml-auto">{duration}</div>
           </div>
-          <div className="flex h-5 gap-2">
+          <div className="flex gap-2 flex-wrap">
             {filtered_tag_list.map((tag) => (
               <Tag key={tag} tag={tag}></Tag>
             ))}

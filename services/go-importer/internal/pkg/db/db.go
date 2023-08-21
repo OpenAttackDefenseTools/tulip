@@ -72,7 +72,8 @@ func (db Database) ConfigureDatabase() {
 	db.InsertTag("blocked")
 	db.InsertTag("suricata")
 	db.InsertTag("starred")
-	db.InsertTag("flagid")
+	db.InsertTag("flagid-in")
+	db.InsertTag("flagid-out")
 	db.ConfigureIndexes()
 	// TODO: This is only for testing, REMOVE
 	flagidCollection := db.client.Database("pcap").Collection("flagids")
