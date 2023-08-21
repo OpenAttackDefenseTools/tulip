@@ -6,6 +6,9 @@ import (
 	"flag"
 	"fmt"
 	"net"
+	"strconv"
+
+	"flag"
 	"io/ioutil"
 	"log"
 	"os"
@@ -30,6 +33,8 @@ var checksum = false
 var nohttp = true
 
 var snaplen = 65536
+var ticklength = -1
+var flaglifetime = -1
 var tstype = ""
 var promisc = true
 
@@ -76,7 +81,7 @@ func reassemblyCallback(entry db.FlowEntry) {
 		log.Fatal(err)
 	}
 
-	ApplyFlagids(&entry, flagids)
+	ApplyFlagids(&entry, flagids, flaglifetime)
 
 	// Finally, insert the new entry
 	g_db.InsertFlow(entry)
@@ -140,6 +145,28 @@ func main() {
 	flag.Parse()
 	if flag.NArg() < 1 && *watch_dir == "" {
 		log.Fatal("Usage: ./go-importer <file0.pcap> ... <fileN.pcap>")
+	}
+
+	// get TICK_LENGTH
+	strticklength := os.Getenv("TICK_LENGTH")
+	if strticklength != "" {
+		zwi, err := strconv.ParseInt(strticklength, 10, 64)
+		if err != nil {
+			log.Println("Error: ", err)
+		} else {
+			ticklength = int(zwi / 1000)
+		}
+	}
+
+	// get TICK_LENGTH
+	strflaglifetime := os.Getenv("FLAG_LIFETIME")
+	if strticklength != "" {
+		zwi, err := strconv.Atoi(strflaglifetime)
+		if err != nil {
+			log.Println("Error: ", err)
+		} else {
+			flaglifetime = zwi * ticklength
+		}
 	}
 
 	// If no mongo DB was supplied, try the env variable

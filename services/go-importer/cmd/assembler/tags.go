@@ -71,13 +71,17 @@ func ApplyFlagTags(flow *db.FlowEntry, reg *string) {
 
 // Apply flagids to the entire flow.
 // This assumes the `Data` part of the flowItem is already pre-processed, s.t.
-func ApplyFlagids(flow *db.FlowEntry, flagids []string) {
+func ApplyFlagids(flow *db.FlowEntry, flagids []db.Flagid, flaglifetime int) {
 
 	for idx := 0; idx < len(flow.Flow); idx++ {
 		flowItem := &flow.Flow[idx]
 		data := flowItem.Data
 		for _, flagid := range flagids {
-			if strings.Contains(data, flagid) {
+			flagidstr := flagid.ID
+			if flaglifetime > 0 && (flowItem.Time+flaglifetime) > flagid.Time {
+				continue
+			}
+			if strings.Contains(data, flagidstr) {
 				var tag string
 				if flowItem.From == "c" {
 					tag = "flagid-in"
@@ -86,8 +90,8 @@ func ApplyFlagids(flow *db.FlowEntry, flagids []string) {
 					tag = "flagid-out"
 				}
 
-				if !contains(flow.Flagids, flagid) {
-					flow.Flagids = append(flow.Flagids, flagid)
+				if !contains(flow.Flagids, flagidstr) {
+					flow.Flagids = append(flow.Flagids, flagidstr)
 				}
 
 				// Add the tag if it doesn't already exist
