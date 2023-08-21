@@ -44,6 +44,33 @@ services:
       TICK_LENGTH: ${TICK_LENGTH}
       VM_IP: ${VM_IP}
 
+  # Only for testing
+  flagidendpoint:
+    build:
+      context: services/go-importer/test_data
+    image: flagid-endpoint:latest
+    depends_on:
+      - mongo
+    networks:
+      - internal
+    ports:
+      - "8000:8000"
+
+  flagids:
+    build:
+      context: services/flagids
+    image: tulip-flagids:latest
+    depends_on:
+      - mongo
+    networks:
+      - internal
+    environment:
+      TULIP_MONGO: ${TULIP_MONGO}
+      TICK_START: ${TICK_START}
+      TICK_LENGTH: ${TICK_LENGTH}
+      VM_IP: ${VM_IP}
+      FLAGID_ENDPOINT: ${FLAGID_ENDPOINT}
+
   assembler:
     build:
       context: services/go-importer
@@ -52,6 +79,7 @@ services:
     restart: unless-stopped
     depends_on:
       - mongo
+      - flagids # only for testing
     networks:
       - internal
     volumes:
@@ -82,34 +110,6 @@ services:
     command: "./enricher -eve ${TRAFFIC_DIR_DOCKER}/eve.json"
     environment:
       TULIP_MONGO: ${TULIP_MONGO}
-
-  # Only for testing
-  flagidendpoint:
-    build:
-      context: services/go-importer/test_data
-    image: flagid-endpoint:latest
-    depends_on:
-      - mongo
-    networks:
-      - internal
-    ports:
-      - "8000:8000"
-
-  # flagids:
-  #   build:
-  #     context: services/flagids
-  #   image: flagid-endpoint:latest
-  #   depends_on:
-  #     - mongo
-  #     - flagidendpoint # only for testing
-  #   networks:
-  #     - internal
-  #   environment:
-  #     TULIP_MONGO: ${TULIP_MONGO}
-  #     TICK_START: ${TICK_START}
-  #     TICK_LENGTH: ${TICK_LENGTH}
-  #     VM_IP: ${VM_IP}
-  #     FLAGID_ENDPOINT: ${FLAGID_ENDPOINT}
 
 networks:
   internal:
