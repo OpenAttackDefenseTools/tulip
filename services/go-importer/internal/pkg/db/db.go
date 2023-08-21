@@ -74,6 +74,10 @@ func (db Database) ConfigureDatabase() {
 	db.InsertTag("starred")
 	db.InsertTag("flagid")
 	db.ConfigureIndexes()
+	// TODO: This is only for testing, REMOVE
+	flagidCollection := db.client.Database("pcap").Collection("flagids")
+	flagidCollection.InsertOne(context.TODO(), bson.M{"_id": "CletusAlbion", "time": 1})
+	flagidCollection.InsertOne(context.TODO(), bson.M{"_id": "KailaAlpha", "time": 2})
 }
 
 func (db Database) ConfigureIndexes() {
@@ -309,4 +313,38 @@ func (db Database) InsertTag(tag string) {
 	tagCollection := db.client.Database("pcap").Collection("tags")
 	// Yeah this will err... A lot.... Two more dev days till Athens, this will do.
 	tagCollection.InsertOne(context.TODO(), bson.M{"_id": tag})
+}
+
+func (db Database) GetFlagids() ([]string, error) {
+	// Create a context with a timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	// Access the "pcap" database and "flagids" collection
+	collection := db.client.Database("pcap").Collection("flagids")
+
+	// Find all documents in the collection
+	cur, err := collection.Find(ctx, bson.M{})
+	if err != nil {
+		return nil, err
+	}
+	defer cur.Close(ctx)
+
+	var flagids []string
+
+	// Iterate through the cursor and extract _id values
+	for cur.Next(ctx) {
+		var result bson.M
+		if err := cur.Decode(&result); err != nil {
+			return nil, err
+		}
+		flagids = append(flagids, result["_id"].(string))
+	}
+
+	if err := cur.Err(); err != nil {
+		return nil, err
+	}
+
+	return flagids, nil
+
 }

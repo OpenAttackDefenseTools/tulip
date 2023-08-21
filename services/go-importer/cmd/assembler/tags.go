@@ -4,6 +4,7 @@ import (
 	"go-importer/internal/pkg/db"
 	"log"
 	"regexp"
+	"strings"
 )
 
 var flagRegex *regexp.Regexp
@@ -31,6 +32,7 @@ func contains(s []string, e string) bool {
 // Apply flag in/flag out tags to the entire flow.
 // This assumes the `Data` part of the flowItem is already pre-processed, s.t.
 // we can run regex tags over the payload directly
+// also add the matched flags to the FlowItem
 func ApplyFlagTags(flow *db.FlowEntry, reg *string) {
 	EnsureRegex(reg)
 
@@ -62,6 +64,32 @@ func ApplyFlagTags(flow *db.FlowEntry, reg *string) {
 			// Add the tag if it doesn't already exist
 			if !contains(flow.Tags, tag) {
 				flow.Tags = append(flow.Tags, tag)
+			}
+		}
+	}
+}
+
+// Apply flagids to the entire flow.
+// This assumes the `Data` part of the flowItem is already pre-processed, s.t.
+func ApplyFlagids(flow *db.FlowEntry, flagids []string) {
+
+	for idx := 0; idx < len(flow.Flow); idx++ {
+		flowItem := &flow.Flow[idx]
+		data := flowItem.Data
+		for _, flagid := range flagids {
+			log.Print("DEBUG: " + flagid)
+			if strings.Contains(data, flagid) {
+				log.Print("DEBUG: Found Match")
+				tag := "flagid"
+
+				if !contains(flow.Flagids, flagid) {
+					flow.Flagids = append(flow.Flagids, flagid)
+				}
+
+				// Add the tag if it doesn't already exist
+				if !contains(flow.Tags, tag) {
+					flow.Tags = append(flow.Tags, tag)
+				}
 			}
 		}
 	}
