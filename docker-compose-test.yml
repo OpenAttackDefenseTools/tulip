@@ -13,7 +13,6 @@ services:
       context: frontend
       dockerfile: Dockerfile-frontend
     image: tulip-frontend:latest
-    restart: unless-stopped
     ports:
       - "3000:3000"
     depends_on:
@@ -26,10 +25,11 @@ services:
 
   api:
     build:
-      context: services/api
-      dockerfile: Dockerfile-api
+      context: .
+      dockerfile: Dockerfile-python
     image: tulip-api:latest
-    restart: unless-stopped
+    ports:
+      - "5000:5000"
     depends_on:
       - mongo
     networks:
@@ -43,6 +43,18 @@ services:
       TICK_START: ${TICK_START}
       TICK_LENGTH: ${TICK_LENGTH}
       VM_IP: ${VM_IP}
+
+  # Only for testing
+  flagidendpoint:
+    build:
+      context: services/go-importer/test_data
+    image: flagid-endpoint:latest
+    depends_on:
+      - mongo
+    networks:
+      - internal
+    ports:
+      - "8000:8000"
 
   flagids:
     build:
@@ -64,9 +76,9 @@ services:
       context: services/go-importer
       dockerfile: Dockerfile-assembler
     image: tulip-assembler:latest
-    restart: unless-stopped
     depends_on:
       - mongo
+      - flagids # only for testing
     networks:
       - internal
     volumes:
@@ -77,17 +89,13 @@ services:
       FLAG_REGEX: ${FLAG_REGEX}
       TICK_LENGTH: ${TICK_LENGTH}
       FLAG_LIFETIME: ${FLAG_LIFETIME}
-      PCAP_OVER_IP: ${PCAP_OVER_IP}
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-
+      DELAY: 30
 
   enricher:
     build:
       context: services/go-importer
       dockerfile: Dockerfile-enricher
     image: tulip-enricher:latest
-    restart: unless-stopped
     depends_on:
       - mongo
     networks:

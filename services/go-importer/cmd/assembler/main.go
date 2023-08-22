@@ -147,6 +147,17 @@ func main() {
 		log.Fatal("Usage: ./go-importer <file0.pcap> ... <fileN.pcap>")
 	}
 
+	// DELAY for testing
+	strdelay := os.Getenv("DELAY")
+	if strdelay != "" {
+		delay, err := strconv.Atoi(strdelay)
+		if err != nil {
+			log.Println("Error: ", err)
+		} else {
+			time.Sleep(time.Second * time.Duration(delay))
+		}
+	}
+
 	// get TICK_LENGTH
 	strticklength := os.Getenv("TICK_LENGTH")
 	if strticklength != "" {
@@ -158,7 +169,7 @@ func main() {
 		}
 	}
 
-	// get TICK_LENGTH
+	// get Flag_LIFETIME
 	strflaglifetime := os.Getenv("FLAG_LIFETIME")
 	if strticklength != "" {
 		zwi, err := strconv.Atoi(strflaglifetime)
