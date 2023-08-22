@@ -44,6 +44,18 @@ services:
       TICK_LENGTH: ${TICK_LENGTH}
       VM_IP: ${VM_IP}
 
+  # Only for testing
+  flagidendpoint:
+    build:
+      context: services/go-importer/test_data
+    image: flagid-endpoint:latest
+    depends_on:
+      - mongo
+    networks:
+      - internal
+    ports:
+      - "8000:8000"
+
   flagids:
     build:
       context: services/flagids
@@ -66,6 +78,7 @@ services:
     image: tulip-assembler:latest
     depends_on:
       - mongo
+      - flagids # only for testing
     networks:
       - internal
     volumes:
@@ -76,6 +89,7 @@ services:
       FLAG_REGEX: ${FLAG_REGEX}
       TICK_LENGTH: ${TICK_LENGTH}
       FLAG_LIFETIME: ${FLAG_LIFETIME}
+      DELAY: 30
 
   enricher:
     build:
