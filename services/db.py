@@ -68,10 +68,15 @@ class DB:
         if "from_time" in filters and "to_time" in filters:
             f["time"] = {"$gte": int(filters["from_time"]),
                          "$lt": int(filters["to_time"])}
-        if "tags" in filters:
-            f["tags"] = {
-                "$all": [str(elem) for elem in filters["tags"]]
-            }
+        
+        tag_queries = {}
+        if "includeTags" in filters:
+            tag_queries["$all"] = [str(elem) for elem in filters["includeTags"]]
+        if "excludeTags" in filters:
+            tag_queries["$nin"] = [str(elem) for elem in filters["excludeTags"]]
+
+        if len(tag_queries.keys()) > 0:
+            f["tags"] = tag_queries
 
         print("query:")
         pprint.pprint(f)
