@@ -150,7 +150,8 @@ func watchDir(watch_dir string) {
 	}
 
 	for _, file := range files {
-		if strings.HasSuffix(file.Name(), ".pcap") || strings.HasSuffix(file.Name(), ".pcapng") {
+		// accepts files with prefixes that start with .pcap (.pcapng .pcap1 etc)
+		if strings.HasPrefix(filepath.Ext(file.Name()),".pcap") {
 			handlePcapUri(filepath.Join(watch_dir, file.Name()), *bpf) //FIXME; this is a little clunky
 		}
 	}
@@ -173,7 +174,8 @@ func watchDir(watch_dir string) {
 					return
 				}
 				if event.Op&(fsnotify.Rename|fsnotify.Create) != 0 {
-					if strings.HasSuffix(event.Name, ".pcap") || strings.HasSuffix(event.Name, ".pcapng") {
+					// accepts files with prefixes that start with .pcap (.pcapng .pcap1 etc)
+					if strings.HasPrefix(filepath.Ext(event.Name),".pcap") {
 						log.Println("Found new file", event.Name, event.Op.String())
 						time.Sleep(2 * time.Second) // FIXME; bit of race here between file creation and writes.
 						handlePcapUri(event.Name, *bpf)
