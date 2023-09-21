@@ -10,7 +10,7 @@ DELAY = 5 # DELAY from start of tick
 tick_length = int(os.getenv("TICK_LENGTH", 10*1000))//1000
 start_date = os.getenv("TICK_START", "2018-06-27T13:00+02:00")
 mongo_host = os.getenv("TULIP_MONGO", "localhost:27017").split(':')
-vm_ip = os.getenv("VM_IP", "10.10.3.1")
+team_id = os.getenv("TEAM_ID", "10.10.3.1")
 flagid_endpoint = os.getenv("FLAGID_ENDPOINT", "http://localhost:8000/flagids.json")
 
 print('STARTING FLAGIDS')
@@ -18,25 +18,20 @@ client = pymongo.MongoClient(mongo_host[0], int(mongo_host[1]))
 db = client['pcap']
 print('CONNECTION TO MONGO ESTABLISHED')
 
-IP_PATTERN = re.compile(r'^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$')
-
-# check if a string is an valid ip
-def is_ip(ip):
-    return IP_PATTERN.match(ip) is not None
-
 # get leaf nodes of a json data struct
 def get_leaf_nodes(data):
     if isinstance(data, dict):
-        for key, value in data.items():
-            if is_ip(key) and key != vm_ip:
-                continue
-            yield from get_leaf_nodes(value)
+        if team_id in data.keys():
+            yield from get_leaf_nodes(data[team_id])
+        else:
+            for key, value in data.items():
+                yield from get_leaf_nodes(value)
     elif isinstance(data, list):
         for item in data:
             yield from get_leaf_nodes(item)
     else:
-        # prevent ips from being used as Flagids
-        if not is_ip(data):
+        # prevent id from being used as Flagids
+        if data != team_id:
             yield data
 
 def update_flagids():
