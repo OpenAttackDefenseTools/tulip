@@ -68,7 +68,7 @@ services:
       TULIP_MONGO: ${TULIP_MONGO}
       TICK_START: ${TICK_START}
       TICK_LENGTH: ${TICK_LENGTH}
-      VM_IP: ${VM_IP}
+      TEAM_ID: ${TEAM_ID}
       FLAGID_ENDPOINT: ${FLAGID_ENDPOINT}
 
   assembler:
