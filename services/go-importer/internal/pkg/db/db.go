@@ -248,17 +248,11 @@ func (db Database) AddSignature(sig Signature) string {
 	}
 }
 
-func (db Database) AddSignatureToFlow(flow FlowID, sig Signature, window int) bool {
-	// Add the signature to the collection
-	sig_id := db.AddSignature(sig)
-	if sig_id == "" {
-		return false
-	}
-
+func (db Database) findFlowInDB(flow FlowID, window int) (mongo.Collection, bson.M) {
 	// Find a flow that more or less matches the one we're looking for
 	flowCollection := db.client.Database("pcap").Collection("pcap")
 	epoch := int(flow.Time.UnixNano() / 1000000)
-	query := bson.M{
+	filter := bson.M{
 		"src_port": flow.Src_port,
 		"dst_port": flow.Dst_port,
 		"src_ip":   flow.Src_ip,
@@ -269,18 +263,40 @@ func (db Database) AddSignatureToFlow(flow FlowID, sig Signature, window int) bo
 		},
 	}
 
-	tags := []string{"suricata"}
+	return *flowCollection, filter
+}
 
-	// A tag from the signature if it contained one
+func (db Database) updateFlowInDB(flowCollection mongo.Collection, filter bson.M, update bson.M) bool {
+	// Enrich the flow with tag information
+	res, err := flowCollection.UpdateOne(context.TODO(), filter, update)
+	if err != nil {
+		log.Println("Error occured while editing record:", err)
+		return false
+	}
+
+	return res.MatchedCount > 0
+}
+
+func (db Database) AddSignatureToFlow(flow FlowID, sig Signature, window int) bool {
+	// Add the signature to the collection
+	sig_id := db.AddSignature(sig)
+	if sig_id == "" {
+		return false
+	}
+
+	tags := []string{"suricata"}
+	flowCollection, filter := db.findFlowInDB(flow, window)
+
+	// Add tag from the signature if it contained one
 	if sig.Tag != "" {
 		db.InsertTag(sig.Tag)
 		tags = append(tags, sig.Tag)
 	}
 
-	var info bson.M
+	var update bson.M
 	// TODO; This can probably be done more elegantly, right?
 	if sig.Action == "blocked" {
-		info = bson.M{
+		update = bson.M{
 			"$set": bson.M{
 				"blocked": true,
 			},
@@ -292,7 +308,7 @@ func (db Database) AddSignatureToFlow(flow FlowID, sig Signature, window int) bo
 			},
 		}
 	} else {
-		info = bson.M{
+		update = bson.M{
 			"$addToSet": bson.M{
 				"tags": bson.M{
 					"$each": tags,
@@ -302,17 +318,30 @@ func (db Database) AddSignatureToFlow(flow FlowID, sig Signature, window int) bo
 		}
 	}
 
-	// enrich the flow with suricata information
-	res, err := flowCollection.UpdateOne(context.TODO(), query, info)
-
-	if err != nil {
-		log.Println("Error occured while editing record:", err)
-		return false
-	}
-
-	return res.MatchedCount > 0
+	return db.updateFlowInDB(flowCollection, filter, update)
 }
 
+func (db Database) AddTagsToFlow(flow FlowID, tags []string, window int) bool {
+	flowCollection, filter := db.findFlowInDB(flow, window)
+
+	// Add tags to tag collection
+	for _, tag := range tags {
+		db.InsertTag(tag)
+	}
+
+	// Update this flow with the tags
+	update := bson.M{
+		"$addToSet": bson.M{
+			"tags": bson.M{
+				"$each": tags,
+			},
+		},
+	}
+
+	// Apply update to database
+	return db.updateFlowInDB(flowCollection, filter, update)
+
+}
 func (db Database) InsertTag(tag string) {
 	tagCollection := db.client.Database("pcap").Collection("tags")
 	// Yeah this will err... A lot.... Two more dev days till Athens, this will do.
