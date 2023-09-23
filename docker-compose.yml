@@ -13,13 +13,13 @@ services:
       context: frontend
       dockerfile: Dockerfile-frontend
     image: tulip-frontend:latest
+    restart: on-failure
     ports:
       - "3000:3000"
     expose:
       - 3000
     depends_on:
       - mongo
-    restart: always
     networks:
       - internal
     environment:
@@ -35,13 +35,13 @@ services:
       - "127.0.0.1:5000:5000"
     expose:
       - 5000
+    restart: on-failure
     depends_on:
       - mongo
     networks:
       - internal
     volumes:
       - ${TRAFFIC_DIR_HOST}:${TRAFFIC_DIR_DOCKER}:ro,z
-    restart: always
     environment:
       TULIP_MONGO: ${TULIP_MONGO}
       TULIP_TRAFFIC_DIR: ${TRAFFIC_DIR_DOCKER}
@@ -49,12 +49,14 @@ services:
       TICK_START: ${TICK_START}
       TICK_LENGTH: ${TICK_LENGTH}
       VISUALIZER_URL: ${VISUALIZER_URL}
+      DUMP_PCAPS: ${DUMP_PCAPS}
 
   assembler:
     build:
       context: services/go-importer
       dockerfile: Dockerfile-assembler
     image: tulip-assembler:latest
+    restart: on-failure
     depends_on:
       - mongo
     networks:
@@ -67,17 +69,21 @@ services:
     # - -skipchecksum: skip checksum validation.
     # - -flush-after: i.e. 2m Not needed in pcap rotation mode
     # - -disable-converters: disable converters
-    command: "./assembler -http-session-tracking -dir ${TRAFFIC_DIR_DOCKER}"
-    restart: always
+    command: "./assembler -http-session-tracking -skipchecksum -dir ${TRAFFIC_DIR_DOCKER}"
     environment:
       TULIP_MONGO: ${TULIP_MONGO}
       FLAG_REGEX: ${FLAG_REGEX}
+      PCAP_OVER_IP: ${PCAP_OVER_IP}
+      DUMP_PCAPS: ${DUMP_PCAPS}
+      DUMP_PCAPS_INTERVAL: ${DUMP_PCAPS_INTERVAL}
+      DUMP_PCAPS_FILENAME: ${DUMP_PCAPS_FILENAME}
 
   enricher:
     build:
       context: services/go-importer
       dockerfile: Dockerfile-enricher
     image: tulip-enricher:latest
+    restart: on-failure
     depends_on:
       - mongo
     networks:

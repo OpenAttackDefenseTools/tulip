@@ -4,13 +4,14 @@ import (
 	"bufio"
 	"bytes"
 	"compress/gzip"
-	"github.com/andybalholm/brotli"
 	"go-importer/internal/pkg/db"
 	"hash/crc32"
 	"io"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+
+	"github.com/andybalholm/brotli"
 )
 
 const DecompressionSizeLimit = int64(streamdoc_limit)
@@ -42,23 +43,31 @@ func ParseHttpFlow(flow *db.FlowEntry) {
 		if flowItem.From == "c" {
 			// HTTP Request
 			req, err := http.ReadRequest(reader)
-			if err != nil {
+			if err != nil || req == nil {
 				continue
 			}
+
+			if !containsTag(flow.Tags, "http") {
+				flow.Tags = append(flow.Tags, "http")
+			}
+
 			if *http_session_tracking {
 				// Parse cookie and grab fingerprints
 				AddFingerprints(req.Cookies(), fingerprintsSet)
 			}
-			continue
+
 			//TODO; replace the HTTP data.
 			// Remember to use a `LimitReader` when implementing this to prevent
 			// decompressions bombs / DOS!
-
 		} else if flowItem.From == "s" {
 			// Parse HTTP Response
 			res, err := http.ReadResponse(reader, nil)
-			if err != nil {
+			if err != nil || res == nil {
 				continue
+			}
+
+			if !containsTag(flow.Tags, "http") {
+				flow.Tags = append(flow.Tags, "http")
 			}
 
 			if *http_session_tracking {
@@ -79,6 +88,7 @@ func ParseHttpFlow(flow *db.FlowEntry) {
 				// Failed to fully read the body. Bail out here
 				continue
 			}
+
 			switch encoding[0] {
 			case "gzip":
 				newReader, err = handleGzip(res.Body)

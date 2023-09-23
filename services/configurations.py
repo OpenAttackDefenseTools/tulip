@@ -8,12 +8,12 @@
 # Copyright ©2018 Brunello Simone
 # Copyright ©2018 Alessio Marotta
 # DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
-# 
+#
 # Flower is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # Flower is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -26,6 +26,7 @@ import os
 from pathlib import Path
 
 traffic_dir = Path(os.getenv("TULIP_TRAFFIC_DIR", "/traffic"))
+dump_pcaps_dir = Path(os.getenv("DUMP_PCAPS", "/traffic"))
 tick_length = os.getenv("TICK_LENGTH", 2*60*1000)
 flag_lifetime = os.getenv("FLAG_LIFETIME", 5)
 start_date = os.getenv("TICK_START", "2018-06-27T13:00+02:00")

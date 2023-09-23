@@ -45,21 +45,16 @@ func main() {
 }
 
 func watchEve(eve_file string) {
-	stat, err := os.Stat(eve_file)
-	if err != nil {
-		log.Fatal("Failed to open the eve file with error: ", err)
-	}
-
-	if stat.IsDir() {
-		log.Fatal("eve file is not a file")
-	}
-
 	// Do the initial scan
 	log.Println("Parsing initial eve contents...")
 	ratchet := updateEve(eve_file, 0)
 
 	log.Println("Monitoring eve file: ", eve_file)
-	prevSize := stat.Size()
+	stat, err := os.Stat(eve_file)
+	prevSize := int64(0)
+	if err == nil {
+		prevSize = stat.Size()
+	}
 
 	for {
 		time.Sleep(time.Duration(*rescan_period) * time.Second)
