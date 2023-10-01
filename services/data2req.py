@@ -28,6 +28,8 @@ from jinja2 import Environment, BaseLoader
 from io import BytesIO
 import json
 
+from database import FlowDetail
+
 discard_cookies = ["PHPSESSID", "wordpress_logged_in_", "session"]
 
 #class to parse request informations
@@ -53,7 +55,7 @@ class HTTPRequest(BaseHTTPRequestHandler):
         self.error_code = code
         self.error_message = message
 
-def decode_http_request(raw_request, tokenize):
+def decode_http_request(raw_request: bytes, tokenize):
     request = HTTPRequest(raw_request)
 
     data = {}
@@ -101,9 +103,11 @@ def decode_http_request(raw_request, tokenize):
     return request, data, data_param_name, headers
 
 # tokenize used for automatically fill data param of request
-def convert_single_http_requests(raw_request, flow, tokenize=True, use_requests_session=False):
+def convert_single_http_requests(flow: FlowDetail, tokenize=True, use_requests_session=False):
+    if not flow.items:
+        return "No data"
 
-    request, data, data_param_name, headers = decode_http_request(raw_request, tokenize)
+    request, data, data_param_name, headers = decode_http_request(flow.items[0].data, tokenize)
     if not request.path.startswith('/'):
         raise Exception('request path must start with / to be a valid HTTP request')
     request_path_repr = repr(request.path)
@@ -137,15 +141,15 @@ data = {{data}}
             request_path_repr=request_path_repr,
             data_param_name=data_param_name,
             use_requests_session=use_requests_session,
-            port=flow["dst_port"]
+            port=flow.port_dst,
         )
 
 
 def render(template, **kwargs):
     return Environment(loader=BaseLoader()).from_string(template).render(kwargs)
 
-def convert_flow_to_http_requests(flow, tokenize=True, use_requests_session=True):
-    port = flow["dst_port"]
+def convert_flow_to_http_requests(flow: FlowDetail, tokenize=True, use_requests_session=True):
+    port = flow.port_dst
     script = render("""import os
 import requests
 import sys
@@ -158,9 +162,9 @@ EXTRA = json.loads(os.getenv('TARGET_EXTRA', '[]'))
 s = requests.Session()
 {% endif %}""",use_requests_session=use_requests_session,
             port=port)
-    for message in flow['flow'][0]['flow']:
-        if message['from'] == 'c':
-            request, data, data_param_name, headers = decode_http_request(message['data'].encode(), tokenize)
+    for item in flow.kind_items():
+        if item.direction == 'c':
+            request, data, data_param_name, headers = decode_http_request(item.data, tokenize)
             request_method = validate_request_method(request.command)
             if not request.path.startswith('/'):
                 raise Exception('request path must start with / to be a valid HTTP request')

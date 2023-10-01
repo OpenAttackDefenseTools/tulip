@@ -6,6 +6,7 @@ import {
 } from "react-router-dom";
 import { useState, useRef, useEffect } from "react";
 import { useHotkeys } from 'react-hotkeys-hook';
+import { FetchBaseQueryError } from '@reduxjs/toolkit/query'
 import { Flow } from "../types";
 import {
   SERVICE_FILTER_KEY,
@@ -63,22 +64,30 @@ export function FlowList() {
 
   const debounced_text_filter = useDebounce(text_filter, 300);
 
-  const { data: flowData, isLoading, refetch } = useGetFlowsQuery(
+  const { data: flowData, error: flowQueryError, isLoading, refetch } = useGetFlowsQuery(
     {
-      "flow.data": debounced_text_filter,
-      dst_ip: service?.ip,
-      dst_port: service?.port,
-      from_time: from_filter,
-      to_time: to_filter,
-      service: "", // FIXME
-      includeTags: includeTags,
-      excludeTags: excludeTags
+      regex_insensitive: debounced_text_filter,
+      ip_dst: service?.ip,
+      port_dst: service?.port,
+      time_from: from_filter ? new Date(parseInt(from_filter)).toISOString() : undefined,
+      time_to: to_filter ? new Date(parseInt(to_filter)).toISOString() : undefined,
+      tags_include: includeTags,
+      tags_exclude: excludeTags,
     },
     {
       refetchOnMountOrArgChange: true,
       pollingInterval: FLOW_LIST_REFETCH_INTERVAL_MS,
     }
   );
+
+  interface FlowQueryError { error: string }
+  const isFetchBaseQueryError = (error: unknown): error is FetchBaseQueryError =>
+    typeof error === 'object' && error != null && 'status' in error
+  const isFlowQueryError = (error: unknown): error is FlowQueryError =>
+    typeof error === 'object' && error != null && 'error' in error
+  const flowQueryErrorMessage = isFetchBaseQueryError(flowQueryError)
+    && isFlowQueryError(flowQueryError.data)
+    ? flowQueryError.data.error : null;
 
   // TODO: fix the below transformation - move it to server
   // Diederik gives you a beer once it has been fixed
@@ -90,7 +99,7 @@ export function FlowList() {
   }));
 
   const onHeartHandler = async (flow: Flow) => {
-    await starFlow({ id: flow._id.$oid, star: !flow.tags.includes("starred") });
+    await starFlow({ id: flow.id, star: !flow.tags.includes("starred") });
   };
 
   const navigate = useNavigate();
@@ -101,7 +110,7 @@ export function FlowList() {
         behavior: 'auto',
         done: () => {
           if (transformedFlowData && transformedFlowData[flowIndex ?? 0]) {
-            let idAtIndex = transformedFlowData[flowIndex ?? 0]._id.$oid;
+            let idAtIndex = transformedFlowData[flowIndex ?? 0].id;
             // if the current flow ID at the index indeed did change (ie because of keyboard navigation), we need to update the URL as well as local ID
             if (idAtIndex !== openedFlowID) {
               navigate(`/flow/${idAtIndex}?${searchParams}`)
@@ -124,7 +133,7 @@ export function FlowList() {
         setTransformedFlowDataLength(transformedFlowData?.length)
 
         for (let i = 0; i < transformedFlowData?.length; i++) {
-          if (transformedFlowData[i]._id.$oid === openedFlowID) {
+          if (transformedFlowData[i].id === openedFlowID) {
             if (i !== flowIndex) {
               setFlowIndex(i)
             }
@@ -193,6 +202,7 @@ export function FlowList() {
         )}
       </div>
       <div></div>
+      { flowQueryErrorMessage && <div>Error: {flowQueryErrorMessage}</div> }
       <Virtuoso
         className={classNames({
           "flex-1": true,
@@ -204,16 +214,16 @@ export function FlowList() {
         initialTopMostItemIndex={flowIndex}
         itemContent={(index, flow) => (
           <Link
-            to={`/flow/${flow._id.$oid}?${searchParams}`}
+            to={`/flow/${flow.id}?${searchParams}`}
             onClick={() => setFlowIndex(index)}
-            key={flow._id.$oid}
+            key={flow.id}
             className="focus-visible:rounded-md"
             //style={{ paddingTop: '1em' }}
           >
             <FlowListEntry
-              key={flow._id.$oid}
+              key={flow.id}
               flow={flow}
-              isActive={flow._id.$oid === openedFlowID}
+              isActive={flow.id === openedFlowID}
               onHeartClick={onHeartHandler}
             />
           </Link>
@@ -264,8 +274,7 @@ function FlowListEntry({ flow, isActive, onHeartClick }: FlowListEntryProps) {
         </div>
 
         <div className="w-5 mr-2 self-center shrink-0">
-          {flow.child_id.$oid != "000000000000000000000000" ||
-          flow.parent_id.$oid != "000000000000000000000000" ? (
+          {flow.child_id != null || flow.parent_id != null ? (
             <LinkIcon className="text-blue-500" />
           ) : undefined}
         </div>

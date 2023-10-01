@@ -24,6 +24,8 @@
 
 import base64
 
+from database import FlowDetail
+
 def escape(i):
     if isinstance(i, str):
         i = ord(i)
@@ -36,10 +38,7 @@ def convert(message):
     return ''.join([escape(i) for i in message])
 
 #convert a flow into pwn script
-def flow2pwn(flow):
-    ip = flow["dst_ip"]
-    port = flow["dst_port"]
-
+def flow2pwn(flow: FlowDetail):
     script = """from pwn import *
 import sys
 
@@ -48,15 +47,14 @@ HOST = os.getenv('TARGET_IP')
 EXTRA = json.loads(os.getenv('TARGET_EXTRA', '[]'))
 
 proc = remote(HOST, {})
-""".format(port)
+""".format(flow.port_dst)
 
-    for message in flow['flow'][0]['flow']:
-        data = base64.b64decode(message["b64"])
-        if message['from'] == 'c':
-            script += """proc.write(b"{}")\n""".format(convert(data))
+    for item in flow.kind_items():
+        if item.direction == 'c':
+            script += """proc.write(b"{}")\n""".format(convert(item.data))
 
         else:
-            script += """proc.recvuntil(b"{}")\n""".format(convert(data[-10:]).replace("\n","\\n"))
+            script += """proc.recvuntil(b"{}")\n""".format(convert(item.data[-10:]).replace("\n","\\n"))
 
     return script
 

@@ -4,6 +4,7 @@ import (
 	"go-importer/internal/converters"
 	"go-importer/internal/pkg/db"
 	"io/ioutil"
+	"runtime"
 
 	"github.com/gammazero/workerpool"
 
@@ -38,7 +39,7 @@ var tstype = ""
 var promisc = true
 
 var watch_dir = flag.String("dir", "", "Directory to watch for new pcaps")
-var mongodb = flag.String("mongo", "", "MongoDB dns name + port (e.g. mongo:27017)")
+var timescale = flag.String("timescale", "", "Timescale connection string (e. g. postgres://usr:pwd@host:5432/tulip)")
 var flag_regex = flag.String("flag", "", "flag regex, used for flag in/out tagging")
 var pcap_over_ip = flag.String("pcap-over-ip", "", "PCAP-over-IP host + port (e.g. remote:1337)")
 var bpf = flag.String("bpf", "", "BPF filter")
@@ -47,7 +48,7 @@ var skipchecksum = flag.Bool("skipchecksum", false, "Do not check the TCP checks
 var http_session_tracking = flag.Bool("http-session-tracking", false, "Enable http session tracking.")
 var disableConverters = flag.Bool("disable-converters", false, "Disable converters in case they cause issues")
 var concurrentConverters = flag.Int("concurrent-converters", 2, "How many processes should be started per single converter")
-var concurrentFlows = flag.Int("concurrent-flows", 4, "How many flows should be processed at the same time")
+var concurrentFlows = flag.Int("concurrent-flows", 0, "How many flows should be processed at the same time")
 var flushAfter = flag.String("flush-after", "30s", `(TCP) Connections which have buffered packets (they've gotten packets out of order and
 are waiting for old packets to fill the gaps) can be flushed after they're this old
 (their oldest gap is skipped). This is particularly useful for pcap-over-ip captures.
@@ -71,22 +72,25 @@ var dumpPcapsInterval = flag.String("dump-pcaps-interval", "5m", `Period for PCA
 Any string parsed by time.ParseDuration is acceptable here (ie. "3m", "2h45m").`)
 var dumpPcapsFilename = flag.String("dump-pcaps-filename", "2006-01-02_15-04-05.pcap", `Filename for dumped PCAP.
 Reference: https://pkg.go.dev/time#Layout`)
+var maxFlowItemSize = flag.Int("max-flow-item-size", 16, `Maximum size in MiB of one flow item record.
+While PostgreSQL technically supports values up to 1GiB, they are not very nice to work with.`)
+var discardExtraData = flag.Bool("discard-extra-data", false, `If set, any data above max-flow-item-size is silently discarded.
+If not set, data is split into multiple consecutive flow items.`)
 
 var g_db db.Database
-
-var callbackWorkers *workerpool.WorkerPool
+var workerPool *workerpool.WorkerPool
 
 // TODO; FIXME; RDJ; this is kinda gross, but this is PoC level code
 func reassemblyCallback(entry db.FlowEntry) {
 	// By default, the callback passed is blocking per single packet. If for some reason converters hang,
 	// we *really* don't want to end up in a situation where we don't get any packets ingested until the converter
 	// times out.
-	callbackWorkers.Submit(func() {
+	workerPool.Submit(func() {
 		// Parsing HTTP will decode encodings to a plaintext format
-		ParseHttpFlow(&entry)
+		ParseHttpFlow(&g_db, &entry)
 
 		if !*disableConverters {
-			converters.RunPipeline(&entry)
+			converters.RunPipeline(&g_db, &entry)
 		}
 
 		// Apply flag in / flagout
@@ -95,7 +99,7 @@ func reassemblyCallback(entry db.FlowEntry) {
 		}
 
 		// Finally, insert the new entry
-		g_db.InsertFlow(entry)
+		g_db.FlowInsert(entry)
 	})
 }
 
@@ -168,15 +172,18 @@ func main() {
 		log.Fatal("Usage: ./go-importer <file0.pcap> ... <fileN.pcap>")
 	}
 
-	callbackWorkers = workerpool.New(*concurrentFlows)
-
-	// If no mongo DB was supplied, try the env variable
-	if *mongodb == "" {
-		*mongodb = os.Getenv("TULIP_MONGO")
-		// if that didn't work, just guess a reasonable default
-		if *mongodb == "" {
-			*mongodb = "localhost:27017"
+	if concurrentFlows == nil || *concurrentFlows == 0 {
+		*concurrentFlows = runtime.NumCPU() / 2
+		if *concurrentFlows < 4 {
+			*concurrentFlows = 4
 		}
+	}
+
+	workerPool = workerpool.New(*concurrentFlows)
+
+	// If no timescale connection string was supplied, use env variable
+	if *timescale == "" {
+		*timescale = os.Getenv("TIMESCALE")
 	}
 
 	// If no flag regex was supplied via cli, check the env
@@ -196,11 +203,9 @@ func main() {
 		*bpf = os.Getenv("BPF")
 	}
 
-	db_string := "mongodb://" + *mongodb
-	log.Println("Connecting to MongoDB:", db_string, "...")
-	g_db = db.ConnectMongo(db_string)
-	log.Println("Connected, configuring MongoDB database")
-	g_db.ConfigureDatabase()
+	log.Println("Connecting to Timescale:", *timescale)
+	g_db = db.NewDatabase(*timescale)
+
 	service := NewAssemblerService()
 	service.BpfFilter = *bpf
 
@@ -407,11 +412,9 @@ func (service *AssemblerService) ProcessPcapHandle(handle *pcap.Handle, sourceNa
 		}
 	}
 
-	processedCount := int64(0)
-	processedExists, processedPcap := g_db.GetPcap(sourceName)
-	if processedExists {
-		processedCount = processedPcap.Position
-		log.Println("Skipped", processedCount, "packets from", sourceName)
+	pcap := g_db.PcapFindOrInsert(sourceName)
+	if pcap.Position != 0 {
+		log.Println("Skipped", pcap.Position, "packets from", sourceName)
 	}
 
 	var source *gopacket.PacketSource
@@ -442,14 +445,14 @@ func (service *AssemblerService) ProcessPcapHandle(handle *pcap.Handle, sourceNa
 		// NOTE: PCAP-over-IP: pcapOpenOfflineFile is blocking so we need at least see some packets passing by to get here.
 		if service.FlushInterval != 0 && lastFlush.Add(service.FlushInterval).Unix() < time.Now().Unix() {
 			service.FlushConnections()
-			log.Println("Processed", count-processedCount, "packets from", sourceName)
+			log.Println("Processed", count - pcap.Position, "packets from", sourceName, "(so far)")
 			lastFlush = time.Now()
 		}
 
 		count++
 
 		// Skip packets that were already processed from this pcap
-		if count < processedCount+1 {
+		if count < pcap.Position + 1 {
 			continue
 		}
 
@@ -543,9 +546,9 @@ func (service *AssemblerService) ProcessPcapHandle(handle *pcap.Handle, sourceNa
 		}
 	}
 
+	g_db.PcapSetPosition(pcap.Id, pcap.Position)
 	service.FlushConnections()
-	log.Println("Processed", count-processedCount, "packets from", sourceName)
-	g_db.InsertPcap(sourceName, count)
+	log.Println("Processed", count - pcap.Position, "packets from", sourceName)
 }
 
 func (service *AssemblerService) DumpPacket(packet *gopacket.Packet) {
@@ -558,7 +561,8 @@ func (service *AssemblerService) DumpPacket(packet *gopacket.Packet) {
 		service.DumpFilename = filepath.Join(service.DumpDirectory, now.Format(*dumpPcapsFilename))
 
 		// Do this to make sure we dont try to read this pcap with watch-dir
-		g_db.InsertPcap(service.DumpFilename, math.MaxInt64)
+		pcap := g_db.PcapFindOrInsert(service.DumpFilename)
+		g_db.PcapSetPosition(pcap.Id, math.MaxInt64)
 
 		file, err := os.Create(service.DumpFilename)
 		if err != nil {

@@ -4,11 +4,10 @@ import (
 	"go-importer/internal/pkg/db"
 
 	"time"
+	"net/netip"
 
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
-
-	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type UdpAssembler struct {
@@ -108,7 +107,7 @@ func (stream *UdpStream) ProcessSegment(flow gopacket.Flow, udp *layers.UDP, cap
 	stream.PacketSize += uint(len(udp.Payload))
 
 	// We have to make sure to stay under the document limit
-	available := uint(streamdoc_limit) - stream.PacketSize
+	available := uint(*maxFlowItemSize * 1024 * 1024) - stream.PacketSize
 	length := uint(len(udp.Payload))
 	if length > available {
 		length = available
@@ -118,9 +117,10 @@ func (stream *UdpStream) ProcessSegment(flow gopacket.Flow, udp *layers.UDP, cap
 	}
 
 	stream.Items = append(stream.Items, db.FlowItem{
+		Kind: "raw",
 		From: from,
-		Data: string(udp.Payload[:length]),
-		Time: int(captureInfo.Timestamp.UnixNano() / 1000000), // TODO; maybe use int64?
+		Data: udp.Payload[:length],
+		Time: captureInfo.Timestamp,
 	})
 }
 
@@ -130,21 +130,23 @@ func (stream *UdpStream) CompleteReassembly() *db.FlowEntry {
 	}
 
 	src, dst := stream.Flow.Endpoints()
+	ip_src, _ := netip.ParseAddr(src.String())
+	ip_dst, _ := netip.ParseAddr(dst.String())
+
 	return &db.FlowEntry{
-		Src_port:    int(stream.PortSrc),
-		Dst_port:    int(stream.PortDst),
-		Src_ip:      src.String(),
-		Dst_ip:      dst.String(),
+		Src_port:    uint16(stream.PortSrc),
+		Dst_port:    uint16(stream.PortDst),
+		Src_ip:      ip_src,
+		Dst_ip:      ip_dst,
 		Time:        stream.Items[0].Time,
-		Duration:    stream.Items[len(stream.Items)-1].Time - stream.Items[0].Time,
+		Duration:    stream.Items[len(stream.Items)-1].Time.Sub(stream.Items[0].Time),
 		Num_packets: int(stream.PacketCount),
-		Parent_id:   primitive.NilObjectID,
-		Child_id:    primitive.NilObjectID,
+		Parent_id:   nil,
+		Child_id:    nil,
 		Blocked:     false,
 		Tags:        []string{"udp"},
-		Suricata:    make([]int, 0),
 		Filename:    stream.Source,
-		Flow:        []db.FlowRepresentation{{Type: "raw", Flow: stream.Items}},
+		Flow:        stream.Items,
 		Size:        int(stream.PacketSize),
 	}
 }

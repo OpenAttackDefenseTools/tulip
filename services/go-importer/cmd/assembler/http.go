@@ -14,8 +14,6 @@ import (
 	"github.com/andybalholm/brotli"
 )
 
-const DecompressionSizeLimit = int64(streamdoc_limit)
-
 func AddFingerprints(cookies []*http.Cookie, fingerPrints map[uint32]bool) {
 	for _, cookie := range cookies {
 
@@ -31,14 +29,18 @@ func AddFingerprints(cookies []*http.Cookie, fingerPrints map[uint32]bool) {
 // parsed are left as-is.
 //
 // If we manage to simplify a flow, the new data is placed in flowEntry.data
-func ParseHttpFlow(flow *db.FlowEntry) {
+func ParseHttpFlow(g_db *db.Database, flow *db.FlowEntry) {
 	// Use a set to get rid of duplicates
 	fingerprintsSet := make(map[uint32]bool)
 
-	for idx := 0; idx < len(flow.Flow[0].Flow); idx++ {
-		flowItem := &flow.Flow[0].Flow[idx]
+	for _, flowItem := range flow.Flow {
+		// Run only on raw representation
+		if flowItem.Kind != "raw" {
+			continue
+		}
+
 		// TODO; rethink the flowItem format to make this less clunky
-		reader := bufio.NewReader(bytes.NewReader(flowItem.RawData))
+		reader := bufio.NewReader(bytes.NewReader(flowItem.Data))
 
 		if flowItem.From == "c" {
 			// HTTP Request
@@ -108,7 +110,7 @@ func ParseHttpFlow(flow *db.FlowEntry) {
 			// Replace the reader to allow for in-place decompression
 			if err == nil && newReader != nil {
 				// Limit the reader to prevent potential decompression bombs
-				res.Body = io.NopCloser(io.LimitReader(newReader, DecompressionSizeLimit))
+				res.Body = io.NopCloser(io.LimitReader(newReader, int64(*maxFlowItemSize * 1024 * 1024)))
 				// Delete the content-encoding header as we've basically skipped its purpose (otherwise, pkappa converters will have issues as they think it's still encoded).
 				// In case of multiple values there, this logic wouldn't be hit anyway
 				res.Header.Del("Content-Encoding")
@@ -121,9 +123,9 @@ func ParseHttpFlow(flow *db.FlowEntry) {
 				}
 				// This can exceed the mongo document limit, so we need to make sure
 				// the replacement will fit
-				new_size := flow.Size + (len(replacement) - len(flowItem.RawData))
-				if new_size <= streamdoc_limit {
-					flowItem.RawData = replacement
+				new_size := flow.Size + (len(replacement) - len(flowItem.Data))
+				if new_size <= *maxFlowItemSize * 1024 * 1024 {
+					flowItem.Data = replacement
 					flow.Size = new_size
 				}
 			}

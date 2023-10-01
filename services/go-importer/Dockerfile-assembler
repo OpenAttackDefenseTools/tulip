@@ -1,4 +1,4 @@
-FROM golang:1.18-alpine
+FROM golang:1.19-alpine
 
 RUN apk add --no-cache git make build-base libpcap-dev python3 py3-pip python3-dev bsd-compat-headers openssl-dev
 

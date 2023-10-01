@@ -2,7 +2,7 @@ package main
 
 import (
 	"go-importer/internal/pkg/db"
-	"net"
+	"net/netip"
 
 	"bufio"
 	"errors"
@@ -11,17 +11,16 @@ import (
 	"os"
 	"time"
 
+	"github.com/gofrs/uuid/v5"
 	"github.com/tidwall/gjson"
 )
 
 var eve_file = flag.String("eve", "", "Eve file to watch for suricata's tags")
-var mongodb = flag.String("mongo", "", "MongoDB dns name + port (e.g. mongo:27017)")
+var timescale = flag.String("timescale", "", "Timescale connection string (e. g. postgres://usr:pwd@host:5432/tulip)")
 var tag_flowbits = flag.Bool("flowbits", true, "Tag flows with their flowbits")
 var rescan_period = flag.Int("t", 30, "rescan period (in seconds).")
 
 var g_db db.Database
-
-const WINDOW = 5000 // ms
 
 func main() {
 	flag.Parse()
@@ -29,17 +28,13 @@ func main() {
 		log.Fatal("Usage: ./enricher -eve eve.json")
 	}
 
-	// If no mongo DB was supplied, try the env variable
-	if *mongodb == "" {
-		*mongodb = os.Getenv("TULIP_MONGO")
-		// if that didn't work, just guess a reasonable default
-		if *mongodb == "" {
-			*mongodb = "localhost:27017"
-		}
+	// If no timescale connection string was supplied, use env variable
+	if *timescale == "" {
+		*timescale = os.Getenv("TIMESCALE")
 	}
 
-	db_string := "mongodb://" + *mongodb
-	g_db = db.ConnectMongo(db_string)
+	log.Println("Connecting to Timescale:", *timescale, "...")
+	g_db = db.NewDatabase(*timescale)
 
 	watchEve(*eve_file)
 }
@@ -151,10 +146,6 @@ func updateEve(eve_file string, ratchet int64) int64 {
 		}
 	}
 */
-type suricataLog struct {
-	flow      db.FlowID
-	signature db.Signature
-}
 
 func handleEveLine(json string) (bool, error) {
 	if !gjson.Valid(json) {
@@ -171,58 +162,56 @@ func handleEveLine(json string) (bool, error) {
 	sig_msg := gjson.Get(json, "alert.signature")
 	sig_id := gjson.Get(json, "alert.signature_id")
 	sig_action := gjson.Get(json, "alert.action")
-	tag := ""
-	jtag := gjson.Get(json, "alert.metadata.tag.0")
 	flowbits := gjson.Get(json, "metadata.flowbits")
 
 	// canonicalize the IP address notation to make sure it matches what the assembler entered
 	// into the database.
 	// TODO; just assuming these are all valid for now. Should be fine, since this is coming from
 	// suricata and is not _really_ user controlled. Might panic in some obscure case though.
-	src_ip_str := net.ParseIP(src_ip.String()).String()
-	dst_ip_str := net.ParseIP(dst_ip.String()).String()
+	ip_src, _ := netip.ParseAddr(src_ip.String())
+	ip_dst, _ := netip.ParseAddr(dst_ip.String())
 
 	// TODO; Double check this, might be broken for non-UTC?
 	start_time_obj, _ := time.Parse("2006-01-02T15:04:05.999999999-0700", start_time.String())
-
-	if jtag.Exists() {
-		tag = jtag.String()
-	}
 
 	// If no action was taken, there's no need for us to do anything with this line.
 	if !(sig_action.Exists() || (flowbits.Exists() && *tag_flowbits)) {
 		return false, nil
 	}
 
-	id := db.FlowID{
+	flow_id, _ := g_db.SuricataIdFindFlow(db.SuricataId {
 		Src_port: int(src_port.Int()),
-		Src_ip:   src_ip_str,
+		Src_ip:   ip_src,
 		Dst_port: int(dst_port.Int()),
-		Dst_ip:   dst_ip_str,
+		Dst_ip:   ip_dst,
 		Time:     start_time_obj,
+	})
+
+	if flow_id == uuid.Nil {
+		flow_id, _ = g_db.SuricataIdFindFlow(db.SuricataId {
+			Dst_port: int(src_port.Int()),
+			Dst_ip:   ip_src,
+			Src_port: int(dst_port.Int()),
+			Src_ip:   ip_dst,
+			Time:     start_time_obj,
+		})
 	}
 
-	id_rev := db.FlowID{
-		Dst_port: int(src_port.Int()),
-		Dst_ip:   src_ip_str,
-		Src_port: int(dst_port.Int()),
-		Src_ip:   dst_ip_str,
-		Time:     start_time_obj,
+	if flow_id == uuid.Nil {
+		return false, nil
 	}
 
 	ret := false
 	if sig_action.Exists() {
 
 		sig := db.Signature{
-			ID:     int(sig_id.Int()),
-			Msg:    sig_msg.String(),
-			Action: sig_action.String(),
-			Tag:    tag,
+			Id:      int32(sig_id.Int()),
+			Message: sig_msg.String(),
+			Action:  sig_action.String(),
 		}
 
-		// TODO; use one, sensible query instead of just trying both cases
-		ret = g_db.AddSignatureToFlow(id, sig, WINDOW)
-		ret = ret || g_db.AddSignatureToFlow(id_rev, sig, WINDOW)
+		g_db.FlowAddSignatures(flow_id, []db.Signature{sig})
+		ret = true
 	}
 
 	if !(flowbits.Exists() && *tag_flowbits) {
@@ -235,8 +224,6 @@ func handleEveLine(json string) (bool, error) {
 		return true // keep iterating
 	})
 
-	// TODO; use one, sensible query instead of just trying both cases
-	ret = g_db.AddTagsToFlow(id, tags, WINDOW)
-	ret = ret || g_db.AddTagsToFlow(id_rev, tags, WINDOW)
-	return ret, nil
+	g_db.FlowAddTags(flow_id, tags)
+	return true, nil
 }

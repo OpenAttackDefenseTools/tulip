@@ -4,7 +4,6 @@ import { API_BASE_PATH } from "./const";
 import {
   Service,
   FullFlow,
-  Signature,
   TickInfo,
   Flow,
   FlowsQuery,
@@ -25,6 +24,39 @@ export const tulipApi = createApi({
     }),
     getFlow: builder.query<FullFlow, string>({
       query: (id) => `/flow/${id}`,
+      transformResponse: (flow: any): FullFlow => {
+        const representations: any = {};
+
+        for(const item of flow.items) {
+          if(!(item.kind in representations))
+            representations[item.kind] = { type: item.kind, flow: [] };
+          representations[item.kind].flow.push({
+            from: item.direction,
+            data: atob(item.data),
+            b64: item.data,
+            time: item.time,
+          });
+        }
+
+        return {
+          id: flow.id,
+          src_port: flow.port_src,
+          dst_port: flow.port_dst,
+          src_ip: flow.ip_src,
+          dst_ip: flow.ip_dst,
+          time: new Date(flow.time).getTime(),
+          duration: +(flow.duration * 1000).toFixed(0),
+          num_packets: flow.packets_count,
+          parent_id: flow.connected_parent_id,
+          child_id: flow.connected_child_id,
+          tags: flow.tags,
+          filename: flow.pcap_name,
+          service_tag: "",
+          suricata: [],
+          signatures: flow.signatures,
+          flow: Object.values(representations),
+        };
+      },
     }),
     getFlows: builder.query<Flow[], FlowsQuery>({
       query: (query) => ({
@@ -34,26 +66,39 @@ export const tulipApi = createApi({
           Accept: "application/json",
           "Content-Type": "application/json",
         },
-        // TODO: fix the below tags mutation (make backend handle empty tags!)
-        // Diederik gives you a beer once this has been fixed
-        body: JSON.stringify({
-          ...query,
-          includeTags: query.includeTags.length > 0 ? query.includeTags : undefined,
-          excludeTags: query.excludeTags.length > 0 ? query.excludeTags : undefined,
-        }),
+        body: query,
       }),
+      transformResponse: (response: Array<any>) => {
+        return response.map((flow: any): Flow => ({
+          id: flow.id,
+          src_port: flow.port_src,
+          dst_port: flow.port_dst,
+          src_ip: flow.ip_src,
+          dst_ip: flow.ip_dst,
+          time: new Date(flow.time).getTime(),
+          duration: +(flow.duration * 1000).toFixed(0),
+          num_packets: flow.packets_count,
+          parent_id: flow.connected_parent_id,
+          child_id: flow.connected_child_id,
+          tags: flow.tags,
+          filename: flow.pcap_name,
+          service_tag: "",
+          suricata: [],
+        }));
+      },
     }),
     getStats: builder.query<Stats[], StatsQuery>({
       query: (query) => ({
-        url: query.service === "" ? `/stats/all` : `/stats/${query.service}`,
+        url: `/stats`,
         method: "GET",
         headers: {
           Accept: "application/json",
           "Content-Type": "application/json",
         },
         params: {
-          from_tick: query.from_tick,
-          to_tick: query.to_tick
+          service: query.service,
+          tick_from: query.tick_from,
+          tick_to: query.tick_to,
         }
       })
     }),
@@ -71,9 +116,6 @@ export const tulipApi = createApi({
           to_tick: query.to_tick,
         }
       }),
-    }),
-    getSignature: builder.query<Signature[], number>({
-      query: (id) => `/signature/${id}`,
     }),
     toPwnTools: builder.query<string, string>({
       query: (id) => ({ url: `/to_pwn/${id}`, responseHandler: "text" }),
@@ -101,7 +143,15 @@ export const tulipApi = createApi({
       }),
     }),
     starFlow: builder.mutation<unknown, { id: string; star: boolean }>({
-      query: ({ id, star }) => `/star/${id}/${star ? "1" : "0"}`,
+      query: ({ id, star }) => ({
+        url: `/star`,
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+        body: { id, star },
+      }),
       // TODO: optimistic cache update
 
       // async onQueryStarted({ id, star }, { dispatch, queryFulfilled }) {
@@ -137,7 +187,6 @@ export const {
   useGetFlowsQuery,
   useLazyGetFlowsQuery,
   useGetTagsQuery,
-  useGetSignatureQuery,
   useGetTickInfoQuery,
   useLazyToPwnToolsQuery,
   useLazyToFullPythonRequestQuery,
