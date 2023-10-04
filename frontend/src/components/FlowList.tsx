@@ -64,7 +64,11 @@ export function FlowList() {
 
   const debounced_text_filter = useDebounce(text_filter, 300);
 
-  const { data: flowData, error: flowQueryError, isLoading, refetch } = useGetFlowsQuery(
+  const {
+    data: flowData, error: flowQueryError,
+    isLoading, isFetching, refetch,
+    startedTimeStamp, fulfilledTimeStamp,
+  } = useGetFlowsQuery(
     {
       regex_insensitive: debounced_text_filter,
       ip_dst: service?.ip,
@@ -88,6 +92,14 @@ export function FlowList() {
   const flowQueryErrorMessage = isFetchBaseQueryError(flowQueryError)
     && isFlowQueryError(flowQueryError.data)
     ? flowQueryError.data.error : null;
+
+  let searchMessage = null;
+  if(isFetching)
+    searchMessage = "Searching...";
+  else if(flowQueryErrorMessage)
+    searchMessage = `Error: ${flowQueryErrorMessage}`;
+  else if(startedTimeStamp && fulfilledTimeStamp)
+    searchMessage = `Search took ${fulfilledTimeStamp - startedTimeStamp}ms`
 
   // TODO: fix the below transformation - move it to server
   // Diederik gives you a beer once it has been fixed
@@ -202,7 +214,7 @@ export function FlowList() {
         )}
       </div>
       <div></div>
-      { flowQueryErrorMessage && <div>Error: {flowQueryErrorMessage}</div> }
+      { searchMessage && <div>{searchMessage}</div> }
       <Virtuoso
         className={classNames({
           "flex-1": true,

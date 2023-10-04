@@ -1,21 +1,31 @@
 CREATE TABLE tag (
-	name text PRIMARY KEY
+	name text PRIMARY KEY,
+	sort serial NOT NULL
 );
 
+-- This is the order in which tags should be displayed
+-- Change it hare if it should be different
+-- Newly encountered tags will be automaticcaly
+-- added to the end of this list
 INSERT INTO tag (name) VALUES
+	('tcp'),
+	('udp'),
+	('http'),
 	('flag-in'),
 	('flag-out'),
 	('blocked'),
 	('suricata'),
-	('starred'),
-	('tcp'),
-	('udp'),
-	('http');
+	('starred');
 
 CREATE TABLE pcap (
 	id uuid PRIMARY KEY,
 	name text NOT NULL UNIQUE,
 	position bigint NOT NULL DEFAULT 0
+);
+
+CREATE TABLE fingerprint (
+	id int PRIMARY KEY,
+	grp int NOT NULL
 );
 
 CREATE TABLE flow (
@@ -28,10 +38,10 @@ CREATE TABLE flow (
 	duration interval NOT NULL,
 	blocked boolean NOT NULL DEFAULT false,
 	pcap_id uuid NOT NULL,
-	connected_parent_id uuid,
-	connected_child_id uuid,
+	link_parent_id uuid,
+	link_child_id uuid,
 	tags jsonb NOT NULL DEFAULT '[]',
-	fingerprints jsonb NOT NULL DEFAULT '[]',
+	fingerprints int[] NOT NULL DEFAULT '{}',
 	signatures jsonb NOT NULL DEFAULT '[]',
 	packets_count int NOT NULL DEFAULT 0,
 	packets_size int NOT NULL DEFAULT 0,
@@ -39,11 +49,12 @@ CREATE TABLE flow (
 	flags_out int NOT NULL DEFAULT 0
 );
 
--- For suricata id lookup, see Database::SuricataIdFindFlow
+-- Suricata id lookup, see Database::SuricataIdFindFlow
 CREATE INDEX ON flow (id, port_src, port_dst, ip_src, ip_dst);
-
--- For tag search
+-- Tag search
 CREATE INDEX ON flow USING gin (tags);
+-- Fingerprint matching during assembly
+CREATE INDEX ON flow USING gin (fingerprints);
 
 SELECT create_hypertable(
 	'flow',
@@ -62,7 +73,7 @@ CREATE TABLE flow_item (
 	text text NOT NULL
 );
 
--- For regex search, this one is chonky
+-- Regex search, this one is chonky
 CREATE INDEX ON flow_item USING gin (text gin_trgm_ops);
 
 SELECT create_hypertable(

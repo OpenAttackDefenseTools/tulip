@@ -74,10 +74,8 @@ var dumpPcapsFilename = flag.String("dump-pcaps-filename", "2006-01-02_15-04-05.
 Reference: https://pkg.go.dev/time#Layout`)
 var maxFlowItemSize = flag.Int("max-flow-item-size", 16, `Maximum size in MiB of one flow item record.
 While PostgreSQL technically supports values up to 1GiB, they are not very nice to work with.`)
-var discardExtraData = flag.Bool("discard-extra-data", false, `If set, any data above max-flow-item-size is silently discarded.
-If not set, data is split into multiple consecutive flow items.`)
 
-var g_db db.Database
+var g_db *db.Database
 var workerPool *workerpool.WorkerPool
 
 // TODO; FIXME; RDJ; this is kinda gross, but this is PoC level code
@@ -87,10 +85,10 @@ func reassemblyCallback(entry db.FlowEntry) {
 	// times out.
 	workerPool.Submit(func() {
 		// Parsing HTTP will decode encodings to a plaintext format
-		ParseHttpFlow(&g_db, &entry)
+		ParseHttpFlow(g_db, &entry)
 
 		if !*disableConverters {
-			converters.RunPipeline(&g_db, &entry)
+			converters.RunPipeline(g_db, &entry)
 		}
 
 		// Apply flag in / flagout

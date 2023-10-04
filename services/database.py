@@ -46,8 +46,8 @@ class Flow:
     blocked: bool
     pcap_id: uuid.UUID
     pcap_name: str
-    connected_parent_id: uuid.UUID
-    connected_child_id: uuid.UUID
+    link_parent_id: uuid.UUID
+    link_child_id: uuid.UUID
     fingerprints: list[int]
     packets_count: int
     packets_size: int
@@ -184,7 +184,14 @@ class Connection(psycopg.Connection):
         """
         ).format(conditions=sql.SQL(" AND ").join(conditions))
         with self.cursor(row_factory=class_row(Flow)) as cursor:
-            return cursor.execute(sql_query, parameters).fetchall()
+            flows = cursor.execute(sql_query, parameters).fetchall()
+
+        # Filter out non-existing tags and sort the rest
+        tags = self.tag_list()
+        for flow in flows:
+            flow.tags = list(filter(lambda t: t in flow.tags, tags))
+
+        return flows
 
     def flow_detail(self, id: uuid.UUID) -> FlowDetail | None:
         # TODO: Indexes
@@ -204,6 +211,10 @@ class Connection(psycopg.Connection):
             return None
 
         flow.items = self.flow_item_query(flow)
+
+        # Filter out non-existing tags and sort the rest
+        flow.tags = list(filter(lambda t: t in flow.tags, self.tag_list()))
+
         return flow
 
     def flow_item_query(self, flow: Flow) -> list[FlowItem]:
@@ -308,5 +319,5 @@ class Connection(psycopg.Connection):
 
     def tag_list(self) -> list[str]:
         with self.cursor(row_factory=dict_row) as cursor:
-            tags = cursor.execute("SELECT name FROM tag").fetchall()
+            tags = cursor.execute("SELECT name FROM tag ORDER BY sort ASC").fetchall()
             return [t["name"] for t in tags]

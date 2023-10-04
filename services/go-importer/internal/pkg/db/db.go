@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/netip"
 	"runtime"
+	"sync"
 	"time"
 
 	"github.com/gammazero/workerpool"
@@ -23,17 +24,21 @@ const WINDOW_SURICATA_FIND = time.Duration(5 * time.Second)
 type Database struct {
 	pool *pgxpool.Pool
 	workerPool *workerpool.WorkerPool
-	channelFlowEntry CopyChannelPool
-	channelFlowItem CopyChannelPool
+	batcherFlowEntry *CopyBatcher
+	batcherFlowItem *CopyBatcher
+	knownTags map[string]struct{}
+	knownTagsMutex *sync.RWMutex
+	fingerprints [][]int32
+	fingerprintsMutex *sync.Mutex
 }
 
-func NewDatabase(connectionString string) Database {
+func NewDatabase(connectionString string) *Database {
 	poolConfig, err := pgxpool.ParseConfig(connectionString)
 	if err != nil {
 		log.Fatalln("Unable to parse database config: ", err)
 	}
 
-	database := Database {}
+	database := &Database {}
 	poolConfig.AfterConnect = database.AfterConnect
 
 	// Database connection pool
@@ -53,20 +58,41 @@ func NewDatabase(connectionString string) Database {
 	}
 
 	database.workerPool = workerpool.New(runtime.NumCPU() / 2)
-	database.channelFlowEntry = NewCopyChannelPool(CopyChannelContext {
-		db: &database,
-		table_name: pgx.Identifier{"flow"},
-		columns: []string{
+	database.batcherFlowEntry = NewCopyBatcher(CopyBatcherConfig {
+		db: database,
+		tableName: pgx.Identifier{"flow"},
+		columns: []string {
 			"id", "port_src", "port_dst", "ip_src", "ip_dst", "duration", "tags",
-			"blocked", "pcap_id", "connected_child_id", "connected_parent_id",
+			"blocked", "pcap_id", "link_child_id", "link_parent_id",
 			"fingerprints", "packets_count", "packets_size", "flags_in", "flags_out",
 		},
 	})
-	database.channelFlowItem = NewCopyChannelPool(CopyChannelContext {
-		db: &database,
-		table_name: pgx.Identifier{"flow_item"},
+	database.batcherFlowItem = NewCopyBatcher(CopyBatcherConfig {
+		db: database,
+		tableName: pgx.Identifier{"flow_item"},
 		columns: []string{"id", "flow_id", "kind", "direction", "data", "text"},
 	})
+
+	// Fingerprints
+	// Periodically flush them into database
+	database.fingerprintsMutex = &sync.Mutex{}
+	go func() {
+		for range time.Tick(5 * time.Second) {
+			database.FingerprintsFlush()
+		}
+	}()
+
+	// Known tags
+	// Periodically update them in the background
+	// in case someone else added some, or we did
+	database.knownTagsMutex = &sync.RWMutex{}
+	database.knownTags = make(map[string]struct{})
+	database.KnownTagsUpdate()
+	go func() {
+		for range time.Tick(30 * time.Second) {
+			database.KnownTagsUpdate()
+		}
+	}()
 
 	return database
 }
@@ -135,6 +161,71 @@ func (db *Database) PcapSetPosition(id uuid.UUID, position int64) error {
 	return err
 }
 
+// Known tags
+// The Database struct has a list of all tags previously encountered
+// Any new tags are asyncronusly inserted to the db and added to this list
+func (db *Database) KnownTagsUpdate() {
+	db.knownTagsMutex.Lock()
+	defer db.knownTagsMutex.Unlock()
+
+	// Insert any new tags
+	// This will trigger ON CONFLICT if two assemblers
+	// try to do this at the same time, which is fine
+	if len(db.knownTags) != 0 {
+		var knownTags []string
+		for tag := range db.knownTags {
+			knownTags = append(knownTags, tag)
+		}
+
+		_, err := db.pool.Exec(context.Background(), `
+			INSERT INTO tag (name)
+			SELECT jsonb_array_elements_text(@tags::jsonb - array_agg(name)) FROM tag
+			ON CONFLICT (name) DO NOTHING
+		`, pgx.NamedArgs {
+			"tags": knownTags,
+		})
+
+		if err != nil {
+			log.Fatalln("Error inserting tags: ", err)
+		}
+	}
+
+	var tags []string
+	err := db.pool.QueryRow(context.Background(), `
+		SELECT array_agg(t.name)
+		FROM (SELECT name FROM tag ORDER BY sort ASC) AS t
+	`).Scan(&tags)
+
+	if err != nil {
+		log.Println("Error updating known tags: ", err)
+		return
+	}
+
+	for _, tag := range tags {
+		db.knownTags[tag] = struct{}{}
+	}
+}
+
+func (db *Database) KnownTagExists(tag string) bool {
+	db.knownTagsMutex.RLock()
+	defer db.knownTagsMutex.RUnlock()
+	_, ok := db.knownTags[tag]
+	return ok
+}
+
+func (db *Database) KnownTagsUpsert(tag string) {
+	if db.KnownTagExists(tag) {
+		return
+	}
+
+	db.knownTagsMutex.Lock()
+	defer db.knownTagsMutex.Unlock()
+
+	// Tags are periodically upserted into database
+	// see Database::KnownTagsUpdate
+	db.knownTags[tag] = struct{}{}
+}
+
 // Flows
 type FlowEntry struct {
 	Id           uuid.UUID
@@ -147,8 +238,8 @@ type FlowEntry struct {
 	Blocked      bool
 	Filename     string `db:"-"`
 	PcapId       uuid.UUID `db:"pcap_id"`
-	Parent_id    *uuid.UUID `db:"connected_parent_id"`
-	Child_id     *uuid.UUID `db:"connected_child_id"`
+	Parent_id    *uuid.UUID `db:"link_parent_id"`
+	Child_id     *uuid.UUID `db:"link_child_id"`
 	Fingerprints []uint32
 	Flow         []FlowItem `db:"-"`
 	Tags         []string `db:"tags"`
@@ -182,33 +273,10 @@ func (db *Database) FlowInsert(flow FlowEntry) {
 		return
 	}
 
-	// Try finding a child flow by this flows fingerprints
-	if len(flow.Fingerprints) > 0 {
-		// Find a child flow. There should be at most one flow with
-		// empty parent_id and matching fingerprint, otherwise, take the newest one
-		// INDEX: `f.id` is parition key, limiting scope to specific chunks
-		// INDEX: `time_start` and `time_end` should be computed before passing as parameters
-		// INDEX: Make sure to run EXPLAIN ANALYZE when changing this
-		var id uuid.UUID
-		err := db.pool.QueryRow(context.Background(), `
-			SELECT f.id
-			FROM flow AS f
-			WHERE f.connected_parent_id IS NULL
-				AND f.fingerprints ?| @fingerprints
-				AND f.id > uuid_pack_low(@time_start)
-				AND f.id < uuid_pack_high(@time_end)
-			ORDER BY f.id DESC
-		`, pgx.NamedArgs {
-			"fingerprints": flow.Fingerprints,
-			"time_start": flow.Time.Add(-WINDOW_FLOW_CONNECT),
-			"time_end": flow.Time.Add(WINDOW_FLOW_CONNECT),
-		}).Scan(&id)
-
-		// Found a child id
-		if err == nil {
-			// TODO Maybe add the childs fingerprints to mine?
-			flow.Child_id = &id
-		}
+	// Make sure tags exist
+	// This can be done async
+	for _, tag := range flow.Tags {
+		go db.KnownTagsUpsert(tag)
 	}
 
 	// Fallback to filename for pcap id
@@ -234,18 +302,28 @@ func (db *Database) FlowInsert(flow FlowEntry) {
 	}
 
 	// Insert the flow items first, so that when flow is inserted, it is complete
-	db.channelFlowItem.PushAllCallback(items, func(errors <-chan error) {
+	db.batcherFlowItem.PushAllCallback(items, func(errors <-chan error) {
 		// Error inserting flow items
 		// Only continue if we managed to insert at least one flow
 		// If we got here with and empty flow, I guess just insert it
-		if len(errors) > 0 && len(errors) == len(items) {
+		if len(errors) != 0 && len(errors) == len(items) {
 			// Just print the first error, they will all be the same probably
 			log.Println("Error inserting flow items (flow will not be inserted): ", <-errors)
 			return
 		}
 
+		// Fingerprints are uint32, but psql only has signed integer types
+		// So we make them into int32, instead of using a larger psql int
+		fingerprints := make([]int32, len(flow.Fingerprints))
+		for i, fingerprint := range flow.Fingerprints {
+			fingerprints[i] = int32(fingerprint)
+		}
+
+		// Push fingerprints for async flow connecting
+		db.FingerprintsPush(fingerprints)
+
 		// Now insert the flow
-		db.channelFlowEntry.PushCallback([]any {
+		db.batcherFlowEntry.PushCallback([]any {
 			flow_id,
 			flow.Src_port, flow.Dst_port,
 			flow.Src_ip, flow.Dst_ip,
@@ -255,7 +333,7 @@ func (db *Database) FlowInsert(flow FlowEntry) {
 			pcap_id,
 			flow.Child_id,
 			flow.Parent_id,
-			flow.Fingerprints,
+			fingerprints,
 			flow.Num_packets,
 			flow.Size,
 			flow.Flags_In,
@@ -266,25 +344,6 @@ func (db *Database) FlowInsert(flow FlowEntry) {
 			}
 		})
 	})
-
-	// Flow had a child_id, lets find the child
-	// and set its parent_id to this flow
-	if flow.Child_id != nil {
-		// INDEX: Primary on flow.id
-		_, err := db.pool.Exec(context.Background(), `
-			UPDATE flow
-			SET connected_parent_id = @parent_id
-			WHERE id = @child_id
-		`, pgx.NamedArgs {
-			"parent_id": flow.Id,
-			"child_id": flow.Child_id,
-		})
-
-		// This is not a fatal error, just print it as a warning
-		if err != nil {
-			log.Printf("Error setting parent_id (%d) for flow (%d): %s\n", flow.Id, flow.Child_id, err)
-		}
-	}
 }
 
 func (db *Database) FlowAddSignatures(flow_id uuid.UUID, signatures []Signature) {
@@ -315,6 +374,12 @@ func (db *Database) FlowAddSignatures(flow_id uuid.UUID, signatures []Signature)
 
 func (db *Database) FlowAddTags(flow_id uuid.UUID, tags []string) {
 	tagsJson, _ := json.Marshal(tags)
+
+	// Make sure tags exist
+	// This can be done async
+	for _, tag := range tags {
+		go db.KnownTagsUpsert(tag)
+	}
 
 	go db.pool.Exec(context.Background(), `
 		UPDATE flow
@@ -369,4 +434,90 @@ type Signature struct {
 	Id      int32 `json:"id"`
 	Message string `json:"message"`
 	Action  string `json:"action"`
+}
+
+// Fingerprints
+func (db *Database) FingerprintsPush(fingerprints []int32) {
+	if len(fingerprints) == 0 {
+		return
+	}
+
+	db.fingerprintsMutex.Lock()
+	defer db.fingerprintsMutex.Unlock()
+	db.fingerprints = append(db.fingerprints, fingerprints)
+}
+
+func (db *Database) FingerprintsFlush() {
+	db.fingerprintsMutex.Lock()
+
+	if len(db.fingerprints) == 0 {
+		db.fingerprintsMutex.Unlock()
+		return
+	}
+
+	fingerprintsMap := make(map[int32]struct{})
+	for _, ff := range db.fingerprints {
+		if len(ff) > 1 {
+			for _, f := range ff {
+				fingerprintsMap[f] = struct{}{}
+			}
+		}
+	}
+
+	var fingerprintsUnique []int32
+	for f := range fingerprintsMap {
+		fingerprintsUnique = append(fingerprintsUnique, f)
+	}
+
+	fingerprintsJson, _ := json.Marshal(db.fingerprints)
+	db.fingerprints = nil
+	db.fingerprintsMutex.Unlock()
+
+	_, err := db.pool.Exec(context.Background(), `
+		INSERT INTO fingerprint (id, grp)
+		SELECT jsonb_array_elements(v.value)::int, coalesce(f.grp, v.value[0]::int)
+			FROM jsonb_array_elements(@fingerprints) AS v
+			LEFT JOIN fingerprint AS f
+				ON f.id = ANY(ARRAY(SELECT value::int FROM jsonb_array_elements(v.value)))
+		ON CONFLICT (id) DO NOTHING
+	`, pgx.NamedArgs {
+		"fingerprints": fingerprintsJson,
+	})
+
+	if err != nil {
+		log.Println("Error inserting fingerprints: ", err)
+	}
+
+	cmd, err := db.pool.Exec(context.Background(), `
+		UPDATE flow AS ff
+			SET link_parent_id = d.parent,
+			link_child_id = d.child
+		FROM (
+			SELECT f.id, lag(f.id) OVER (w) AS parent, lead(f.id) OVER (w) AS child
+			FROM flow AS f
+			INNER JOIN fingerprint AS fp
+				ON fp.grp = (SELECT grp FROM fingerprint AS fpp WHERE fpp.id = f.fingerprints[1])
+			WHERE fp.id = ANY(@fingerprints)
+			GROUP BY f.id, fp.grp
+			WINDOW w AS (PARTITION BY fp.grp ORDER BY f.id)
+			ORDER BY fp.grp, f.id
+		) AS d
+		WHERE d.id = ff.id
+			AND (
+				d.child != link_child_id
+				OR d.parent != link_parent_id
+				OR (d.child IS NULL) != (link_child_id IS NULL)
+				OR (d.parent IS NULL) != (link_parent_id IS NULL)
+			)
+	`, pgx.NamedArgs {
+		"fingerprints": fingerprintsUnique,
+	})
+
+	if err != nil {
+		log.Println("Error linking flows: ", err)
+	}
+
+	if cmd.RowsAffected() != 0 {
+		log.Printf("Linked %d flows\n", cmd.RowsAffected())
+	}
 }

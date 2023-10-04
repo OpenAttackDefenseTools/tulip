@@ -3,6 +3,8 @@ CREATE EXTENSION intarray;
 CREATE EXTENSION "uuid-ossp";
 CREATE EXTENSION pg_trgm;
 
+ALTER SYSTEM SET timescaledb.telemetry_level = off;
+
 -- These settings provide ingest speed boost at cost
 -- of disabling replication and possible loss of any uncommited data
 ALTER SYSTEM SET synchronous_commit = off;

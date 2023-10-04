@@ -20,7 +20,7 @@ var timescale = flag.String("timescale", "", "Timescale connection string (e. g.
 var tag_flowbits = flag.Bool("flowbits", true, "Tag flows with their flowbits")
 var rescan_period = flag.Int("t", 30, "rescan period (in seconds).")
 
-var g_db db.Database
+var g_db *db.Database
 
 func main() {
 	flag.Parse()
