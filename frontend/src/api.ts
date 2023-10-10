@@ -13,6 +13,14 @@ import {
   TicksAttackQuery,
 } from "./types";
 
+function base64DecodeUnicode(str: string) : string {
+  const text = atob(str);
+  const bytes = new Uint8Array(text.length);
+  for(let i = 0; i < length; i++)
+    bytes[i] = text.charCodeAt(i);
+  return new TextDecoder().decode(bytes);
+}
+
 export const tulipApi = createApi({
   baseQuery: fetchBaseQuery({ baseUrl: API_BASE_PATH }),
   endpoints: (builder) => ({
@@ -32,7 +40,7 @@ export const tulipApi = createApi({
             representations[item.kind] = { type: item.kind, flow: [] };
           representations[item.kind].flow.push({
             from: item.direction,
-            data: atob(item.data),
+            data: base64DecodeUnicode(item.data),
             b64: item.data,
             time: item.time,
           });
