@@ -28,6 +28,9 @@ CREATE TABLE fingerprint (
 	grp int NOT NULL
 );
 
+-- Fingerprint matching during assembly
+CREATE INDEX ON fingerprint (grp);
+
 CREATE TABLE flow (
 	id uuid NOT NULL PRIMARY KEY,
 	time timestamptz GENERATED ALWAYS AS (uuid_unpack_time(id)) STORED,

@@ -8,7 +8,7 @@ import uuid
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
-from ipaddress import IPv4Address, IPv6Address
+from ipaddress import IPv4Address, IPv4Network, IPv6Address, IPv6Network
 from typing import Any, Iterator, cast
 
 import dateutil.parser
@@ -24,8 +24,8 @@ from json_util import JsonFactory
 @dataclass(slots=True, kw_only=True)
 class FlowQuery:
     regex_insensitive: re.Pattern | None = None
-    ip_src: str | None = None
-    ip_dst: str | None = None
+    ip_src: IPv4Network | IPv6Network | None = None
+    ip_dst: IPv4Network | IPv6Network | None = None
     port_src: int | None = None
     port_dst: int | None = None
     time_from: datetime | None = None
@@ -144,11 +144,11 @@ class Connection(psycopg.Connection):
             conditions.append(sql.SQL(f"EXISTS ({condition})"))
 
         if query.ip_src:
-            parameters["ip_src"] = query.ip_src  # TODO: Covert this to cidr match
-            conditions.append(sql.SQL("f.ip_src = %(ip_src)s"))
+            parameters["ip_src"] = query.ip_src
+            conditions.append(sql.SQL("f.ip_src <<= %(ip_src)s"))
         if query.ip_dst:
-            parameters["ip_dst"] = query.ip_dst  # TODO: Covert this to cidr match
-            conditions.append(sql.SQL("f.ip_dst = %(ip_dst)s"))
+            parameters["ip_dst"] = query.ip_dst
+            conditions.append(sql.SQL("f.ip_dst <<= %(ip_dst)s"))
 
         if query.port_src:
             parameters["port_src"] = query.port_src
@@ -171,7 +171,6 @@ class Connection(psycopg.Connection):
             parameters["tags_exclude"] = query.tags_exclude
             conditions.append(sql.SQL("NOT f.tags ?| %(tags_exclude)s"))
 
-        # TODO: Indexes
         sql_query = sql.SQL(
             """
             SELECT f.*, p.name AS pcap_name
@@ -194,7 +193,6 @@ class Connection(psycopg.Connection):
         return flows
 
     def flow_detail(self, id: uuid.UUID) -> FlowDetail | None:
-        # TODO: Indexes
         sql_query = """
             SELECT f.*, p.name AS pcap_name
             FROM flow AS f
@@ -218,7 +216,6 @@ class Connection(psycopg.Connection):
         return flow
 
     def flow_item_query(self, flow: Flow) -> list[FlowItem]:
-        # TODO: Indexes
         sql_query = """
             SELECT fi.*
             FROM flow_item AS fi
@@ -271,7 +268,6 @@ class Connection(psycopg.Connection):
             "time_end": time_end,
         }
 
-        # TODO: Indexes
         sql_query = """
             SELECT tick_number_bucket(%(tick_first)s, %(tick_length)s, time) AS tick,
                 count(id) AS count, sum(flags_in) AS flags_in, sum(flags_out) AS flags_out
@@ -287,7 +283,6 @@ class Connection(psycopg.Connection):
                 stats[row["tick"]].flag_out = row["flags_out"]
 
         # TODO: Maybe count all tags? The query already selects the numbers
-        # TODO: Indexes
         sql_query = """
             SELECT tick_time_bucket(%(tick_first)s, %(tick_length)s, time) AS tick_start,
                 tick_number_bucket(%(tick_first)s, %(tick_length)s, time) AS tick,

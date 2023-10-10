@@ -30,6 +30,7 @@ import uuid
 from flask import Flask, Response, send_file
 from requests import get
 import dateutil.parser
+from ipaddress import ip_network
 
 from configurations import services, traffic_dir, start_date, tick_length, visualizer_url, flag_lifetime, flag_regex, dump_pcaps_dir
 from pathlib import Path
@@ -71,8 +72,8 @@ def query():
     try:
         query = database.FlowQuery(
             regex_insensitive = re.compile(query["regex_insensitive"]) if "regex_insensitive" in query else None,
-            ip_src = query.get("ip_src"),
-            ip_dst = query.get("ip_dst"),
+            ip_src = ip_network(query["ip_src"]) if "ip_src" in query else None,
+            ip_dst = ip_network(query["ip_dst"]) if "ip_dst" in query else None,
             port_src = query.get("port_src"),
             port_dst = query.get("port_dst"),
             time_from = dateutil.parser.parse(query["time_from"]) if "time_from" in query else None,

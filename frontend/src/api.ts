@@ -16,7 +16,7 @@ import {
 function base64DecodeUnicode(str: string) : string {
   const text = atob(str);
   const bytes = new Uint8Array(text.length);
-  for(let i = 0; i < length; i++)
+  for(let i = 0; i < text.length; i++)
     bytes[i] = text.charCodeAt(i);
   return new TextDecoder().decode(bytes);
 }

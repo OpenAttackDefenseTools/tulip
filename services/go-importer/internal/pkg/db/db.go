@@ -177,6 +177,7 @@ func (db *Database) KnownTagsUpdate() {
 			knownTags = append(knownTags, tag)
 		}
 
+		// INDEX: Primary on tag.name
 		_, err := db.pool.Exec(context.Background(), `
 			INSERT INTO tag (name)
 			SELECT jsonb_array_elements_text(@tags::jsonb - array_agg(name)) FROM tag
@@ -362,6 +363,7 @@ func (db *Database) FlowAddSignatures(flow_id uuid.UUID, signatures []Signature)
 	tagsJson, _ := json.Marshal(tags)
 
 	db.workerPool.Submit(func() {
+		// INDEX: Primary on flow.id
 		db.pool.Exec(context.Background(), `
 			UPDATE flow
 			SET signatures = jsonb_unique(signatures || @signatures),
@@ -388,6 +390,7 @@ func (db *Database) FlowAddTags(flow_id uuid.UUID, tags []string) {
 	}
 
 	db.workerPool.Submit(func() {
+		// INDEX: Primary on flow.id
 		db.pool.Exec(context.Background(), `
 			UPDATE flow
 			SET tags = jsonb_unique(tags || @tags)
@@ -481,6 +484,7 @@ func (db *Database) FingerprintsFlush() {
 	db.fingerprints = nil
 	db.fingerprintsMutex.Unlock()
 
+	// INDEX: Primary on fingerprint.id
 	_, err := db.pool.Exec(context.Background(), `
 		INSERT INTO fingerprint (id, grp)
 		SELECT jsonb_array_elements(v.value)::int, coalesce(f.grp, v.value[0]::int)
@@ -496,6 +500,9 @@ func (db *Database) FingerprintsFlush() {
 		log.Println("Error inserting fingerprints: ", err)
 	}
 
+	// INDEX: Primary on fingerprint.id
+	// INDEX: Btree on fingerprint.grp
+	// INDEX: Gin on flow.fingerprints
 	cmd, err := db.pool.Exec(context.Background(), `
 		UPDATE flow AS ff
 			SET link_parent_id = d.parent,
