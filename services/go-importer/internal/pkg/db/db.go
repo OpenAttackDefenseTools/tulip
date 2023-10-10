@@ -276,7 +276,9 @@ func (db *Database) FlowInsert(flow FlowEntry) {
 	// Make sure tags exist
 	// This can be done async
 	for _, tag := range flow.Tags {
-		go db.KnownTagsUpsert(tag)
+		db.workerPool.Submit(func() {
+			db.KnownTagsUpsert(tag)
+		})
 	}
 
 	// Fallback to filename for pcap id
@@ -359,16 +361,18 @@ func (db *Database) FlowAddSignatures(flow_id uuid.UUID, signatures []Signature)
 	signaturesJson, _ := json.Marshal(signatures)
 	tagsJson, _ := json.Marshal(tags)
 
-	go db.pool.Exec(context.Background(), `
-		UPDATE flow
-		SET signatures = jsonb_unique(signatures || @signatures),
-			tags = jsonb_unique(tags || @tags),
-			blocked = blocked OR @tags ? 'blocked'
-		WHERE id = @flow_id
-	`, pgx.NamedArgs {
-		"flow_id": flow_id,
-		"signatures": signaturesJson,
-		"tags": tagsJson,
+	db.workerPool.Submit(func() {
+		db.pool.Exec(context.Background(), `
+			UPDATE flow
+			SET signatures = jsonb_unique(signatures || @signatures),
+				tags = jsonb_unique(tags || @tags),
+				blocked = blocked OR @tags ? 'blocked'
+			WHERE id = @flow_id
+		`, pgx.NamedArgs {
+			"flow_id": flow_id,
+			"signatures": signaturesJson,
+			"tags": tagsJson,
+		})
 	})
 }
 
@@ -378,17 +382,21 @@ func (db *Database) FlowAddTags(flow_id uuid.UUID, tags []string) {
 	// Make sure tags exist
 	// This can be done async
 	for _, tag := range tags {
-		go db.KnownTagsUpsert(tag)
+		db.workerPool.Submit(func() {
+			db.KnownTagsUpsert(tag)
+		})
 	}
 
-	go db.pool.Exec(context.Background(), `
-		UPDATE flow
-		SET tags = jsonb_unique(tags || @tags)
-			blocked = blocked OR @tags ? 'blocked'
-		WHERE id = @flow_id
-	`, pgx.NamedArgs {
-		"flow_id": flow_id,
-		"tags": tagsJson,
+	db.workerPool.Submit(func() {
+		db.pool.Exec(context.Background(), `
+			UPDATE flow
+			SET tags = jsonb_unique(tags || @tags)
+				blocked = blocked OR @tags ? 'blocked'
+			WHERE id = @flow_id
+		`, pgx.NamedArgs {
+			"flow_id": flow_id,
+			"tags": tagsJson,
+		})
 	})
 }
 
