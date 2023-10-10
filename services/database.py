@@ -271,10 +271,9 @@ class Connection(psycopg.Connection):
             "time_end": time_end,
         }
 
-        # TODO: Make an intelligent db function for tick ranges
         # TODO: Indexes
         sql_query = """
-            SELECT (extract(epoch from (time_bucket(%(tick_length)s, time, origin => %(tick_first)s) - %(tick_first)s)) / extract(epoch from %(tick_length)s))::int AS tick,
+            SELECT tick_number_bucket(%(tick_first)s, %(tick_length)s, time) AS tick,
                 count(id) AS count, sum(flags_in) AS flags_in, sum(flags_out) AS flags_out
             FROM flow AS f
             WHERE f.id > uuid_pack_low(%(time_start)s)
@@ -288,18 +287,17 @@ class Connection(psycopg.Connection):
                 stats[row["tick"]].flag_out = row["flags_out"]
 
         # TODO: Maybe count all tags? The query already selects the numbers
-        # TODO: Make an intelligent db function for tick ranges
         # TODO: Indexes
         sql_query = """
-            SELECT time_bucket(%(tick_length)s, time, origin => %(tick_first)s) AS tick_start,
-                (extract(epoch from (time_bucket(%(tick_length)s, time, origin => %(tick_first)s) - %(tick_first)s)) / extract(epoch from %(tick_length)s))::int AS tick,
+            SELECT tick_time_bucket(%(tick_first)s, %(tick_length)s, time) AS tick_start,
+                tick_number_bucket(%(tick_first)s, %(tick_length)s, time) AS tick,
                 t.name AS tag, count(f.id) AS count
             FROM flow AS f
             JOIN tag AS t
                 ON f.tags ? t.name
             WHERE f.id > uuid_pack_low(%(time_start)s)
                 AND f.id < uuid_pack_high(%(time_end)s)
-            GROUP BY tick_start, t.name
+            GROUP BY tick_start, tick, t.name
             ORDER BY tick ASC
         """
         with self.cursor(row_factory=dict_row) as cursor:

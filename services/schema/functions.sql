@@ -86,3 +86,16 @@ RETURNS jsonb LANGUAGE plpgsql VOLATILE PARALLEL SAFE AS $$
 BEGIN
 	RETURN (SELECT jsonb_agg(DISTINCT value) FROM jsonb_array_elements(data));
 END; $$;
+
+-- Tick helper functions
+CREATE FUNCTION tick_time_bucket(tick_first timestamptz, tick_length interval, "time" timestamptz)
+RETURNS timestamptz LANGUAGE plpgsql IMMUTABLE PARALLEL SAFE AS $$
+BEGIN
+	RETURN time_bucket(tick_length, "time", origin => tick_first);
+END; $$;
+
+CREATE FUNCTION tick_number_bucket(tick_first timestamptz, tick_length interval, "time" timestamptz)
+RETURNS int LANGUAGE plpgsql IMMUTABLE PARALLEL SAFE AS $$
+BEGIN
+	RETURN extract(epoch from (tick_time_bucket(tick_first, tick_length, "time") - tick_first)) / extract(epoch from tick_length);
+END; $$;
