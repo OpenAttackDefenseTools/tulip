@@ -2,6 +2,7 @@ package main
 
 import (
 	"go-importer/internal/pkg/db"
+	"io"
 	"net/netip"
 
 	"bufio"
@@ -83,30 +84,36 @@ func updateEve(eve_file string, ratchet int64) int64 {
 	eve_reader := bufio.NewReader(eve_handle)
 	defer eve_handle.Close()
 
-	log.Println("Start scanning eve file @ ", ratchet)
+	log.Println("Start scanning eve file at offset", ratchet)
 
 	// iterate over each line in the file
 	for {
 		line, err := eve_reader.ReadString('\n')
-		if err != nil {
-			// This is most likely to be EOF, which is fine
-			// TODO; check the error code and log if it is something else
+
+		// Found EOF, this line is incomplete
+		if err == io.EOF {
 			break
 		}
-		// Line parsing failed. Probably incomplete?
-		applied, err := handleEveLine(line)
-		if err == nil {
-			// parsing this line failed. It may be incomplete for a couple reasons.
-			// * First, we might have caught the file in the middle of a write.
-			//   That's fine, next pass we'll get new data
-			// * The second case is worse, this line may just be corrupt. In that case,
-			//   we need to skip over it, after verifying that we're not in case 1.
 
-			// For now, I'm just gonna solve this by ratchetting to the last successfully
-			// applied rule. This will cause us to rescan a few lines needlessly, but I'm okay with that.
-			if applied {
-				ratchet += int64(len(line))
-			}
+		// Something other then EOF, stop and log it
+		if err != nil {
+			log.Printf("Error reading eve at offset %d: %s\n", ratchet, err)
+			break
+		}
+
+		err = handleEveLine(line)
+
+		// Line was successfully parsed, continue from the next one
+		if err == nil {
+			ratchet += int64(len(line))
+		}
+
+		// Line parsing failed. Line is corrupt
+		// Since we only get here if the line was complete (we did not read EOF before newline),
+		// we can simply skip this line. Rescaning it will not help.
+		if err != nil {
+			log.Printf("Error parsing eve at offset %d: %s\n", ratchet, err)
+			ratchet += int64(len(line))
 		}
 	}
 
@@ -147,9 +154,9 @@ func updateEve(eve_file string, ratchet int64) int64 {
 	}
 */
 
-func handleEveLine(json string) (bool, error) {
+func handleEveLine(json string) error {
 	if !gjson.Valid(json) {
-		return false, errors.New("Invalid json in eve line")
+		return errors.New("Invalid json in eve line")
 	}
 
 	// TODO; error check this
@@ -162,6 +169,7 @@ func handleEveLine(json string) (bool, error) {
 	sig_msg := gjson.Get(json, "alert.signature")
 	sig_id := gjson.Get(json, "alert.signature_id")
 	sig_action := gjson.Get(json, "alert.action")
+	sig_tags := gjson.Get(json, "alert.metadata.tag")
 	flowbits := gjson.Get(json, "metadata.flowbits")
 
 	// canonicalize the IP address notation to make sure it matches what the assembler entered
@@ -176,7 +184,7 @@ func handleEveLine(json string) (bool, error) {
 
 	// If no action was taken, there's no need for us to do anything with this line.
 	if !(sig_action.Exists() || (flowbits.Exists() && *tag_flowbits)) {
-		return false, nil
+		return nil
 	}
 
 	flow_id, _ := g_db.SuricataIdFindFlow(db.SuricataId {
@@ -197,13 +205,20 @@ func handleEveLine(json string) (bool, error) {
 		})
 	}
 
+	// Flow not found
 	if flow_id == uuid.Nil {
-		return false, nil
+		return nil
 	}
 
-	ret := false
-	if sig_action.Exists() {
+	tags := []string{}
+	if sig_tags.Exists() {
+		sig_tags.ForEach(func(key, value gjson.Result) bool {
+		tags = append(tags, value.String())
+			return true
+		})
+	}
 
+	if sig_action.Exists() {
 		sig := db.Signature{
 			Id:      int32(sig_id.Int()),
 			Message: sig_msg.String(),
@@ -211,19 +226,20 @@ func handleEveLine(json string) (bool, error) {
 		}
 
 		g_db.FlowAddSignatures(flow_id, []db.Signature{sig})
-		ret = true
 	}
 
-	if !(flowbits.Exists() && *tag_flowbits) {
-		return ret, nil
+	if flowbits.Exists() && *tag_flowbits {
+		flowbits.ForEach(func(key, value gjson.Result) bool {
+			tags = append(tags, value.String())
+			return true // keep iterating
+		})
 	}
-
-	tags := []string{}
-	flowbits.ForEach(func(key, value gjson.Result) bool {
-		tags = append(tags, value.String())
-		return true // keep iterating
-	})
 
 	g_db.FlowAddTags(flow_id, tags)
-	return true, nil
+
+	if len(tags) > 0 {
+		log.Println("Applied", tags, "tags to flow", flow_id)
+	}
+
+	return nil
 }

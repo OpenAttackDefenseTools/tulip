@@ -18,9 +18,6 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-const WINDOW_FLOW_CONNECT = time.Duration(time.Hour)
-const WINDOW_SURICATA_FIND = time.Duration(5 * time.Second)
-
 type Database struct {
 	pool *pgxpool.Pool
 	workerPool *workerpool.WorkerPool
@@ -30,6 +27,7 @@ type Database struct {
 	knownTagsMutex *sync.RWMutex
 	fingerprints [][]int32
 	fingerprintsMutex *sync.Mutex
+	suricataIdWindow time.Duration
 }
 
 func NewDatabase(connectionString string) *Database {
@@ -63,7 +61,7 @@ func NewDatabase(connectionString string) *Database {
 		tableName: pgx.Identifier{"flow"},
 		columns: []string {
 			"id", "port_src", "port_dst", "ip_src", "ip_dst", "duration", "tags",
-			"blocked", "pcap_id", "link_child_id", "link_parent_id",
+			"pcap_id", "link_child_id", "link_parent_id",
 			"fingerprints", "packets_count", "packets_size", "flags_in", "flags_out",
 		},
 	})
@@ -89,10 +87,15 @@ func NewDatabase(connectionString string) *Database {
 	database.knownTags = make(map[string]struct{})
 	database.KnownTagsUpdate()
 	go func() {
-		for range time.Tick(30 * time.Second) {
+		for range time.Tick(5 * time.Second) {
 			database.KnownTagsUpdate()
 		}
 	}()
+
+	// Suricata id search window
+	if database.suricataIdWindow == 0 {
+		database.suricataIdWindow = time.Duration(time.Minute)
+	}
 
 	return database
 }
@@ -123,6 +126,7 @@ func (db *Database) PcapFindOrInsert(name string) Pcap {
 	`, pgx.NamedArgs {
 		"name": name,
 	})
+
 	if err != nil {
 		log.Fatalln("Error inserting pcap: ", err)
 	}
@@ -236,7 +240,6 @@ type FlowEntry struct {
 	Dst_ip       netip.Addr `db:"ip_dst"`
 	Time         time.Time
 	Duration     time.Duration
-	Blocked      bool
 	Filename     string `db:"-"`
 	PcapId       uuid.UUID `db:"pcap_id"`
 	Parent_id    *uuid.UUID `db:"link_parent_id"`
@@ -332,7 +335,6 @@ func (db *Database) FlowInsert(flow FlowEntry) {
 			flow.Src_ip, flow.Dst_ip,
 			flow.Duration,
 			flow.Tags,
-			flow.Blocked,
 			pcap_id,
 			flow.Child_id,
 			flow.Parent_id,
@@ -364,17 +366,20 @@ func (db *Database) FlowAddSignatures(flow_id uuid.UUID, signatures []Signature)
 
 	db.workerPool.Submit(func() {
 		// INDEX: Primary on flow.id
-		db.pool.Exec(context.Background(), `
+		_, err := db.pool.Exec(context.Background(), `
 			UPDATE flow
-			SET signatures = jsonb_unique(signatures || @signatures),
-				tags = jsonb_unique(tags || @tags),
-				blocked = blocked OR @tags ? 'blocked'
+			SET signatures = signatures || @signatures,
+				tags = jsonb_unique(tags || @tags)
 			WHERE id = @flow_id
 		`, pgx.NamedArgs {
 			"flow_id": flow_id,
 			"signatures": signaturesJson,
 			"tags": tagsJson,
 		})
+
+		if err != nil {
+			log.Printf("Error inserting signatures for flow %s: %s\n", flow_id, err)
+		}
 	})
 }
 
@@ -391,15 +396,18 @@ func (db *Database) FlowAddTags(flow_id uuid.UUID, tags []string) {
 
 	db.workerPool.Submit(func() {
 		// INDEX: Primary on flow.id
-		db.pool.Exec(context.Background(), `
+		_, err := db.pool.Exec(context.Background(), `
 			UPDATE flow
 			SET tags = jsonb_unique(tags || @tags)
-				blocked = blocked OR @tags ? 'blocked'
 			WHERE id = @flow_id
 		`, pgx.NamedArgs {
 			"flow_id": flow_id,
 			"tags": tagsJson,
 		})
+
+		if err != nil {
+			log.Printf("Error inserting tags for flow %s: %s\n", flow_id, err)
+		}
 	})
 }
 
@@ -426,11 +434,11 @@ func (db *Database) SuricataIdFindFlow(id SuricataId) (uuid.UUID, error) {
 			AND port_dst = @port_dst
 			AND ip_src = @ip_src
 			AND ip_dst = @ip_dst
-			AND f.id > uuid_pack_low(@time_start)
-			AND f.id < uuid_pack_high(@time_end)
+			AND id > uuid_pack_low(@time_start)
+			AND id < uuid_pack_high(@time_end)
 	`, pgx.NamedArgs {
-		"time_start": time.Now().Add(-WINDOW_SURICATA_FIND),
-		"time_end": time.Now().Add(WINDOW_SURICATA_FIND),
+		"time_start": id.Time.Add(-db.suricataIdWindow),
+		"time_end": id.Time.Add(db.suricataIdWindow),
 		"port_src": id.Src_port,
 		"port_dst": id.Dst_port,
 		"ip_src": id.Src_ip,

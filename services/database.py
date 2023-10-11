@@ -43,7 +43,6 @@ class Flow:
     ip_src: IPv4Address | IPv6Address
     ip_dst: IPv4Address | IPv6Address
     duration: timedelta
-    blocked: bool
     pcap_id: uuid.UUID
     pcap_name: str
     link_parent_id: uuid.UUID

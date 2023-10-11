@@ -314,15 +314,15 @@ function FlowOverview({ flow }: { flow: FullFlow }) {
               return (
                 <div className="py-1">
                   <div className="flex">
-                    <div>Message: </div>
+                    <div>Message:&nbsp;</div>
                     <div className="font-bold">{sig.message}</div>
                   </div>
                   <div className="flex">
-                    <div>Rule ID: </div>
+                    <div>Rule ID:&nbsp;</div>
                     <div className="font-bold">{sig.id}</div>
                   </div>
                   <div className="flex">
-                    <div>Action taken: </div>
+                    <div>Action taken:&nbsp;</div>
                     <div
                       className={
                         sig.action === "blocked"

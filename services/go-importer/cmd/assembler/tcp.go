@@ -179,7 +179,6 @@ func (t *TcpStream) ReassemblyComplete(ac reassembly.AssemblerContext) bool {
 		Num_packets: t.num_packets,
 		Parent_id:   nil,
 		Child_id:    nil,
-		Blocked:     false,
 		Tags:        []string { "tcp" },
 		Filename:    t.source,
 		Flow:        t.FlowItems,

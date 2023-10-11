@@ -143,7 +143,6 @@ func (stream *UdpStream) CompleteReassembly() *db.FlowEntry {
 		Num_packets: int(stream.PacketCount),
 		Parent_id:   nil,
 		Child_id:    nil,
-		Blocked:     false,
 		Tags:        []string{"udp"},
 		Filename:    stream.Source,
 		Flow:        stream.Items,

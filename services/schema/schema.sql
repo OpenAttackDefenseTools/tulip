@@ -39,7 +39,6 @@ CREATE TABLE flow (
 	ip_src inet NOT NULL,
 	ip_dst inet NOT NULL,
 	duration interval NOT NULL,
-	blocked boolean NOT NULL DEFAULT false,
 	pcap_id uuid NOT NULL,
 	link_parent_id uuid,
 	link_child_id uuid,
