@@ -225,6 +225,11 @@ func handleEveLine(json string) error {
 			Action:  sig_action.String(),
 		}
 
+		tags = append(tags, "suricata")
+		if sig.Action == "blocked" {
+			tags = append(tags, "blocked")
+		}
+
 		g_db.FlowAddSignatures(flow_id, []db.Signature{sig})
 	}
 

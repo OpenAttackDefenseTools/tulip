@@ -51,7 +51,7 @@ func NewDatabase(connectionString string) *Database {
 			break
 		}
 
-		log.Println("Unable to connect to database (retrying in 5s): ", err)
+		log.Println("Unable to connect to database (retrying in 5s):", err)
 		time.Sleep(5 * time.Second)
 	}
 
@@ -69,6 +69,7 @@ func NewDatabase(connectionString string) *Database {
 		db: database,
 		tableName: pgx.Identifier{"flow_item"},
 		columns: []string{"id", "flow_id", "kind", "direction", "data", "text"},
+		batchSize: 2000,
 	})
 
 	// Fingerprints
@@ -352,29 +353,17 @@ func (db *Database) FlowInsert(flow FlowEntry) {
 }
 
 func (db *Database) FlowAddSignatures(flow_id uuid.UUID, signatures []Signature) {
-	tags := []string{ "suricata" }
-
-	for _, signature := range signatures {
-		if signature.Action == "blocked" {
-			tags = append(tags, "blocked")
-			break
-		}
-	}
-
-	signaturesJson, _ := json.Marshal(signatures)
-	tagsJson, _ := json.Marshal(tags)
-
 	db.workerPool.Submit(func() {
+		signaturesJson, _ := json.Marshal(signatures)
+
 		// INDEX: Primary on flow.id
 		_, err := db.pool.Exec(context.Background(), `
 			UPDATE flow
-			SET signatures = signatures || @signatures,
-				tags = jsonb_unique(tags || @tags)
+			SET signatures = jsonb_unique(signatures || @signatures)
 			WHERE id = @flow_id
 		`, pgx.NamedArgs {
 			"flow_id": flow_id,
 			"signatures": signaturesJson,
-			"tags": tagsJson,
 		})
 
 		if err != nil {
@@ -384,10 +373,8 @@ func (db *Database) FlowAddSignatures(flow_id uuid.UUID, signatures []Signature)
 }
 
 func (db *Database) FlowAddTags(flow_id uuid.UUID, tags []string) {
-	tagsJson, _ := json.Marshal(tags)
-
 	// Make sure tags exist
-	// This can be done async
+	// This can (and will) be done async
 	for _, tag := range tags {
 		db.workerPool.Submit(func() {
 			db.KnownTagsUpsert(tag)
@@ -395,6 +382,8 @@ func (db *Database) FlowAddTags(flow_id uuid.UUID, tags []string) {
 	}
 
 	db.workerPool.Submit(func() {
+		tagsJson, _ := json.Marshal(tags)
+
 		// INDEX: Primary on flow.id
 		_, err := db.pool.Exec(context.Background(), `
 			UPDATE flow
