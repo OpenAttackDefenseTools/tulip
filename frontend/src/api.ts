@@ -42,7 +42,7 @@ export const tulipApi = createApi({
             from: item.direction,
             data: base64DecodeUnicode(item.data),
             b64: item.data,
-            time: item.time,
+            time: new Date(item.time).getTime(),
           });
         }
 
