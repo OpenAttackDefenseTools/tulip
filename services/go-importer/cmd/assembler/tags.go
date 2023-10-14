@@ -5,11 +5,13 @@ import (
 
 	"log"
 	"regexp"
+	"time"
 
 	"github.com/cloudflare/ahocorasick"
 )
 
 var flagRegex *regexp.Regexp
+var flagValidator FaustFlagValidator = FaustFlagValidator{6, time.Hour, 5, "CTF-GAMESERVER"}
 
 func EnsureRegex(reg *string) {
 	if flagRegex == nil {
@@ -47,34 +49,41 @@ func ApplyFlagTags(flow *db.FlowEntry, reg *string) {
 	flagsOut := 0
 	for idx := 0; idx < len(flow.Flow); idx++ {
 		flowItem := &flow.Flow[idx]
-		matches := flagRegex.FindAllSubmatch(flowItem.Data, -1)
+		matches := flagRegex.FindAll(flowItem.Data, -1)
 
 		if len(matches) > 0 {
-			var tag string
+			var tags []string
 			if flowItem.From == "c" {
-				tag = "flag-in"
+				tags = append(tags, "flag-in")
 				if len(matches) > flagsIn {
 					flagsIn = len(matches)
 				}
 			} else {
-				tag = "flag-out"
+				tags = append(tags, "flag-out")
 				if len(matches) > flagsOut {
 					flagsOut = len(matches)
 				}
 			}
 
-			// Add the flag if it doesn't already exist
+			hasFakeFlag := false
 			for _, match := range matches {
-				var flag string
-				flag = string(match[0])
+				flag := string(match)
+				// Add the flag if it doesn't already exist
 				if !contains(flow.Flags, flag) {
 					flow.Flags = append(flow.Flags, flag)
 				}
+				// Check if it is a fake flag
+				if !hasFakeFlag && !flagValidator.IsValid(flag) {
+					tags = append(tags, "fake-flag")
+					hasFakeFlag = true
+				}
 			}
 
-			// Add the tag if it doesn't already exist
-			if !contains(flow.Tags, tag) {
-				flow.Tags = append(flow.Tags, tag)
+			for _, tag := range tags {
+				// Add the tag if it doesn't already exist
+				if !contains(flow.Tags, tag) {
+					flow.Tags = append(flow.Tags, tag)
+				}
 			}
 		}
 	}
