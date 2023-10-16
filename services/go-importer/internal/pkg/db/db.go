@@ -163,6 +163,10 @@ func (db *Database) PcapSetPosition(id uuid.UUID, position int64) error {
 		"position": position,
 	})
 
+	if err != nil {
+		log.Println("Error updating pcap position: ", err)
+	}
+
 	return err
 }
 

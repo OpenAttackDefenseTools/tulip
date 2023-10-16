@@ -544,7 +544,7 @@ func (service *AssemblerService) ProcessPcapHandle(handle *pcap.Handle, sourceNa
 		}
 	}
 
-	g_db.PcapSetPosition(pcap.Id, pcap.Position)
+	g_db.PcapSetPosition(pcap.Id, count)
 	service.FlushConnections()
 	log.Println("Processed", count - pcap.Position, "packets from", sourceName)
 }
