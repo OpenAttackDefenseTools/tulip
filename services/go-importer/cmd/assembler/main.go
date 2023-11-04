@@ -12,6 +12,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/fsnotify/fsnotify"
@@ -100,23 +101,21 @@ func main() {
 	g_db.ConfigureDatabase()
 
 	if *pcap_over_ip != "" {
-		log.Println("Connecting to PCAP-over-IP:", *pcap_over_ip)
-		tcpServer, err := net.ResolveTCPAddr("tcp", *pcap_over_ip)
-		if err != nil {
-			log.Fatal(err)
+		// for handling multiple pcap over ip
+		if strings.Contains(*pcap_over_ip, ",") {
+			pcapOverIPs := strings.Split(*pcap_over_ip, ",")
+			waitGroup := sync.WaitGroup{}
+			waitGroup.Add(len(pcapOverIPs))
+			for _, pcapIP := range pcapOverIPs {
+				go func(pcapIP string) {
+					defer waitGroup.Done()
+					connectToPCAPOverIP(pcapIP, *bpf)
+				}(pcapIP)
+			}
+			waitGroup.Wait()
+		} else {
+			connectToPCAPOverIP(*pcap_over_ip, *bpf)
 		}
-
-		conn, err := net.DialTCP("tcp", nil, tcpServer)
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer conn.Close()
-		pcapFile, err := conn.File()
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer pcapFile.Close()
-		handlePcapFile(pcapFile, *pcap_over_ip, *bpf)
 	} else {
 		// Pass positional arguments to the pcap handler
 		for _, uri := range flag.Args() {
@@ -128,6 +127,33 @@ func main() {
 		if *watch_dir != "" {
 			watchDir(*watch_dir)
 		}
+	}
+}
+
+func connectToPCAPOverIP(pcapIP string, bpf string) {
+	for {
+		time.Sleep(5 * time.Second)
+		log.Println("Connecting to PCAP-over-IP:", pcapIP)
+		tcpServer, err := net.ResolveTCPAddr("tcp", pcapIP)
+		if err != nil {
+			log.Println(err)
+			continue
+		}
+		conn, err := net.DialTCP("tcp", nil, tcpServer)
+		if err != nil {
+			log.Println(err)
+			continue
+		}
+		pcapFile, err := conn.File()
+		if err != nil {
+			log.Println(err)
+			conn.Close()
+			continue
+		}
+		handlePcapFile(pcapFile, pcapIP, bpf)
+		log.Println("Disconnected from PCAP-over-IP:", pcapIP)
+		conn.Close()
+		pcapFile.Close()
 	}
 }
 
@@ -151,7 +177,7 @@ func watchDir(watch_dir string) {
 
 	for _, file := range files {
 		// accepts files with prefixes that start with .pcap (.pcapng .pcap1 etc)
-		if strings.HasPrefix(filepath.Ext(file.Name()),".pcap") {
+		if strings.HasPrefix(filepath.Ext(file.Name()), ".pcap") {
 			handlePcapUri(filepath.Join(watch_dir, file.Name()), *bpf) //FIXME; this is a little clunky
 		}
 	}
@@ -175,7 +201,7 @@ func watchDir(watch_dir string) {
 				}
 				if event.Op&(fsnotify.Rename|fsnotify.Create) != 0 {
 					// accepts files with prefixes that start with .pcap (.pcapng .pcap1 etc)
-					if strings.HasPrefix(filepath.Ext(event.Name),".pcap") {
+					if strings.HasPrefix(filepath.Ext(event.Name), ".pcap") {
 						log.Println("Found new file", event.Name, event.Op.String())
 						time.Sleep(2 * time.Second) // FIXME; bit of race here between file creation and writes.
 						handlePcapUri(event.Name, *bpf)
