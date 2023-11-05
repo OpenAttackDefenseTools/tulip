@@ -13,6 +13,7 @@ services:
       context: frontend
       dockerfile: Dockerfile-frontend
     image: tulip-frontend:latest
+    restart: unless-stopped
     ports:
       - "3000:3000"
     depends_on:
@@ -27,8 +28,7 @@ services:
       context: .
       dockerfile: Dockerfile-python
     image: tulip-api:latest
-    ports:
-      - "127.0.0.1:5000:5000"
+    restart: unless-stopped
     depends_on:
       - mongo
     networks:
@@ -47,6 +47,7 @@ services:
       context: services/go-importer
       dockerfile: Dockerfile-assembler
     image: tulip-assembler:latest
+    restart: unless-stopped
     depends_on:
       - mongo
     networks:
@@ -57,12 +58,14 @@ services:
     environment:
       TULIP_MONGO: ${TULIP_MONGO}
       FLAG_REGEX: ${FLAG_REGEX}
+      PCAP_OVER_IP: ${PCAP_OVER_IP}
 
   enricher:
     build:
       context: services/go-importer
       dockerfile: Dockerfile-enricher
     image: tulip-enricher:latest
+    restart: unless-stopped
     depends_on:
       - mongo
     networks:
