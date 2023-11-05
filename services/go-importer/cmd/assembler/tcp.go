@@ -32,34 +32,27 @@ const streamdoc_limit int = 6_000_000 - 0x1000    // 16 MB (6 + (4/3)*6) - some 
 /*
  * The TCP factory: returns a new Stream
  */
-type tcpStreamFactory struct {
-	// The source of every tcp stream in this batch.
-	// Traditionally, this would be the pcap file name
-	source             string
+type TcpStreamFactory struct {
 	reassemblyCallback func(db.FlowEntry)
-	wg                 sync.WaitGroup
 }
 
-func (factory *tcpStreamFactory) New(net, transport gopacket.Flow, tcp *layers.TCP, ac reassembly.AssemblerContext) reassembly.Stream {
+func (factory *TcpStreamFactory) New(net, transport gopacket.Flow, tcp *layers.TCP, ac reassembly.AssemblerContext) reassembly.Stream {
+	source := ac.GetCaptureInfo().AncillaryData[0].(string);
 	fsmOptions := reassembly.TCPSimpleFSMOptions{
 		SupportMissingEstablishment: *nonstrict,
 	}
-	stream := &tcpStream{
+	stream := &TcpStream{
 		net:                net,
 		transport:          transport,
 		tcpstate:           reassembly.NewTCPSimpleFSM(fsmOptions),
 		optchecker:         reassembly.NewTCPOptionCheck(),
-		source:             factory.source,
+		source:             source,
 		FlowItems:          []db.FlowItem{},
 		src_port:           tcp.SrcPort,
 		dst_port:           tcp.DstPort,
 		reassemblyCallback: factory.reassemblyCallback,
 	}
 	return stream
-}
-
-func (factory *tcpStreamFactory) WaitGoRoutines() {
-	factory.wg.Wait()
 }
 
 /*
@@ -78,7 +71,7 @@ func (c *Context) GetCaptureInfo() gopacket.CaptureInfo {
  */
 
 /* It's a connection (bidirectional) */
-type tcpStream struct {
+type TcpStream struct {
 	tcpstate       *reassembly.TCPSimpleFSM
 	fsmerr         bool
 	optchecker     reassembly.TCPOptionCheck
@@ -94,7 +87,7 @@ type tcpStream struct {
 	num_packets        int
 }
 
-func (t *tcpStream) Accept(tcp *layers.TCP, ci gopacket.CaptureInfo, dir reassembly.TCPFlowDirection, nextSeq reassembly.Sequence, start *bool, ac reassembly.AssemblerContext) bool {
+func (t *TcpStream) Accept(tcp *layers.TCP, ci gopacket.CaptureInfo, dir reassembly.TCPFlowDirection, nextSeq reassembly.Sequence, start *bool, ac reassembly.AssemblerContext) bool {
 	// FSM
 	if !t.tcpstate.CheckState(tcp, dir) {
 		if !t.fsmerr {
@@ -113,7 +106,7 @@ func (t *tcpStream) Accept(tcp *layers.TCP, ci gopacket.CaptureInfo, dir reassem
 // ScatterGather is reused after each Reassembled call,
 // so it's important to copy anything you need out of it,
 // especially bytes (or use KeepFrom())
-func (t *tcpStream) ReassembledSG(sg reassembly.ScatterGather, ac reassembly.AssemblerContext) {
+func (t *TcpStream) ReassembledSG(sg reassembly.ScatterGather, ac reassembly.AssemblerContext) {
 	dir, _, _, _ := sg.Info()
 	length, _ := sg.Lengths()
 	capInfo := ac.GetCaptureInfo()
@@ -171,7 +164,7 @@ func (t *tcpStream) ReassembledSG(sg reassembly.ScatterGather, ac reassembly.Ass
 // It should return true if the connection should be removed from the pool
 // It can return false if it want to see subsequent packets with Accept(), e.g. to
 // see FIN-ACK, for deeper state-machine analysis.
-func (t *tcpStream) ReassemblyComplete(ac reassembly.AssemblerContext) bool {
+func (t *TcpStream) ReassemblyComplete(ac reassembly.AssemblerContext) bool {
 
 	// Insert the stream into the mogodb.
 
@@ -211,7 +204,7 @@ func (t *tcpStream) ReassemblyComplete(ac reassembly.AssemblerContext) bool {
 		Parent_id:   primitive.NilObjectID,
 		Child_id:    primitive.NilObjectID,
 		Blocked:     false,
-		Tags:        make([]string, 0),
+		Tags:        []string { "tcp" },
 		Suricata:    make([]int, 0),
 		Filename:    t.source,
 		Flow:        t.FlowItems,

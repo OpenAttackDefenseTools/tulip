@@ -70,6 +70,8 @@ func (db Database) ConfigureDatabase() {
 	db.InsertTag("blocked")
 	db.InsertTag("suricata")
 	db.InsertTag("starred")
+	db.InsertTag("tcp")
+	db.InsertTag("udp")
 	db.ConfigureIndexes()
 }
 
@@ -174,21 +176,30 @@ func (db Database) InsertFlow(flow FlowEntry) {
 	//TODO error handling
 }
 
-// Insert a new pcap uri, returns true if the pcap was not present yet,
-// otherwise returns false
-func (db Database) InsertPcap(uri string) bool {
-	files := db.client.Database("pcap").Collection("filesImported")
-	shouldInsert := !db.ContainsPcap(uri)
-	if shouldInsert {
-		files.InsertOne(context.TODO(), bson.M{"file_name": uri})
-	}
-	return shouldInsert
+type PcapFile struct {
+	FileName string `bson:"file_name"`
+	Position int64 `bson:"position"`
 }
 
-func (db Database) ContainsPcap(uri string) bool {
+// Insert a new pcap uri, returns true if the pcap was not present yet,
+// otherwise returns false
+func (db Database) InsertPcap(uri string, position int64) bool {
 	files := db.client.Database("pcap").Collection("filesImported")
+	exists, _ := db.GetPcap(uri)
+	if !exists {
+		files.InsertOne(context.TODO(), bson.M{"file_name": uri,"position": position})
+	} else {
+		files.UpdateOne(context.TODO(), bson.M{"file_name": uri}, bson.M{"$set":bson.M{"position": position}})
+	}
+	return !exists
+}
+
+func (db Database) GetPcap(uri string) (bool, PcapFile) {
+	files := db.client.Database("pcap").Collection("filesImported")
+	var result PcapFile
 	match := files.FindOne(context.TODO(), bson.M{"file_name": uri})
-	return match.Err() != mongo.ErrNoDocuments
+	match.Decode(&result)
+	return match.Err() != mongo.ErrNoDocuments, result
 }
 
 type FlowID struct {
