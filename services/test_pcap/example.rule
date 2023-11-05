@@ -1,0 +1,8 @@
+# Just as an example, this suricata rule tags every single-character password in the starchaser service
+# that is included as a test pcap.
+
+alert tcp any any -> any 5000 (msg: "Example - single character password"; flow:to_server; \
+	content:"POST"; http_method; content:"/login"; http_uri; \
+	content: "password"; http_client_body; pcre:"/password=[A-Za-z0-9]&/"; \
+	metadata: tag enemy; \
+	sid:1001200; rev: 1;)
