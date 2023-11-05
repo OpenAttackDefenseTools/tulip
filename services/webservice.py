@@ -8,12 +8,12 @@
 # Copyright ©2018 Brunello Simone
 # Copyright ©2018 Alessio Marotta
 # DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
-# 
+#
 # Flower is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # Flower is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -22,6 +22,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Flower.  If not, see <https://www.gnu.org/licenses/>.
 
+import traceback
 from flask import Flask, Response, send_file
 
 from configurations import services, traffic_dir, start_date, tick_length
@@ -107,7 +108,7 @@ def convertToSingleRequest():
     try:
         converted = convert_single_http_requests(data, flow, tokenize, use_requests_session)
     except Exception as ex:
-        return return_text_response("There was an error while converting the request:\n{}: {}".format(type(ex).__name__, ex))
+        return return_text_response("There was an error while converting the request:\n{}: {}".format(type(ex).__name__, traceback.format_exc()))
     return return_text_response(converted)
 
 @application.route('/to_python_request/<id>')
@@ -121,7 +122,7 @@ def convertToRequests(id):
     try:
         converted = convert_flow_to_http_requests(flow, tokenize, use_requests_session)
     except Exception as ex:
-        return return_text_response("There was an error while converting the request:\n{}: {}".format(type(ex).__name__, ex))
+        return return_text_response("There was an error while converting the request:\n{}: {}".format(type(ex).__name__, traceback.format_exc()))
     return return_text_response(converted)
 
 @application.route('/to_pwn/<id>')
@@ -136,13 +137,13 @@ def downloadFile():
     if filepath is None:
         return return_text_response("There was an error while downloading the requested file:\n{}: {}".format("Invalid 'file'", "No 'file' given"))
     filepath = Path(filepath)
-    
+
     # Check for path traversal by resolving the file first.
     filepath = filepath.resolve()
     if not traffic_dir in filepath.parents:
         return return_text_response("There was an error while downloading the requested file:\n{}: {}".format("Invalid 'file'", "'file' was not in a subdirectory of traffic_dir"))
 
-    try: 
+    try:
         return send_file(filepath, as_attachment=True)
     except FileNotFoundError:
         return return_text_response("There was an error while downloading the requested file:\n{}: {}".format("Invalid 'file'", "'file' not found"))
