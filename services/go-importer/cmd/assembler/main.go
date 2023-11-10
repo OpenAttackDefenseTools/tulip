@@ -12,6 +12,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/fsnotify/fsnotify"
@@ -202,46 +203,60 @@ func main() {
 
 	// If PCAP-over-IP was configured, connect to it
 	// NOTE: Configuring PCAP-over-IP ignores watch dir
-	if *pcap_over_ip != "" {
-		for {
-			log.Println("Connecting to PCAP-over-IP:", *pcap_over_ip)
+    if *pcap_over_ip != "" {
+        // for handling multiple pcap over ip
+        if strings.Contains(*pcap_over_ip, ",") {
+            pcapOverIPs := strings.Split(*pcap_over_ip, ",")
+            waitGroup := sync.WaitGroup{}
+            waitGroup.Add(len(pcapOverIPs))
+            for _, pcapIP := range pcapOverIPs {
+                go func(pcapIP string) {
+                    defer waitGroup.Done()
+                    connectToPCAPOverIP(service, pcapIP)
+                }(pcapIP)
+            }
+            waitGroup.Wait()
+        } else {
+            connectToPCAPOverIP(service, *pcap_over_ip)
+        }
+    } else {
+        // If a watch dir was configured, handle all files in the directory, then
+        // keep monitoring it for new files.
+        if *watch_dir != "" {
+            service.WatchDir(*watch_dir)
+        }
+    }
+}
 
-			tcpServer, err := net.ResolveTCPAddr("tcp", *pcap_over_ip)
-			if err != nil {
-				log.Println(err)
-				time.Sleep(5 * time.Second)
-				continue
-			}
+func connectToPCAPOverIP(service AssemblerService, pcapIP string) {
+    for {
+        time.Sleep(5 * time.Second)
+        log.Println("Connecting to PCAP-over-IP:", pcapIP)
+        tcpServer, err := net.ResolveTCPAddr("tcp", pcapIP)
+        if err != nil {
+            log.Println(err)
+            continue
+        }
+        conn, err := net.DialTCP("tcp", nil, tcpServer)
+        if err != nil {
+            log.Println(err)
+            continue
+        }
+        pcapFile, err := conn.File()
+        if err != nil {
+            log.Println(err)
+            conn.Close()
+            continue
+        }
+        // Name the file uniquely per connection to not skip packets on reconnect
+        fname := pcapIP + ":" + fmt.Sprintf("%d", time.Now().Unix())
 
-			conn, err := net.DialTCP("tcp", nil, tcpServer)
-			if err != nil {
-				log.Println(err)
-				time.Sleep(5 * time.Second)
-				continue
-			}
-			defer conn.Close()
-
-			pcapFile, err := conn.File()
-			if err != nil {
-				log.Println(err)
-				time.Sleep(5 * time.Second)
-				continue
-			}
-			defer pcapFile.Close()
-
-			// Name the file uniquely per connection to not skip packets on reconnect
-			fname := *pcap_over_ip + ":" + fmt.Sprintf("%d", time.Now().Unix())
-
-			log.Println("Connected to PCAP-over-IP:", fname)
-			service.HandlePcapFile(pcapFile, fname)
-		}
-	} else {
-		// If a watch dir was configured, handle all files in the directory, then
-		// keep monitoring it for new files.
-		if *watch_dir != "" {
-			service.WatchDir(*watch_dir)
-		}
-	}
+        log.Println("Connected to PCAP-over-IP:", fname)
+        service.HandlePcapFile(pcapFile, fname)
+        log.Println("Disconnected from PCAP-over-IP:", fname)
+        conn.Close()
+        pcapFile.Close()
+    }
 }
 
 func (service AssemblerService) WatchDir(watch_dir string) {
@@ -287,7 +302,7 @@ func (service AssemblerService) WatchDir(watch_dir string) {
 				}
 				if event.Op&(fsnotify.Rename|fsnotify.Create|fsnotify.Write) != 0 {
 					// accepts files with prefixes that start with .pcap (.pcapng .pcap1 etc)
-					if strings.HasPrefix(filepath.Ext(event.Name),".pcap") {
+					if strings.HasPrefix(filepath.Ext(event.Name), ".pcap") {
 						log.Println("Found new file", event.Name, event.Op.String())
 						time.Sleep(2 * time.Second) // FIXME; bit of race here between file creation and writes.
 						service.HandlePcapUri(event.Name)
