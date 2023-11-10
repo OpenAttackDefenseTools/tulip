@@ -79,5 +79,14 @@ services:
     environment:
       TULIP_MONGO: ${TULIP_MONGO}
 
+  tcpdump:
+    build:
+      context: services/tcpdump
+      dockerfile: Dockerfile-tcpdump
+    image: tulip-tcpdump:latest
+    network_mode: "host"
+    environment:
+      TCPDUMP_CMD: ${TCPDUMP_CMD}
+
 networks:
   internal:
