@@ -17,7 +17,10 @@ import {
   useLazyToPwnToolsQuery,
   useToSinglePythonRequestQuery,
 } from "../api";
-import { API_BASE_PATH } from "../const";
+import {
+  API_BASE_PATH,
+  TEXT_FILTER_KEY
+} from "../const";
 
 const SECONDARY_NAVBAR_HEIGHT = 50;
 
@@ -190,6 +193,8 @@ function formatIP(ip: string) {
 }
 
 function FlowOverview({ flow }: { flow: FullFlow }) {
+  const FILTER_KEY = TEXT_FILTER_KEY;
+  let [searchParams, setSearchParams] = useSearchParams();
   return (
     <div>
       {flow.signatures?.length > 0 ? (
@@ -242,26 +247,32 @@ function FlowOverview({ flow }: { flow: FullFlow }) {
             [{flow.flags.map((query, i) => (
             <span>
               {i > 0 ? ', ' : ''}
-              <a
-                  key={query}
-                  href={`/?text=${encodeURIComponent(query)}`}
+              <button className="font-bold"
+                  onClick={() => {
+                    searchParams.set(FILTER_KEY, query);
+                    setSearchParams(searchParams);
+                  }
+                }
               >
               {query}
-              </a>
+              </button>
             </span>
             ))}]
           </div>
           <div>Flagids: </div>
           <div className="font-bold">
             [{flow.flagids.map((query, i) => (
-                <span>
+              <span>
                 {i > 0 ? ', ' : ''}
-                  <a
-                      key={query}
-                      href={`/?text=${encodeURIComponent(query)}`}
-                  >
-                {query}
-              </a>
+                <button className="font-bold"
+                  onClick={() => {
+                      searchParams.set(FILTER_KEY, query);
+                      setSearchParams(searchParams);
+                    }
+                  }
+                >
+                  {query}
+                </button>
               </span>
             ))}]
           </div>
