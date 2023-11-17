@@ -9,11 +9,11 @@ services:
       - "27017:27017"
 
   frontend:
-    restart: always
     build:
       context: frontend
       dockerfile: Dockerfile-frontend
     image: tulip-frontend:latest
+    restart: unless-stopped
     ports:
       - "3000:3000"
     depends_on:
@@ -25,13 +25,11 @@ services:
       API_SERVER_ENDPOINT: http://api:5000/
 
   api:
-    restart: always
     build:
-      context: .
-      dockerfile: Dockerfile-python
+      context: services/api
+      dockerfile: Dockerfile-api
     image: tulip-api:latest
-    ports:
-      - "5000:5000"
+    restart: unless-stopped
     depends_on:
       - mongo
     networks:
@@ -60,7 +58,7 @@ services:
       - "8000:8000"
 
   flagids:
-    restart: always
+    restart: unless-stopped
     build:
       context: services/flagids
     image: tulip-flagids:latest
@@ -76,14 +74,13 @@ services:
       FLAGID_ENDPOINT: ${FLAGID_ENDPOINT}
 
   assembler:
-    restart: always
     build:
       context: services/go-importer
       dockerfile: Dockerfile-assembler
     image: tulip-assembler:latest
+    restart: unless-stopped
     depends_on:
       - mongo
-      - flagids # only for testing
     networks:
       - internal
     volumes:
@@ -94,14 +91,17 @@ services:
       FLAG_REGEX: ${FLAG_REGEX}
       TICK_LENGTH: ${TICK_LENGTH}
       FLAG_LIFETIME: ${FLAG_LIFETIME}
-      DELAY: 30
+      PCAP_OVER_IP: ${PCAP_OVER_IP}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
 
   enricher:
-    restart: always
     build:
       context: services/go-importer
       dockerfile: Dockerfile-enricher
     image: tulip-enricher:latest
+    restart: unless-stopped
     depends_on:
       - mongo
     networks:

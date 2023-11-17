@@ -9,7 +9,6 @@ services:
       - "27017:27017"
 
   frontend:
-    restart: always
     build:
       context: frontend
       dockerfile: Dockerfile-frontend
@@ -26,7 +25,6 @@ services:
       API_SERVER_ENDPOINT: http://api:5000/
 
   api:
-    restart: always
     build:
       context: services/api
       dockerfile: Dockerfile-api
@@ -47,7 +45,7 @@ services:
       VM_IP: ${VM_IP}
 
   flagids:
-    restart: always
+    restart: unless-stopped
     build:
       context: services/flagids
     image: tulip-flagids:latest
@@ -63,7 +61,6 @@ services:
       FLAGID_ENDPOINT: ${FLAGID_ENDPOINT}
 
   assembler:
-    restart: always
     build:
       context: services/go-importer
       dockerfile: Dockerfile-assembler
@@ -87,7 +84,6 @@ services:
 
 
   enricher:
-    restart: always
     build:
       context: services/go-importer
       dockerfile: Dockerfile-enricher
