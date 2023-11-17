@@ -11,6 +11,8 @@ tick_length = int(os.getenv("TICK_LENGTH", 10*1000))//1000
 start_date = os.getenv("TICK_START", "2018-06-27T13:00+02:00")
 mongo_host = os.getenv("TULIP_MONGO", "localhost:27017").split(':')
 team_id = os.getenv("TEAM_ID", "10.10.3.1")
+team_id_is_digit = team_id.isdigit()
+team_id_int = int(team_id) if team_id_is_digit else None
 flagid_endpoint = os.getenv("FLAGID_ENDPOINT", "http://localhost:8000/flagids.json")
 
 print('STARTING FLAGIDS')
@@ -23,22 +25,28 @@ def get_leaf_nodes(data):
     if isinstance(data, dict):
         if team_id in data.keys():
             yield from get_leaf_nodes(data[team_id])
+        elif team_id_is_digit and team_id_int in data.keys():
+            yield from get_leaf_nodes(data[team_id_int])
         else:
             for key, value in data.items():
                 yield from get_leaf_nodes(value)
     elif isinstance(data, list):
-        for item in data:
-            yield from get_leaf_nodes(item)
+        if team_id in data or (team_id_is_digit and team_id_int in data):
+            yield
+        else:
+            for item in data:
+                print(item, end=' ')
+                yield from get_leaf_nodes(item)
     else:
         # prevent id from being used as Flagids
-        if data != team_id:
-            yield data
+        yield data
 
 def update_flagids():
     print('Updating flagids: ', time.time())
     response = requests.get(flagid_endpoint)
     crnt_time = int(time.time())
-    nodes = [{"_id": node, "time": crnt_time} for node in  get_leaf_nodes(response.json())]
+    nodes = [{"_id": node, "time": crnt_time} for node in get_leaf_nodes(response.json()) if node is not None]
+    print(nodes)
     db['flagids'].insert_many(nodes)
 
 def main():

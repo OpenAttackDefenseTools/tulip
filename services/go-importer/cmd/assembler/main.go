@@ -61,12 +61,12 @@ func reassemblyCallback(entry db.FlowEntry) {
 	}
 
 	//Apply flagid
-	flagids, err := g_db.GetFlagids()
+	flagids, err := g_db.GetFlagids(flaglifetime)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	ApplyFlagids(&entry, flagids, flaglifetime)
+	ApplyFlagids(&entry, flagids)
 
 	// Finally, insert the new entry
 	g_db.InsertFlow(entry)

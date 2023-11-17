@@ -317,7 +317,7 @@ type Flagid struct {
 	Time int    `bson:"time"`
 }
 
-func (db Database) GetFlagids() ([]Flagid, error) {
+func (db Database) GetFlagids(flaglifetime int) ([]Flagid, error) {
 	// Create a context with a timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -325,8 +325,15 @@ func (db Database) GetFlagids() ([]Flagid, error) {
 	// Access the "pcap" database and "flagids" collection
 	collection := db.client.Database("pcap").Collection("flagids")
 
-	// Find all documents in the collection
-	cur, err := collection.Find(ctx, bson.M{})
+	// Find all documents in the
+	var filter bson.M
+	if flaglifetime < 0 {
+		filter = bson.M{}
+	} else {
+		filter = bson.M{"time": bson.M{"$gt": int(time.Now().Unix()) - flaglifetime}}
+	}
+
+	cur, err := collection.Find(ctx, filter)
 	if err != nil {
 		return nil, err
 	}

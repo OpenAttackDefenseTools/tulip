@@ -9,6 +9,7 @@ services:
       - "27017:27017"
 
   frontend:
+    restart: always
     build:
       context: frontend
       dockerfile: Dockerfile-frontend
@@ -24,6 +25,7 @@ services:
       API_SERVER_ENDPOINT: http://api:5000/
 
   api:
+    restart: always
     build:
       context: .
       dockerfile: Dockerfile-python
@@ -46,6 +48,7 @@ services:
 
   # Only for testing
   flagidendpoint:
+    restart: always
     build:
       context: services/go-importer/test_data
     image: flagid-endpoint:latest
@@ -57,6 +60,7 @@ services:
       - "8000:8000"
 
   flagids:
+    restart: always
     build:
       context: services/flagids
     image: tulip-flagids:latest
@@ -72,6 +76,7 @@ services:
       FLAGID_ENDPOINT: ${FLAGID_ENDPOINT}
 
   assembler:
+    restart: always
     build:
       context: services/go-importer
       dockerfile: Dockerfile-assembler
@@ -92,6 +97,7 @@ services:
       DELAY: 30
 
   enricher:
+    restart: always
     build:
       context: services/go-importer
       dockerfile: Dockerfile-enricher
