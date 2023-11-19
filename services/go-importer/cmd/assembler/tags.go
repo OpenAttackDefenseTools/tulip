@@ -11,7 +11,9 @@ import (
 )
 
 var flagRegex *regexp.Regexp
-var flagValidator FaustFlagValidator = FaustFlagValidator{6, time.Hour, 5, "CTF-GAMESERVER"}
+
+// var flagValidator FlagValidator = DummyFlagValidator{}
+var flagValidator FlagValidator = FaustFlagValidator{6, time.Hour, 5, "CTF-GAMESERVER"}
 
 func EnsureRegex(reg *string) {
 	if flagRegex == nil {

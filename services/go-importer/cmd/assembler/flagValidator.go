@@ -7,17 +7,19 @@ import (
 	"time"
 )
 
-const FLAG_DATA_LEN = 8 + 4 + 2
-
 type FlagValidator interface {
-	IsValid(flag *string, tick time.Time) bool
+	IsValid(flag string) bool
 }
 
+type DummyFlagValidator struct{}
+
+func (f DummyFlagValidator) IsValid(flag string) bool { return true }
+
 type FaustFlagValidator struct {
-	teamNet uint16
+	teamNet       uint16
 	timeTolerance time.Duration
-	prefixLen uint
-	xorString string
+	prefixLen     uint
+	xorString     string
 }
 
 /*
@@ -38,6 +40,7 @@ func NewFaustFlagValidator(
 */
 
 func (f FaustFlagValidator) IsValid(flag string) bool {
+	const FLAG_DATA_LEN = 8 + 4 + 2
 	data, err := base64.StdEncoding.DecodeString(flag[f.prefixLen:])
 	if err != nil {
 		log.Println("Error during decode of flag: ", err)
