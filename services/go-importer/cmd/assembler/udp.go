@@ -65,7 +65,10 @@ func (assembler *UdpAssembler) CompleteOlderThan(threshold time.Time) []*db.Flow
 
 	for id, stream := range assembler.Streams {
 		if stream.LastSeen.Unix() < threshold.Unix() {
-			flows = append(flows, stream.CompleteReassembly())
+			flow := stream.CompleteReassembly()
+			if flow != nil {
+				flows = append(flows, flow)
+			}
 			delete(assembler.Streams, id)
 		}
 	}
