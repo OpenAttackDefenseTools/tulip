@@ -13,7 +13,8 @@ import (
 var flagRegex *regexp.Regexp
 
 // var flagValidator FlagValidator = DummyFlagValidator{}
-var flagValidator FlagValidator = FaustFlagValidator{6, time.Hour, 5, "CTF-GAMESERVER"}
+var flagValidator FlagValidator = FaustFlagValidator{len("FLAG_"), 6, time.Hour, "CTF-GAMESERVER"}
+// var flagValidator FlagValidator = EnowarsFlagValidator{len("ENO"), 11, 6, 2}
 
 func EnsureRegex(reg *string) {
 	if flagRegex == nil {
