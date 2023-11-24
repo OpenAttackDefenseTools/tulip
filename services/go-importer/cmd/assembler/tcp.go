@@ -169,13 +169,21 @@ func (t *TcpStream) ReassemblyComplete(ac reassembly.AssemblerContext) bool {
 	ip_src, _ := netip.ParseAddr(src.String())
 	ip_dst, _ := netip.ParseAddr(dst.String())
 
+	timeStart := t.FlowItems[0].Time
+	timeEnd := t.FlowItems[0].Time
+	for _, item := range t.FlowItems {
+		if timeEnd.Before(item.Time) {
+			timeEnd = item.Time
+		}
+	}
+
 	entry := db.FlowEntry{
 		Src_port:    uint16(t.src_port),
 		Dst_port:    uint16(t.dst_port),
 		Src_ip:      ip_src,
 		Dst_ip:      ip_dst,
-		Time:        t.FlowItems[0].Time,
-		Duration:    t.FlowItems[len(t.FlowItems)-1].Time.Sub(t.FlowItems[0].Time),
+		Time:        timeStart,
+		Duration:    timeEnd.Sub(timeStart),
 		Num_packets: t.num_packets,
 		Parent_id:   nil,
 		Child_id:    nil,

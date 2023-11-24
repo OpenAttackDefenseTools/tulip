@@ -133,13 +133,21 @@ func (stream *UdpStream) CompleteReassembly() *db.FlowEntry {
 	ip_src, _ := netip.ParseAddr(src.String())
 	ip_dst, _ := netip.ParseAddr(dst.String())
 
+	timeStart := stream.Items[0].Time
+	timeEnd := stream.Items[0].Time
+	for _, item := range stream.Items {
+		if timeEnd.Before(item.Time) {
+			timeEnd = item.Time
+		}
+	}
+
 	return &db.FlowEntry{
 		Src_port:    uint16(stream.PortSrc),
 		Dst_port:    uint16(stream.PortDst),
 		Src_ip:      ip_src,
 		Dst_ip:      ip_dst,
-		Time:        stream.Items[0].Time,
-		Duration:    stream.Items[len(stream.Items)-1].Time.Sub(stream.Items[0].Time),
+		Time:        timeStart,
+		Duration:    timeEnd.Sub(timeStart),
 		Num_packets: int(stream.PacketCount),
 		Parent_id:   nil,
 		Child_id:    nil,

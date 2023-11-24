@@ -9,6 +9,7 @@ import (
 	"runtime"
 	"sync"
 	"time"
+	"math"
 
 	"github.com/gammazero/workerpool"
 	"github.com/gofrs/uuid/v5"
@@ -23,6 +24,7 @@ type Database struct {
 	workerPool *workerpool.WorkerPool
 	batcherFlowEntry *CopyBatcher
 	batcherFlowItem *CopyBatcher
+	batcherFlowIndex *CopyBatcher
 	knownTags map[string]struct{}
 	knownTagsMutex *sync.RWMutex
 	fingerprints [][]int32
@@ -68,8 +70,14 @@ func NewDatabase(connectionString string) *Database {
 	database.batcherFlowItem = NewCopyBatcher(CopyBatcherConfig {
 		db: database,
 		tableName: pgx.Identifier{"flow_item"},
-		columns: []string{"id", "flow_id", "kind", "direction", "data", "text"},
+		columns: []string{"id", "flow_id", "kind", "direction", "data"},
 		batchSize: 2000,
+	})
+	database.batcherFlowIndex = NewCopyBatcher(CopyBatcherConfig {
+		db: database,
+		tableName: pgx.Identifier{"flow_index"},
+		columns: []string{"flow_id", "text"},
+		batchSize: 4000,
 	})
 
 	// Fingerprints
@@ -297,18 +305,53 @@ func (db *Database) FlowInsert(flow FlowEntry) {
 	}
 
 	// Generate flow id
-	flow_id := UuidCreate(flow.Time)
+	flow_id := FidCreate(flow.Time)
+
+	// Prepare index rows
+	// These are split to chunks of maximum 1024 chars
+	// This is to ensure length of records is not too different
+	// between rows and to avoid rechecking large chunks of data
+	// in memory after a lossy index search has been used
+	chunkLength := 1024
+	chunkOverlap := 64
+	indexes := make([][]any, 0)
+	for _, item := range flow.Flow {
+		text := []rune(string(bytes.Replace(bytes.ToValidUTF8(item.Data, []byte{}), []byte{0}, []byte{}, -1)))
+		chunkCount := int(math.Ceil(float64(len(text)) / float64(chunkLength)))
+
+		// Each split between index rows has a 64 char overlap
+		// This is to accomodate searches hitting the boundary
+		for i := 0; i < chunkCount; i++ {
+			startIndex := i * chunkLength
+			endIndex := i * chunkLength + chunkLength + chunkOverlap
+			if endIndex >= len(text) {
+				endIndex = len(text) - 1
+			}
+
+			chunk := string(text[startIndex:endIndex])
+			indexes = append(indexes, []any { flow_id, chunk })
+		}
+	}
+
+	// Insert index rows
+	// This is async, since the index is not required to be peresent when we insert the flow
+	// At worst it will take a few seconds before this flow is searchable
+	db.batcherFlowIndex.PushAllCallback(indexes, func(errors <-chan error) {
+		// Error inserting flow indexes
+		if len(errors) != 0 {
+			log.Println("Error inserting flow indexes (flow will not be fully searchable): ", <-errors)
+		}
+	})
 
 	// Prepare flow items
 	items := make([][]any, len(flow.Flow))
 	for i := range flow.Flow {
 		items[i] = []any {
-			UuidCreate(flow.Flow[i].Time),
+			FidCreate(flow.Flow[i].Time),
 			flow_id,
 			flow.Flow[i].Kind,
 			flow.Flow[i].From,
 			&flow.Flow[i].Data,
-			string(bytes.Replace(bytes.ToValidUTF8(flow.Flow[i].Data, []byte{}), []byte{0}, []byte{}, -1)),
 		}
 	}
 
@@ -338,7 +381,9 @@ func (db *Database) FlowInsert(flow FlowEntry) {
 			flow_id,
 			flow.Src_port, flow.Dst_port,
 			flow.Src_ip, flow.Dst_ip,
-			flow.Duration,
+			// Postgres keeps duration with 1 microsecond precision
+			// If we round down we risk some flow items being ouside of this duration
+			flow.Duration.Truncate(time.Microsecond) + time.Microsecond,
 			flow.Tags,
 			pcap_id,
 			flow.Child_id,
@@ -427,8 +472,8 @@ func (db *Database) SuricataIdFindFlow(id SuricataId) (uuid.UUID, error) {
 			AND port_dst = @port_dst
 			AND ip_src = @ip_src
 			AND ip_dst = @ip_dst
-			AND id > uuid_pack_low(@time_start)
-			AND id < uuid_pack_high(@time_end)
+			AND id > fid_pack_low(@time_start)
+			AND id < fid_pack_high(@time_end)
 	`, pgx.NamedArgs {
 		"time_start": id.Time.Add(-db.suricataIdWindow),
 		"time_end": id.Time.Add(db.suricataIdWindow),

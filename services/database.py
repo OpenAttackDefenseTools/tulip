@@ -32,6 +32,7 @@ class FlowQuery:
     time_to: datetime | None = None
     tags_include: list[str] = field(default_factory=list)
     tags_exclude: list[str] = field(default_factory=list)
+    limit: int = 1000
 
 
 @dataclass(slots=True, kw_only=True)
@@ -71,7 +72,6 @@ class FlowItem(JsonFactory):
     time: datetime
     direction: str
     data: bytes
-    text: str
 
     def to_json(self) -> Any:
         result = JsonFactory.to_json(self)
@@ -133,14 +133,27 @@ class Connection(psycopg.Connection):
         conditions = [sql.SQL("true")]
         parameters = {}
 
+        pre_select = sql.SQL("WITH f AS (SELECT * FROM flow ORDER BY id DESC)")
+
         if query.regex_insensitive:
             parameters["regex_insensitive"] = query.regex_insensitive.pattern
-            condition = """
-                SELECT * FROM flow_item AS fi
-                WHERE fi.flow_id = f.id
-                    AND fi.text ~* %(regex_insensitive)s
+            text = """
+                WITH fi AS (
+                    SELECT flow_id, fid_rank_desc(flow_id) AS rank
+                    FROM flow_index
+                    WHERE text ~* %(regex_insensitive)s
+                    ORDER BY rank
+                ), fd AS (
+                    SELECT DISTINCT ON (rank) flow_id
+                    FROM fi
+                ), f AS (
+                    SELECT fl.*
+                    FROM fd
+                    INNER JOIN flow AS fl
+                        ON fl.id = fd.flow_id
+                )
             """
-            conditions.append(sql.SQL(f"EXISTS ({condition})"))
+            pre_select = sql.SQL(text)
 
         if query.ip_src:
             parameters["ip_src"] = query.ip_src
@@ -158,10 +171,10 @@ class Connection(psycopg.Connection):
 
         if query.time_from:
             parameters["time_from"] = query.time_from
-            conditions.append(sql.SQL("f.id > uuid_pack_low(%(time_from)s)"))
+            conditions.append(sql.SQL("f.id > fid_pack_low(%(time_from)s)"))
         if query.time_to:
             parameters["time_to"] = query.time_to
-            conditions.append(sql.SQL("f.id < uuid_pack_high(%(time_to)s)"))
+            conditions.append(sql.SQL("f.id < fid_pack_high(%(time_to)s)"))
 
         if query.tags_include:
             parameters["tags_include"] = query.tags_include
@@ -170,21 +183,30 @@ class Connection(psycopg.Connection):
             parameters["tags_exclude"] = query.tags_exclude
             conditions.append(sql.SQL("NOT f.tags ?| %(tags_exclude)s"))
 
-        sql_query = sql.SQL(
-            """
+        text_query = """
+            /*+
+                NoBitmapScan(flow_index)
+                Set(enable_material false)
+            */
+            {pre_select}
             SELECT f.*, p.name AS pcap_name
-            FROM flow AS f
+            FROM f
             INNER JOIN pcap AS p
                 ON p.id = f.pcap_id
             WHERE {conditions}
-            ORDER BY id DESC
-            LIMIT 2000
+            LIMIT {limit}
         """
-        ).format(conditions=sql.SQL(" AND ").join(conditions))
+
+        sql_query = sql.SQL(text_query).format(
+            conditions=sql.SQL(" AND ").join(conditions),
+            pre_select=pre_select,
+            limit=query.limit,
+        )
+
         with self.cursor(row_factory=class_row(Flow)) as cursor:
             flows = cursor.execute(sql_query, parameters).fetchall()
 
-        # Filter out non-existing tags and sort the rest
+        # Filter out non-existing tags
         tags = self.tag_list()
         for flow in flows:
             flow.tags = list(filter(lambda t: t in flow.tags, tags))
@@ -219,8 +241,8 @@ class Connection(psycopg.Connection):
             SELECT fi.*
             FROM flow_item AS fi
             WHERE fi.flow_id = %(flow_id)s
-                AND fi.id > uuid_pack_low(%(time_start)s)
-                AND fi.id < uuid_pack_high(%(time_end)s)
+                AND fi.id > fid_pack_low(%(time_start)s)
+                AND fi.id < fid_pack_high(%(time_end)s)
         """
 
         parameters = {
@@ -271,8 +293,8 @@ class Connection(psycopg.Connection):
             SELECT tick_number_bucket(%(tick_first)s, %(tick_length)s, time) AS tick,
                 count(id) AS count, sum(flags_in) AS flags_in, sum(flags_out) AS flags_out
             FROM flow AS f
-            WHERE f.id > uuid_pack_low(%(time_start)s)
-                AND f.id < uuid_pack_high(%(time_end)s)
+            WHERE f.id > fid_pack_low(%(time_start)s)
+                AND f.id < fid_pack_high(%(time_end)s)
             GROUP BY tick
         """
         with self.cursor(row_factory=dict_row) as cursor:
@@ -289,8 +311,8 @@ class Connection(psycopg.Connection):
             FROM flow AS f
             JOIN tag AS t
                 ON f.tags ? t.name
-            WHERE f.id > uuid_pack_low(%(time_start)s)
-                AND f.id < uuid_pack_high(%(time_end)s)
+            WHERE f.id > fid_pack_low(%(time_start)s)
+                AND f.id < fid_pack_high(%(time_end)s)
             GROUP BY tick_start, tick, t.name
             ORDER BY tick ASC
         """

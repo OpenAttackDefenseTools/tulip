@@ -30,7 +30,7 @@ BEGIN
 END; $$;
 
 -- Function to create UUID based on timestamp and random bytes
-CREATE FUNCTION uuid_pack("time" timestamptz, random bytea)
+CREATE FUNCTION fid_pack("time" timestamptz, random bytea)
 RETURNS uuid LANGUAGE plpgsql IMMUTABLE PARALLEL SAFE AS $$
 DECLARE
 	time_int bigint = extract(epoch FROM "time" AT TIME ZONE 'UTC') * 1000000;
@@ -43,20 +43,20 @@ BEGIN
 		|| random_hex;
 END; $$;
 
-CREATE FUNCTION uuid_pack_low("time" timestamptz)
+CREATE FUNCTION fid_pack_low("time" timestamptz)
 RETURNS uuid LANGUAGE plpgsql IMMUTABLE PARALLEL SAFE AS $$
 BEGIN
-	RETURN uuid_pack("time", '\x00000000000000');
+	RETURN fid_pack("time", '\x00000000000000');
 END; $$;
 
-CREATE FUNCTION uuid_pack_high("time" timestamptz)
+CREATE FUNCTION fid_pack_high("time" timestamptz)
 RETURNS uuid LANGUAGE plpgsql IMMUTABLE PARALLEL SAFE AS $$
 BEGIN
-	RETURN uuid_pack("time", '\xffffffffffffff');
+	RETURN fid_pack("time", '\xffffffffffffff');
 END; $$;
 
 -- Functions to extract UUID values
-CREATE FUNCTION uuid_unpack_time(id uuid)
+CREATE FUNCTION fid_unpack_time(id uuid)
 RETURNS timestamptz LANGUAGE plpgsql IMMUTABLE PARALLEL SAFE AS $$
 DECLARE
 	hex text := replace(id::text, '-', '');
@@ -65,7 +65,7 @@ BEGIN
 	RETURN to_timestamp(big_endian_int(decode(time_hex, 'hex'))::float / 1000000)::timestamptz;
 END; $$;
 
-CREATE FUNCTION uuid_unpack_random(id uuid)
+CREATE FUNCTION fid_unpack_random(id uuid)
 RETURNS bytea LANGUAGE plpgsql IMMUTABLE PARALLEL SAFE AS $$
 DECLARE
 	hex text := replace(id::text, '-', '');
@@ -74,11 +74,66 @@ BEGIN
 	RETURN decode(random_hex, 'hex');
 END; $$;
 
-CREATE FUNCTION uuid_create("time" timestamptz)
+CREATE FUNCTION fid_create("time" timestamptz)
 RETURNS uuid LANGUAGE plpgsql VOLATILE PARALLEL SAFE AS $$
 BEGIN
-	RETURN uuid_pack("time", gen_random_bytes(7));
+	RETURN fid_pack("time", gen_random_bytes(7));
 END; $$;
+
+-- Min / Max functions
+CREATE FUNCTION fid_max()
+RETURNS uuid LANGUAGE SQL IMMUTABLE PARALLEL SAFE STRICT
+AS 'SELECT ''7fffffff-ffff-ffff-ffff-ffffffffffff''::uuid';
+
+CREATE FUNCTION fid_min()
+RETURNS uuid LANGUAGE SQL IMMUTABLE PARALLEL SAFE STRICT
+AS 'SELECT ''00000000-0000-0000-0000-000000000000''::uuid';
+
+-- Distance and index functions
+CREATE FUNCTION fid_distance(uuid, uuid)
+RETURNS int8 LANGUAGE SQL IMMUTABLE PARALLEL SAFE STRICT
+AS 'SELECT (extract(epoch FROM fid_unpack_time($1) <-> fid_unpack_time($2)) * 1000000)::int8';
+
+CREATE OPERATOR <-> (
+	LEFTARG = uuid,
+	RIGHTARG = uuid,
+	PROCEDURE = fid_distance,
+	COMMUTATOR = '<->'
+);
+
+CREATE FUNCTION fid_distance_op(internal, uuid, int2, oid, internal)
+RETURNS float8 LANGUAGE C IMMUTABLE PARALLEL SAFE STRICT
+AS 'tulip';
+
+CREATE OPERATOR CLASS gist_fid_ops
+FOR TYPE uuid USING gist AS
+	OPERATOR 1  <,
+	OPERATOR 2  <=,
+	OPERATOR 3  =,
+	OPERATOR 4  >=,
+	OPERATOR 5  >,
+	OPERATOR 6  <>,
+	OPERATOR 15 <-> FOR ORDER BY pg_catalog.integer_ops,
+	FUNCTION 1  gbt_uuid_consistent (internal, uuid, int2, oid, internal),
+	FUNCTION 2  gbt_uuid_union (internal, internal),
+	FUNCTION 3  gbt_uuid_compress (internal),
+	FUNCTION 4  gbt_decompress (internal),
+	FUNCTION 5  gbt_uuid_penalty (internal, internal, internal),
+	FUNCTION 6  gbt_uuid_picksplit (internal, internal),
+	FUNCTION 7  gbt_uuid_same (gbtreekey32, gbtreekey32, internal),
+	FUNCTION 9  gbt_uuid_fetch (internal),
+	FUNCTION 8  fid_distance_op(internal, uuid, int2, oid, internal),
+	STORAGE gbtreekey32;
+
+-- Ranking functions
+-- This is used for GiST index sorting
+CREATE FUNCTION fid_rank_desc(uuid)
+RETURNS int8 LANGUAGE SQL IMMUTABLE PARALLEL SAFE STRICT
+AS 'SELECT $1 <-> fid_max()';
+
+CREATE FUNCTION fid_rank_asc(uuid)
+RETURNS int8 LANGUAGE SQL IMMUTABLE PARALLEL SAFE STRICT
+AS 'SELECT $1 <-> fid_min()';
 
 -- Json helper functions
 CREATE FUNCTION jsonb_unique(data jsonb)

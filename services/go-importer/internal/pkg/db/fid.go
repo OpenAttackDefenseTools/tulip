@@ -10,7 +10,7 @@ import (
 	"github.com/gofrs/uuid/v5"
 )
 
-func UuidPack(t time.Time, bytes_rand []byte) uuid.UUID {
+func FidPack(t time.Time, bytes_rand []byte) uuid.UUID {
 	bytes_time := make([]byte, 8)
 	binary.BigEndian.PutUint64(bytes_time, uint64(t.UnixMicro()))
 	_, error := rand.Read(bytes_rand)
@@ -32,12 +32,12 @@ func UuidPack(t time.Time, bytes_rand []byte) uuid.UUID {
 	return uuid
 }
 
-func UuidCreate(t time.Time) uuid.UUID {
+func FidCreate(t time.Time) uuid.UUID {
 	bytes_rand := make([]byte, 7)
 	_, error := rand.Read(bytes_rand)
 	if error != nil {
 		log.Fatal(error)
 	}
 
-	return UuidPack(t, bytes_rand)
+	return FidPack(t, bytes_rand)
 }

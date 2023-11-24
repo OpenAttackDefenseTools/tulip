@@ -33,7 +33,7 @@ CREATE INDEX ON fingerprint (grp);
 
 CREATE TABLE flow (
 	id uuid NOT NULL PRIMARY KEY,
-	time timestamptz GENERATED ALWAYS AS (uuid_unpack_time(id)) STORED,
+	time timestamptz GENERATED ALWAYS AS (fid_unpack_time(id)) STORED,
 	port_src int NOT NULL,
 	port_dst int NOT NULL,
 	ip_src inet NOT NULL,
@@ -62,25 +62,35 @@ SELECT create_hypertable(
 	'flow',
 	'id',
 	chunk_time_interval => INTERVAL '1 hour',
-	time_partitioning_func => 'uuid_unpack_time'
+	time_partitioning_func => 'fid_unpack_time'
 );
 
 CREATE TABLE flow_item (
 	id uuid NOT NULL PRIMARY KEY,
 	flow_id uuid NOT NULL,
 	kind text NOT NULL,
-	time timestamptz GENERATED ALWAYS AS (uuid_unpack_time(id)) STORED,
+	time timestamptz GENERATED ALWAYS AS (fid_unpack_time(id)) STORED,
 	direction text NOT NULL,
-	data bytea NOT NULL,
-	text text NOT NULL
+	data bytea NOT NULL
 );
-
--- Regex search, this one is chonky
-CREATE INDEX ON flow_item USING gin (text gin_trgm_ops);
 
 SELECT create_hypertable(
 	'flow_item',
 	'id',
 	chunk_time_interval => INTERVAL '1 hour',
-	time_partitioning_func => 'uuid_unpack_time'
+	time_partitioning_func => 'fid_unpack_time'
 );
+
+-- Table for quick indexed regex search on utf8 data
+-- The data in this table is chunked to 1028 characters
+-- with 64 character overlap
+CREATE TABLE flow_index (
+	flow_id uuid NOT NULL,
+	text text NOT NULL
+);
+
+-- Regex search, this one is chonky
+-- This is a GiST rather than GIN since GIN does not support sorting
+-- In the future we could use something like RUM (https://github.com/postgrespro/rum)
+-- Sadly, RUM does not support fast update like GIN does, so ingestion takes ages
+CREATE INDEX ON flow_index USING gist (text gist_trgm_ops(siglen=2024), flow_id gist_fid_ops);

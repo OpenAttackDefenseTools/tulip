@@ -1,7 +1,8 @@
-version: "3.2"
+version: "3.5"
 services:
   timescale:
-    image: timescale/timescaledb:latest-pg15
+    build: services/timescale
+    image: tulip-timescale:latest
     restart: on-failure
     volumes:
     - timescale-data:/var/lib/postgresql/data
@@ -14,6 +15,9 @@ services:
       POSTGRES_HOST_AUTH_METHOD: trust
       POSTGRES_USER: tulip
       POSTGRES_DB: tulip
+    # This does not neet to be adjusted, unless you actually want to limit it
+    # Postgres uses shared memory for caching, and docker assigns just 64 MB by default
+    shm_size: '128g'
 
   frontend:
     build:
