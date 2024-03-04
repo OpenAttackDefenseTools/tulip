@@ -129,6 +129,6 @@ venv.bak/
 .mypy_cache/
 
 workspace.xml
-
+.idea
 
 /traffic
