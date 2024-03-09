@@ -8,4 +8,5 @@ require (
 	github.com/google/gopacket v1.1.19
 	github.com/tidwall/gjson v1.14.1
 	go.mongodb.org/mongo-driver v1.9.1
+	github.com/cloudflare/ahocorasick v0.0.0-20210425175752-730270c3e184
 )

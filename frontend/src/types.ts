@@ -12,6 +12,8 @@ export interface Flow {
   parent_id: Id;
   child_id: Id;
   tags: string[];
+  flags: string[];
+  flagids: string[];
   suricata: number[];
   filename: string;
 }
@@ -56,6 +58,9 @@ export interface FlowsQuery {
   to_time?: string;
   includeTags: string[];
   excludeTags: string[];
+  tags: string[];
+  flags: string[];
+  flagids: string[];
 }
 
 export type Service = {

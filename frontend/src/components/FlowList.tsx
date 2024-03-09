@@ -39,6 +39,9 @@ export function FlowList() {
   const { data: availableTags } = useGetTagsQuery();
   const { data: services } = useGetServicesQuery();
 
+  const filterTags = useAppSelector((state) => state.filter.filterTags);
+  const filterFlags = useAppSelector((state) => state.filter.filterFlags);
+  const filterFlagids = useAppSelector((state) => state.filter.filterFlagids);
   const includeTags = useAppSelector((state) => state.filter.includeTags);
   const excludeTags = useAppSelector((state) => state.filter.excludeTags);
 
@@ -68,6 +71,9 @@ export function FlowList() {
       from_time: from_filter,
       to_time: to_filter,
       service: "", // FIXME
+      tags: filterTags,
+      flags: filterFlags,
+      flagids: filterFlagids,
       includeTags: includeTags,
       excludeTags: excludeTags
     },
@@ -219,7 +225,7 @@ function FlowListEntry({ flow, isActive, onHeartClick }: FlowListEntryProps) {
             </div>
             <div className="text-gray-500 ml-auto">{duration}</div>
           </div>
-          <div className="flex h-5 gap-2">
+          <div className="flex gap-2 flex-wrap">
             {filtered_tag_list.map((tag) => (
               <Tag key={tag} tag={tag}></Tag>
             ))}

@@ -47,7 +47,7 @@ func ParseHttpFlow(flow *db.FlowEntry) {
 				continue
 			}
 
-			if !containsTag(flow.Tags, "http") {
+			if !contains(flow.Tags, "http") {
 				flow.Tags = append(flow.Tags, "http")
 			}
 
@@ -66,7 +66,7 @@ func ParseHttpFlow(flow *db.FlowEntry) {
 				continue
 			}
 
-			if !containsTag(flow.Tags, "http") {
+			if !contains(flow.Tags, "http") {
 				flow.Tags = append(flow.Tags, "http")
 			}
 
@@ -90,19 +90,19 @@ func ParseHttpFlow(flow *db.FlowEntry) {
 			}
 
 			switch encoding[0] {
-				case "gzip":
-					newReader, err = handleGzip(res.Body)
-					break
-				case "br":
-					newReader, err = handleBrotili(res.Body)
-					break
-				case "deflate":
-					//TODO; verify this is correct
-					newReader, err = handleGzip(res.Body)
-					break
-				default:
-					// Skipped, unknown or identity encoding
-					continue
+			case "gzip":
+				newReader, err = handleGzip(res.Body)
+				break
+			case "br":
+				newReader, err = handleBrotili(res.Body)
+				break
+			case "deflate":
+				//TODO; verify this is correct
+				newReader, err = handleGzip(res.Body)
+				break
+			default:
+				// Skipped, unknown or identity encoding
+				continue
 			}
 
 			// Replace the reader to allow for in-place decompression
