@@ -76,7 +76,6 @@ func (db Database) ConfigureDatabase() {
 	db.InsertTag("flagid-out")
 	db.InsertTag("tcp")
 	db.InsertTag("udp")
-	db.InsertTag("flagid")
 	db.ConfigureIndexes()
 }
 
@@ -183,7 +182,7 @@ func (db Database) InsertFlow(flow FlowEntry) {
 
 type PcapFile struct {
 	FileName string `bson:"file_name"`
-	Position int64 `bson:"position"`
+	Position int64  `bson:"position"`
 }
 
 // Insert a new pcap uri, returns true if the pcap was not present yet,
@@ -192,9 +191,9 @@ func (db Database) InsertPcap(uri string, position int64) bool {
 	files := db.client.Database("pcap").Collection("filesImported")
 	exists, _ := db.GetPcap(uri)
 	if !exists {
-		files.InsertOne(context.TODO(), bson.M{"file_name": uri,"position": position})
+		files.InsertOne(context.TODO(), bson.M{"file_name": uri, "position": position})
 	} else {
-		files.UpdateOne(context.TODO(), bson.M{"file_name": uri}, bson.M{"$set":bson.M{"position": position}})
+		files.UpdateOne(context.TODO(), bson.M{"file_name": uri}, bson.M{"$set": bson.M{"position": position}})
 	}
 	return !exists
 }

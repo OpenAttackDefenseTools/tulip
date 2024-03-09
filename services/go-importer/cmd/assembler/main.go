@@ -3,16 +3,15 @@ package main
 import (
 	"go-importer/internal/pkg/db"
 
-	"fmt"
-	"net"
-	"strconv"
-
 	"flag"
+	"fmt"
 	"io/ioutil"
 	"log"
+	"net"
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -32,8 +31,6 @@ var checksum = false
 var nohttp = true
 
 var snaplen = 65536
-var ticklength = -1
-var flaglifetime = -1
 var tstype = ""
 var promisc = true
 
@@ -44,6 +41,11 @@ var pcap_over_ip = flag.String("pcap-over-ip", "", "PCAP-over-IP host + port (e.
 var bpf = flag.String("bpf", "", "BPF filter")
 var nonstrict = flag.Bool("nonstrict", false, "Do not check strict TCP / FSM flags")
 var experimental = flag.Bool("experimental", false, "Enable experimental features.")
+
+var flagid = flag.Bool("flagid", false, "Check for flagids in traffic (must be present in mong)")
+var ticklength = *flag.Int("tick length", -1, "the length (in seconds) of a tick")
+var flaglifetime = *flag.Int("flag lifetime", -1, "the lifetime of a flag in ticks")
+
 var flushAfter = flag.String("flush-after", "30s", `(TCP) Connections which have buffered packets (they've gotten packets out of order and
 are waiting for old packets to fill the gaps) can be flushed after they're this old
 (their oldest gap is skipped). This is particularly useful for pcap-over-ip captures.
@@ -74,13 +76,14 @@ func reassemblyCallback(entry db.FlowEntry) {
 		ApplyFlagTags(&entry, flag_regex)
 	}
 
-	//Apply flagid
-	flagids, err := g_db.GetFlagids(flaglifetime)
-	if err != nil {
-		log.Fatal(err)
+	//Apply flagid in / out
+	if *flagid {
+		flagids, err := g_db.GetFlagids(flaglifetime)
+		if err != nil {
+			log.Fatal(err)
+		}
+		ApplyFlagids(&entry, flagids)
 	}
-
-	ApplyFlagids(&entry, flagids)
 
 	// Finally, insert the new entry
 	g_db.InsertFlow(entry)
@@ -159,7 +162,7 @@ func main() {
 
 	// get TICK_LENGTH
 	strticklength := os.Getenv("TICK_LENGTH")
-	if strticklength != "" {
+	if ticklength == -1 && strticklength != "" {
 		zwi, err := strconv.ParseInt(strticklength, 10, 64)
 		if err != nil {
 			log.Println("Error: ", err)
@@ -170,7 +173,7 @@ func main() {
 
 	// get Flag_LIFETIME
 	strflaglifetime := os.Getenv("FLAG_LIFETIME")
-	if strticklength != "" {
+	if flaglifetime == -1 && strticklength != "" {
 		zwi, err := strconv.Atoi(strflaglifetime)
 		if err != nil {
 			log.Println("Error: ", err)
@@ -199,6 +202,13 @@ func main() {
 
 	if *pcap_over_ip == "" {
 		*pcap_over_ip = os.Getenv("PCAP_OVER_IP")
+	}
+
+	// if flagid scans should be done
+	if !*flagid {
+		flagid_val := os.Getenv("FLAGID_SCAN")
+		*flagid = flagid_val != "" && flagid_val != "0" && !strings.EqualFold(flagid_val, "false")
+
 	}
 
 	if *bpf == "" {

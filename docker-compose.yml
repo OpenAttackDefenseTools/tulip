@@ -44,22 +44,6 @@ services:
       TICK_LENGTH: ${TICK_LENGTH}
       VM_IP: ${VM_IP}
 
-  flagids:
-    restart: unless-stopped
-    build:
-      context: services/flagids
-    image: tulip-flagids:latest
-    depends_on:
-      - mongo
-    networks:
-      - internal
-    environment:
-      TULIP_MONGO: ${TULIP_MONGO}
-      TICK_START: ${TICK_START}
-      TICK_LENGTH: ${TICK_LENGTH}
-      TEAM_ID: ${TEAM_ID}
-      FLAGID_ENDPOINT: ${FLAGID_ENDPOINT}
-
   assembler:
     build:
       context: services/go-importer
@@ -77,6 +61,7 @@ services:
       TULIP_MONGO: ${TULIP_MONGO}
       FLAG_REGEX: ${FLAG_REGEX}
       TICK_LENGTH: ${TICK_LENGTH}
+      FLAGID_SCAN: ${FLAGID_SCAN}
       FLAG_LIFETIME: ${FLAG_LIFETIME}
       PCAP_OVER_IP: ${PCAP_OVER_IP}
     extra_hosts:

@@ -2,9 +2,11 @@ package main
 
 import (
 	"go-importer/internal/pkg/db"
+
 	"log"
 	"regexp"
-	"strings"
+
+	"github.com/cloudflare/ahocorasick"
 )
 
 var flagRegex *regexp.Regexp
@@ -71,31 +73,41 @@ func ApplyFlagTags(flow *db.FlowEntry, reg *string) {
 
 // Apply flagids to the entire flow.
 // This assumes the `Data` part of the flowItem is already pre-processed, s.t.
-func ApplyFlagids(flow *db.FlowEntry, flagids []db.Flagid) {
+func ApplyFlagids(flow *db.FlowEntry, flagidsDb []db.Flagid) {
 
+	var flagids []string
+	var matches = make(map[int]int)
+
+	for _, flagid := range flagidsDb {
+		flagids = append(flagids, flagid.ID)
+	}
+
+	matcher := ahocorasick.NewStringMatcher(flagids)
 	for idx := 0; idx < len(flow.Flow); idx++ {
 		flowItem := &flow.Flow[idx]
-		data := flowItem.Data
-		for _, flagid := range flagids {
-			flagidstr := flagid.ID
-			if strings.Contains(data, flagidstr) {
-				var tag string
-				if flowItem.From == "c" {
-					tag = "flagid-in"
-				} else {
+		found := matcher.Match([]byte(flowItem.Data))
 
-					tag = "flagid-out"
-				}
+		if len(found) > 0 {
+			var tag string
 
-				if !contains(flow.Flagids, flagidstr) {
-					flow.Flagids = append(flow.Flagids, flagidstr)
-				}
+			if flowItem.From == "c" {
+				tag = "flagid-in"
+			} else {
+				tag = "flagid-out"
+			}
 
-				// Add the tag if it doesn't already exist
-				if !contains(flow.Tags, tag) {
-					flow.Tags = append(flow.Tags, tag)
-				}
+			// Add the tag if it doesn't already exist
+			if !contains(flow.Tags, tag) {
+				flow.Tags = append(flow.Tags, tag)
+			}
+
+			for _, match := range found {
+				matches[match] = 1
 			}
 		}
+	}
+
+	for match, _ := range matches {
+		flow.Flagids = append(flow.Flagids, flagids[match])
 	}
 }
