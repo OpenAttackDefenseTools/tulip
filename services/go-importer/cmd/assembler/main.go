@@ -66,6 +66,10 @@ while processing one file (since PCAP-over-IP treats whole connection as one pca
 
 var g_db db.Database
 
+// flagid caching (only once per tick)
+var flagids []db.Flagid
+var flagidUpdate int64 = 0
+
 // TODO; FIXME; RDJ; this is kinda gross, but this is PoC level code
 func reassemblyCallback(entry db.FlowEntry) {
 	// Parsing HTTP will decode encodings to a plaintext format
@@ -78,9 +82,14 @@ func reassemblyCallback(entry db.FlowEntry) {
 
 	//Apply flagid in / out
 	if *flagid {
-		flagids, err := g_db.GetFlagids(flaglifetime)
-		if err != nil {
-			log.Fatal(err)
+		unix := time.Now().Unix()
+		if flagidUpdate+int64(ticklength) < unix {
+			flagidUpdate = unix
+			zwi, err := g_db.GetFlagids(flaglifetime)
+			if err != nil {
+				log.Fatal(err)
+			}
+			flagids = zwi
 		}
 		ApplyFlagids(&entry, flagids)
 	}
@@ -178,8 +187,12 @@ func main() {
 		if err != nil {
 			log.Println("Error: ", err)
 		} else {
-			flaglifetime = zwi * ticklength
+			flaglifetime = zwi
 		}
+	}
+
+	if ticklength != -1 && flaglifetime != -1 {
+		flaglifetime *= ticklength
 	}
 
 	// If no mongo DB was supplied, try the env variable
