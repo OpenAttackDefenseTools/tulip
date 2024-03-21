@@ -269,7 +269,7 @@ function SecondDiff() {
     setSearchParams(searchParams);
   }
 
-  useHotkeys("g", () => {
+  useHotkeys("e", () => {
     setSecondDiffFlow();
   });
 
@@ -322,6 +322,9 @@ export function Header() {
   let [searchParams] = useSearchParams();
   const { setToLastnTicks, currentTick, setTimeParam } = useMessyTimeStuff();
 
+  let navigate = useNavigate();
+
+  useHotkeys('g', () => navigate(`/corrie?${searchParams}`, { replace: true }))
   useHotkeys('a', () => setToLastnTicks(5));
   useHotkeys('c', () => {
     (document.getElementById("startdateselection") as HTMLInputElement).value = "";

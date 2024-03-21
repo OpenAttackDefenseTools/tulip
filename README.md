@@ -13,7 +13,9 @@ Tulip was developed by Team Europe for use in the first International Cyber Secu
 * Synchronized with Suricata.
 * Flow diffing
 * Time and size-based plots for correlation.
-* Linking HTTP sessions together based on cookies (Experimental, disabled by default)
+* Linking HTTP sessions together based on cookies (Experimental*, disabled by default)
+
+\* - to enable, add `-experimental` after `./assembler` in `docker-compose.yml`
 
 ## Screenshots
 ![](./demo_images/demo1.png)
@@ -21,7 +23,7 @@ Tulip was developed by Team Europe for use in the first International Cyber Secu
 ![](./demo_images/demo3.png)
 
 ## Configuration
-Before starting the stack, edit `services/configurations.py`:
+Before starting the stack, edit `services/api/configurations.py`:
 
 ```
 vm_ip = "10.60.4.1"
@@ -88,7 +90,7 @@ Your Tulip instance will probably contain sensitive CTF information, like flags 
 
 # Contributing
 If you have an idea for a new feature, bug fixes, UX improvements, or other contributions, feel free to open a pull request or create an issue!      
-When opening a pull request, please target the `devel` branch.
+When opening a pull request, please target the latest development branch.
 
 # Credits
 Tulip was written by [@RickdeJager](https://github.com/rickdejager) and [@Bazumo](https://github.com/bazumo), with additional help from [@Sijisu](https://github.com/sijisu). Thanks to our fellow Team Europe players and coaches for testing, feedback and suggestions. Finally, thanks to the team behind [flower](https://github.com/secgroup/flower) for opensourcing their tooling.
