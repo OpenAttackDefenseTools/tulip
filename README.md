@@ -14,8 +14,11 @@ Tulip was developed by Team Europe for use in the first International Cyber Secu
 * Flow diffing
 * Time and size-based plots for correlation.
 * Linking HTTP sessions together based on cookies (Experimental*, disabled by default)
+* PCAP-over-IP with BPF filtering support**
 
 \* - to enable, add `-experimental` after `./assembler` in `docker-compose.yml`
+
+\*\* - to enable, configure PCAP-over-IP server (e.g. [pcap-broker](https://github.com/fox-it/pcap-broker) as suggested in [PR 24](https://github.com/OpenAttackDefenseTools/tulip/pull/24)) and set `PCAP_OVER_IP` (and `BPF` if necessary) in `.env`
 
 ## Screenshots
 ![](./demo_images/demo1.png)
@@ -47,13 +50,37 @@ docker-compose up -d --build
 ```
 To ingest traffic, it is recommended to create a shared bind mount with the docker-compose. One convenient way to set this up is as follows:
 1. On the vulnbox, start a rotating packet sniffer (e.g. tcpdump, suricata, ...)
-1. Using rsync, copy complete captures to the machine running tulip (e.g. to /traffic)
-1. Add a bind to the assembler service so it can read /traffic
+```bash
+tcpdump -i eth0 -G 180 -w "traffic_%H:%M:%S.pcap" port 8080
+```
+2. Using rsync, copy complete captures to the machine running tulip (e.g. to /traffic)
+```bash
+rsync -avz -e ssh --progress root@10.0.0.2:/pcaps ./pcaps
+```
+3. Add a bind to the assembler service so it can read /traffic
+   > (Just change `TRAFFIC_DIR_HOST` in `.env`)
 
 The ingestor will use inotify to watch for new pcap's and suricata logs. No need to set a chron job.
 
 
 ## Suricata synchronization
+
+### Run in Docker
+
+Configure `SURICATA_DIR_HOST` in `.env`.
+
+Create some rules (404 for testing):
+```bash
+. .env
+mkdir -p ${SURICATA_DIR_HOST}/{etc,lib/rules,log}
+echo 'alert tcp any any -> any any (msg: "404 Not Found"; http.stat_code; content:"404"; metadata: tag notfound; sid:4; rev: 1;)' >> ${SURICATA_DIR_HOST}/lib/rules/suricata.rules
+```
+
+After that run (default config for `eve.json` logging was good enough):
+
+```bash
+docker compose -f docker-compose-suricata.yml up -d --build
+```
 
 ### Metadata
 Tags are read from the metadata field of a rule. For example, here's a simple rule to detect a path traversal:

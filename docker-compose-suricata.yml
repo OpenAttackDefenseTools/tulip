@@ -71,13 +71,26 @@ services:
     restart: unless-stopped
     depends_on:
       - mongo
+      - suricata
     networks:
       - internal
     volumes:
+      - ${SURICATA_DIR_HOST}/log:/suricata
       - ${TRAFFIC_DIR_HOST}:${TRAFFIC_DIR_DOCKER}:ro
-    command: "./enricher -eve ${TRAFFIC_DIR_DOCKER}/eve.json"
+    command: "./enricher -eve /suricata/eve.json"
     environment:
       TULIP_MONGO: ${TULIP_MONGO}
+
+  suricata:
+    image: jasonish/suricata:7.0
+    restart: unless-stopped
+    volumes:
+      - ${TRAFFIC_DIR_HOST}:${TRAFFIC_DIR_DOCKER}:ro
+      - ${SURICATA_DIR_HOST}/log:/var/log/suricata
+      - ${SURICATA_DIR_HOST}/etc:/etc/suricata
+      - ${SURICATA_DIR_HOST}/lib:/var/lib/suricata
+    environment:
+      SURICATA_OPTIONS: "-l /var/log/suricata -v -r ${TRAFFIC_DIR_DOCKER} --pcap-file-continuous"
 
 networks:
   internal:
