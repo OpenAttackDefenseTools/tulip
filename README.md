@@ -89,6 +89,15 @@ alert tcp any any -> any any (msg: "Path Traversal-../"; flow:to_server; content
 ```
 Once this rule is seen in traffic, the `path_traversal` tag will automatically be added to the filters in Tulip.
 
+> [!NOTE]
+>
+> After editing Suricata rules (renaming or id change) please:
+>
+> Remove old logs: `rm ${SURICATA_DIR_HOST}/log/*` (otherwise old signatures will be repopulated).
+>
+> Restart Docker containers.
+>
+> If database was only restarted (not dropped), try cleaning tags/signatures with `python wipe_tags.py`.
 
 ### eve.json
 Suricata alerts are read directly from the `eve.json` file. Because this file can get quite verbose when all extensions are enabled, it is recommended to strip the config down a fair bit. For example:

@@ -19,3 +19,13 @@ pcap_coll.update_many(
     { },
     { "$pull": { "tags": { "$nin": [ "flag-in", "flag-out" ] }} }
 )
+
+# suricata
+tags_coll = db.tags
+tags_coll.delete_many(
+    { "_id": { "$nin": [ "flag-in", "flag-out" ] }}
+)
+
+# suricata
+signatures_coll = db.signatures
+signatures_coll.delete_many({})
