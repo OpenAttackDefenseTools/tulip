@@ -1,20 +1,26 @@
 const shortcutTableData = [
   [
     { key: 'j/k', action: 'Down/Up in FlowList' },
-    { key: 's', action: 'Focus search bar' },
-    { key: 'esc', action: 'Unfocus search bar' },
-    { key: 'i/o', action: 'Toggle flag in/out filters' },
-  ],
-  [
     { key: 'h/l', action: 'Up/Down in Flow' },
-    { key: 'a', action: 'Last 5 ticks' },
-    { key: 'c', action: 'Clear time selection' },
-    { key: 'r', action: 'Refresh flows' },
+    { key: 's', action: 'Focus (s)earch bar' },
+    { key: 'esc', action: 'Unfocus search bar' },
   ],
   [
-    { key: 'd', action: 'Diff view' },
-    { key: 'f', action: 'Load flow to first diff slot' },
-    { key: 'g', action: 'Load flow to second diff slot' },
+    { key: 'a', action: 'L(a)st 5 ticks' },
+    { key: 'c', action: '(C)lear time selection' },
+    { key: 'r', action: '(R)efresh flows' },
+  ],
+  [
+    { key: 'd', action: '(D)iff view' },
+    { key: 'f', action: 'Load flow to (f)irst diff slot' },
+    { key: 'e', action: 'Load flow to s(e)cond diff slot' },
+    { key: 'g', action: '(G)raph view' },
+  ],
+  [
+    { key: 'w', action: 'Scroll to current flo(w) in flow list' },
+    { key: 'i/o', action: 'Toggle flag in/out filters' },
+    { key: 't', action: 'Toggle s(t)arred filters' },
+    { key: 'x', action: 'Star selected flow' },
   ]
 ];
 

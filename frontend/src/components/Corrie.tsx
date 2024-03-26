@@ -114,6 +114,7 @@ export const Corrie = () => {
           >
             volume
           </button>
+          <p className="text-left px-2 py-2">After clicking on a flow, press 'w' to scroll to it in flow list</p>
         </div>
       </div>
       <div className="flex-1 w-full overflow-hidden p-4">

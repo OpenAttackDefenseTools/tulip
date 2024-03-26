@@ -423,17 +423,23 @@ export function FlowView() {
   // TODO: account for user scrolling - update currentFlow accordingly
   const [currentFlow, setCurrentFlow] = useState<number>(-1);
 
+  // reset scroll on flow switch
+  useHotkeys('j', () => setCurrentFlow(0))
+  useHotkeys('k', () => setCurrentFlow(0))
+
   useHotkeys('h', () => {
     // we do this for the scroll to top
     if (currentFlow === 0) {
-      document.getElementById(`${id}-${currentFlow}`)?.scrollIntoView(true)
+      // document.getElementById(`${id}-${currentFlow}`)?.scrollIntoView(true)
+      let el = document.querySelector("main > div > div:nth-child(2)")
+      if (el) el.scrollIntoView()
     }
     setCurrentFlow(fi => Math.max(0, fi - 1))
   }, [currentFlow]);
   useHotkeys('l', () => {
-    if (currentFlow === (flow?.flow?.length ?? 1)-1) {
-      document.getElementById(`${id}-${currentFlow}`)?.scrollIntoView(true)
-    }
+    // if (currentFlow === (flow?.flow?.length ?? 1)-1) {
+    //   document.getElementById(`${id}-${currentFlow}`)?.scrollIntoView(true)
+    // }
     setCurrentFlow(fi => Math.min((flow?.flow?.length ?? 1)-1, fi + 1))
   }, [currentFlow, flow?.flow?.length]);
 
@@ -442,7 +448,7 @@ export function FlowView() {
       if (currentFlow < 0) {
         return
       }
-      document.getElementById(`${id}`)?.scrollIntoView(true)
+      document.getElementById(`${id}-${currentFlow}`)?.scrollIntoView(true)
     },
     [currentFlow]
   )
