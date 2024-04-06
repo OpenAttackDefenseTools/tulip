@@ -60,8 +60,6 @@ export interface FlowsQuery {
   includeTags: string[];
   excludeTags: string[];
   tags: string[];
-  flags: string[];
-  flagids: string[];
 }
 
 export type Service = {
