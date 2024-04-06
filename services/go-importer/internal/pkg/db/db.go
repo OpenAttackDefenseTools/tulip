@@ -46,6 +46,7 @@ type FlowEntry struct {
 	Size         int
 	Flags        []string
 	Flagids      []string
+	Ssdeep       string
 }
 
 type Database struct {

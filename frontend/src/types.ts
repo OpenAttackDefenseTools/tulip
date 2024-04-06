@@ -16,6 +16,7 @@ export interface Flow {
   flagids: string[];
   suricata: number[];
   filename: string;
+  ssdeep: string;
 }
 
 export interface TickInfo {

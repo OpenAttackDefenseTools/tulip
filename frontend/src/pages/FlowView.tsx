@@ -233,51 +233,59 @@ function FlowOverview({ flow }: { flow: FullFlow }) {
       <div className="bg-yellow-200 p-2">
         <div className="font-extrabold">Meta</div>
         <div className="pl-2">
-          <div>Source: </div>
+          <div>Source:</div>
           <div className="font-bold">
             <a href={`${API_BASE_PATH}/download/?file=${flow.filename}`}>
               {flow.filename}
             </a>
           </div>
           <div></div>
-          <div>Tags: </div>
+          <div>Tags:</div>
           <div className="font-bold">[{flow.tags.join(", ")}]</div>
-          <div>Flags: </div>
+          <div>Flags:</div>
           <div className="font-bold">
             [{flow.flags.map((query, i) => (
-            <span>
+              <span>
               {i > 0 ? ', ' : ''}
-              <button className="font-bold"
-                  onClick={() => {
-                    searchParams.set(FILTER_KEY, query);
-                    setSearchParams(searchParams);
-                  }
-                }
-              >
+                <button className="font-bold"
+                        onClick={() => {
+                          searchParams.set(FILTER_KEY, query);
+                          setSearchParams(searchParams);
+                        }
+                        }
+                >
               {query}
               </button>
             </span>
-            ))}]
+          ))}]
           </div>
-          <div>Flagids: </div>
+          <div></div>
+          <div>Flagids:</div>
           <div className="font-bold">
             [{flow.flagids.map((query, i) => (
               <span>
                 {i > 0 ? ', ' : ''}
                 <button className="font-bold"
-                  onClick={() => {
-                      searchParams.set(FILTER_KEY, query);
-                      setSearchParams(searchParams);
-                    }
-                  }
+                        onClick={() => {
+                          searchParams.set(FILTER_KEY, query);
+                          setSearchParams(searchParams);
+                        }
+                        }
                 >
                   {query}
                 </button>
               </span>
-            ))}]
+          ))}]
           </div>
           <div></div>
-          <div>Source - Target: </div>
+          <div>ssdeep hash:</div>
+          <div className="font-bold">
+            <span className="font-bold">
+              {flow.ssdeep}
+            </span>
+          </div>
+          <div></div>
+          <div>Source - Target:</div>
           <div className="flex items-center gap-1">
             <div>
               {" "}
@@ -302,14 +310,14 @@ export function FlowView() {
 
   const id = params.id;
 
-  const { data: flow } = useGetFlowQuery(id!, { skip: id === undefined });
+  const {data: flow} = useGetFlowQuery(id!, {skip: id === undefined});
 
   const [triggerPwnToolsQuery] = useLazyToPwnToolsQuery();
   const [triggerFullPythonRequestQuery] = useLazyToFullPythonRequestQuery();
 
   async function copyAsPwn() {
     if (flow?._id.$oid) {
-      const { data } = await triggerPwnToolsQuery(flow?._id.$oid);
+      const {data} = await triggerPwnToolsQuery(flow?._id.$oid);
       console.log(data);
       return data || "";
     }
