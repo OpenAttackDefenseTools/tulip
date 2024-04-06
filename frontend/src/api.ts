@@ -33,6 +33,8 @@ export const tulipApi = createApi({
           ...query,
           includeTags: query.includeTags.length > 0 ? query.includeTags : undefined,
           excludeTags: query.excludeTags.length > 0 ? query.excludeTags : undefined,
+          includeSsdeep: query.includeSsdeep.length > 0 ? query.includeSsdeep : undefined,
+          excludeSsdeep: query.excludeSsdeep.length > 0 ? query.excludeSsdeep : undefined,
         }),
       }),
     }),

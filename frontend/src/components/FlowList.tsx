@@ -11,10 +11,10 @@ import {
   TEXT_FILTER_KEY,
   START_FILTER_KEY,
   END_FILTER_KEY,
-  FLOW_LIST_REFETCH_INTERVAL_MS,
+  FLOW_LIST_REFETCH_INTERVAL_MS, SIMILARITY_FILTER_KEY,
 } from "../const";
 import { useAppSelector, useAppDispatch } from "../store";
-import { toggleFilterTag } from "../store/filter";
+import {toggleFilterSsdeep, toggleFilterTag} from "../store/filter";
 
 import { HeartIcon, FilterIcon, LinkIcon } from "@heroicons/react/solid";
 import { HeartIcon as EmptyHeartIcon } from "@heroicons/react/outline";
@@ -42,6 +42,9 @@ export function FlowList() {
   const filterTags = useAppSelector((state) => state.filter.filterTags);
   const includeTags = useAppSelector((state) => state.filter.includeTags);
   const excludeTags = useAppSelector((state) => state.filter.excludeTags);
+  const includeSsdeep = useAppSelector((state) => state.filter.includeSsdeep);
+  const excludeSsdeep = useAppSelector((state) => state.filter.excludeSsdeep);
+  const ssdeeps = useAppSelector((state) => state.filter.ssdeeps);
 
   const dispatch = useAppDispatch();
 
@@ -56,6 +59,7 @@ export function FlowList() {
   const service = services?.find((s) => s.name == service_name);
 
   const text_filter = searchParams.get(TEXT_FILTER_KEY) ?? undefined;
+  const similarity = searchParams.get(SIMILARITY_FILTER_KEY) ?? undefined;
   const from_filter = searchParams.get(START_FILTER_KEY) ?? undefined;
   const to_filter = searchParams.get(END_FILTER_KEY) ?? undefined;
 
@@ -71,7 +75,10 @@ export function FlowList() {
       service: "", // FIXME
       tags: filterTags,
       includeTags: includeTags,
-      excludeTags: excludeTags
+      excludeTags: excludeTags,
+      similarity: similarity,
+      includeSsdeep: includeSsdeep,
+      excludeSsdeep: excludeSsdeep
     },
     {
       refetchOnMountOrArgChange: true,
@@ -130,21 +137,39 @@ export function FlowList() {
             </div>
           </div>
         )}
+        {showFilters && (
+            <div className="border-t-gray-300 border-t p-2">
+              <p className="text-sm font-bold text-gray-600 pb-2">
+                Similarity filter
+              </p>
+              <div className="flex gap-2 flex-wrap">
+                {(ssdeeps ?? []).map((ssdeep) => (
+                    <Tag
+                        key={ssdeep}
+                        tag={ssdeep}
+                        disabled={!includeSsdeep.includes(ssdeep)}
+                        excluded={excludeSsdeep.includes(ssdeep)}
+                        onClick={() => dispatch(toggleFilterSsdeep(ssdeep))}
+                    ></Tag>
+                ))}
+              </div>
+            </div>
+        )}
       </div>
       <div></div>
       <Virtuoso
-        className={classNames({
-          "flex-1": true,
-          [classes.list_container]: true,
-          "sidebar-loading": isLoading,
-        })}
-        data={transformedFlowData}
-        ref={virtuoso}
-        initialTopMostItemIndex={flowIndex}
-        itemContent={(index, flow) => (
-          <Link
-            to={`/flow/${flow._id.$oid}?${searchParams}`}
-            key={flow._id.$oid}
+          className={classNames({
+            "flex-1": true,
+            [classes.list_container]: true,
+            "sidebar-loading": isLoading,
+          })}
+          data={transformedFlowData}
+          ref={virtuoso}
+          initialTopMostItemIndex={flowIndex}
+          itemContent={(index, flow) => (
+              <Link
+                  to={`/flow/${flow._id.$oid}?${searchParams}`}
+                  key={flow._id.$oid}
             className="focus-visible:rounded-md"
           >
             <FlowListEntry

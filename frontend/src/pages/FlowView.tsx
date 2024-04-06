@@ -21,6 +21,8 @@ import {
   API_BASE_PATH,
   TEXT_FILTER_KEY
 } from "../const";
+import {toggleFilterSsdeep, toggleFilterTag} from "../store/filter";
+import {useAppDispatch, useAppSelector} from "../store";
 
 const SECONDARY_NAVBAR_HEIGHT = 50;
 
@@ -195,6 +197,9 @@ function formatIP(ip: string) {
 function FlowOverview({ flow }: { flow: FullFlow }) {
   const FILTER_KEY = TEXT_FILTER_KEY;
   let [searchParams, setSearchParams] = useSearchParams();
+  const includeSsdeep = useAppSelector((state) => state.filter.includeSsdeep);
+  const excludeSsdeep = useAppSelector((state) => state.filter.excludeSsdeep);
+  const dispatch = useAppDispatch();
   return (
     <div>
       {flow.signatures?.length > 0 ? (
@@ -241,9 +246,20 @@ function FlowOverview({ flow }: { flow: FullFlow }) {
           </div>
           <div></div>
           <div>Tags:</div>
-          <div className="font-bold">[{flow.tags.join(", ")}]</div>
-          <div>Flags:</div>
           <div className="font-bold">
+            [{flow.tags.map((tag, i) => (
+                <span>
+                  {i > 0 ? ', ' : ''}
+                  <button className="font-bold"
+                          onClick={() => dispatch(toggleFilterTag(tag))}>
+                  {tag}
+                  </button>
+                </span>
+              ))}]
+            </div>
+            <div></div>
+            <div>Flags:</div>
+            <div className="font-bold">
             [{flow.flags.map((query, i) => (
               <span>
               {i > 0 ? ', ' : ''}
@@ -275,33 +291,34 @@ function FlowOverview({ flow }: { flow: FullFlow }) {
                   {query}
                 </button>
               </span>
-          ))}]
+        ))}]
+        </div>
+        <div></div>
+        <div>ssdeep hash:</div>
+        <div>
+          <button className="font-bold"
+                  onClick={() => dispatch(toggleFilterSsdeep(flow.ssdeep))}>
+            {flow.ssdeep}
+          </button>
+        </div>
+        <div></div>
+        <div>Source - Target:</div>
+        <div className="flex items-center gap-1">
+          <div>
+            {" "}
+            <span>{formatIP(flow.src_ip)}</span>:
+            <span className="font-bold">{flow.src_port}</span>
           </div>
-          <div></div>
-          <div>ssdeep hash:</div>
-          <div className="font-bold">
-            <span className="font-bold">
-              {flow.ssdeep}
-            </span>
-          </div>
-          <div></div>
-          <div>Source - Target:</div>
-          <div className="flex items-center gap-1">
-            <div>
-              {" "}
-              <span>{formatIP(flow.src_ip)}</span>:
-              <span className="font-bold">{flow.src_port}</span>
-            </div>
-            <div>-</div>
-            <div>
-              <span>{formatIP(flow.dst_ip)}</span>:
-              <span className="font-bold">{flow.dst_port}</span>
-            </div>
+          <div>-</div>
+          <div>
+            <span>{formatIP(flow.dst_ip)}</span>:
+            <span className="font-bold">{flow.dst_port}</span>
           </div>
         </div>
       </div>
     </div>
-  );
+</div>
+);
 }
 
 export function FlowView() {

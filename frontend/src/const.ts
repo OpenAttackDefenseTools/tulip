@@ -2,6 +2,7 @@ export const API_BASE_PATH = "/api";
 
 export const TEXT_FILTER_KEY = "text";
 export const SERVICE_FILTER_KEY = "service";
+export const SIMILARITY_FILTER_KEY = "similarity";
 export const START_FILTER_KEY = "start";
 export const END_FILTER_KEY = "end";
 export const FIRST_DIFF_KEY = "first";

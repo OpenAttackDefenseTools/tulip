@@ -33,6 +33,7 @@ from db import DB
 from bson import json_util
 from flask_cors import CORS
 from flask import request
+import ssdeep
 
 from flow2pwn import flow2pwn
 
@@ -62,8 +63,16 @@ def getTickInfo():
 
 @application.route('/query', methods=['POST'])
 def query():
-    json = request.get_json()
-    result = db.getFlowList(json)
+    filter = request.get_json()
+    result = db.getFlowList(filter)
+    similarity = int(filter["similarity"]) if "similarity" in filter else 75
+
+    if "includeSsdeep" in filter:
+        result = [x for x in result if all(ssdeep.compare(hash, x["ssdeep"]) >= similarity for hash in filter["includeSsdeep"])]
+
+    if "excludeSsdeep" in filter:
+        result = [x for x in result if all(ssdeep.compare(hash, x["ssdeep"]) < similarity for hash in filter["excludeSsdeep"])]
+
     return return_json_response(result)
 
 @application.route('/tags')
