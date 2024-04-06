@@ -29,8 +29,8 @@ export const Corrie = () => {
   const includeTags = useAppSelector((state) => state.filter.includeTags);
   const excludeTags = useAppSelector((state) => state.filter.excludeTags);
   const filterTags = useAppSelector((state) => state.filter.filterTags);
-  const includeSsdeep = useAppSelector((state) => state.filter.includeSsdeep);
-  const excludeSsdeep = useAppSelector((state) => state.filter.excludeSsdeep);
+  const includeFuzzyHashes = useAppSelector((state) => state.filter.includeFuzzyHashes);
+  const excludeFuzzyHashes = useAppSelector((state) => state.filter.excludeFuzzyHashes);
 
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -56,8 +56,8 @@ export const Corrie = () => {
       excludeTags: excludeTags,
       tags: filterTags,
       similarity: similarity,
-      includeSsdeep: includeSsdeep,
-      excludeSsdeep: excludeSsdeep
+      includeFuzzyHashes: includeFuzzyHashes,
+      excludeFuzzyHashes: excludeFuzzyHashes
     },
     {
       refetchOnMountOrArgChange: true,

@@ -14,7 +14,7 @@ import {
   FLOW_LIST_REFETCH_INTERVAL_MS, SIMILARITY_FILTER_KEY,
 } from "../const";
 import { useAppSelector, useAppDispatch } from "../store";
-import {toggleFilterSsdeep, toggleFilterTag} from "../store/filter";
+import {toggleFilterFuzzyHashes, toggleFilterTag} from "../store/filter";
 
 import { HeartIcon, FilterIcon, LinkIcon } from "@heroicons/react/solid";
 import { HeartIcon as EmptyHeartIcon } from "@heroicons/react/outline";
@@ -42,10 +42,10 @@ export function FlowList() {
   const filterTags = useAppSelector((state) => state.filter.filterTags);
   const includeTags = useAppSelector((state) => state.filter.includeTags);
   const excludeTags = useAppSelector((state) => state.filter.excludeTags);
-  const includeSsdeep = useAppSelector((state) => state.filter.includeSsdeep);
-  const excludeSsdeep = useAppSelector((state) => state.filter.excludeSsdeep);
-  const ssdeeps = useAppSelector((state) => state.filter.ssdeeps);
-    const ssdeep_ids = useAppSelector((state) => state.filter.ssdeep_ids);
+  const includeFuzzyHashes = useAppSelector((state) => state.filter.includeFuzzyHashes);
+  const excludeFuzzyHashes = useAppSelector((state) => state.filter.excludeFuzzyHashes);
+  const fuzzyHashes = useAppSelector((state) => state.filter.fuzzyHashes);
+    const fuzzyHashIds = useAppSelector((state) => state.filter.fuzzyHashIds);
 
   const dispatch = useAppDispatch();
 
@@ -78,8 +78,8 @@ export function FlowList() {
       includeTags: includeTags,
       excludeTags: excludeTags,
       similarity: similarity,
-      includeSsdeep: includeSsdeep,
-      excludeSsdeep: excludeSsdeep
+      includeFuzzyHashes: includeFuzzyHashes,
+      excludeFuzzyHashes: excludeFuzzyHashes
     },
     {
       refetchOnMountOrArgChange: true,
@@ -144,13 +144,13 @@ export function FlowList() {
                 Similarity filter
               </p>
               <div className="flex gap-2 flex-wrap">
-                {(ssdeeps ?? []).map((ssdeep, i) => (
+                {(fuzzyHashes ?? []).map((fuzzyHash, i) => (
                     <Tag
-                        key={ssdeep_ids[i]}
-                        tag={ssdeep_ids[i]}
-                        disabled={!includeSsdeep.includes(ssdeep)}
-                        excluded={excludeSsdeep.includes(ssdeep)}
-                        onClick={() => dispatch(toggleFilterSsdeep([ssdeep, ssdeep_ids[i]]))}
+                        key={fuzzyHashIds[i]}
+                        tag={fuzzyHashIds[i]}
+                        disabled={!includeFuzzyHashes.includes(fuzzyHash)}
+                        excluded={excludeFuzzyHashes.includes(fuzzyHash)}
+                        onClick={() => dispatch(toggleFilterFuzzyHashes([fuzzyHash, fuzzyHashIds[i]]))}
                     ></Tag>
                 ))}
               </div>

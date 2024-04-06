@@ -2,4 +2,4 @@ Flask_Cors
 pymongo
 Flask
 requests
-ssdeep
+nilsimsa

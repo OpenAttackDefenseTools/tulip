@@ -23,6 +23,8 @@
 # along with Flower.  If not, see <https://www.gnu.org/licenses/>.
 
 import traceback
+
+import nilsimsa
 from flask import Flask, Response, send_file
 
 from configurations import services, traffic_dir, start_date, tick_length
@@ -33,7 +35,6 @@ from db import DB
 from bson import json_util
 from flask_cors import CORS
 from flask import request
-import ssdeep
 
 from flow2pwn import flow2pwn
 
@@ -65,13 +66,13 @@ def getTickInfo():
 def query():
     filter = request.get_json()
     result = db.getFlowList(filter)
-    similarity = int(filter["similarity"]) if "similarity" in filter else 75
+    similarity = int(filter["similarity"]) if "similarity" in filter else 112
 
-    if "includeSsdeep" in filter:
-        result = [x for x in result if all(ssdeep.compare(hash, x["ssdeep"]) >= similarity for hash in filter["includeSsdeep"])]
+    if "includeFuzzyHashes" in filter:
+        result = [x for x in result if all(nilsimsa.compare_digests(hash, x["fuzzy_hash"]) >= similarity for hash in filter["includeFuzzyHashes"])]
 
-    if "excludeSsdeep" in filter:
-        result = [x for x in result if all(ssdeep.compare(hash, x["ssdeep"]) < similarity for hash in filter["excludeSsdeep"])]
+    if "excludeFuzzyHashes" in filter:
+        result = [x for x in result if all(nilsimsa.compare_digests(hash, x["fuzzy_hash"]) < similarity for hash in filter["excludeFuzzyHashes"])]
 
     return return_json_response(result)
 

@@ -6,10 +6,10 @@ export interface TulipFilterState {
   includeTags: string[];
   excludeTags: string[];
   // can't use Map because immutable bs
-  ssdeeps: string[];
-  ssdeep_ids: string[];
-  includeSsdeep: string[];
-  excludeSsdeep: string[];
+  fuzzyHashes: string[];
+  fuzzyHashIds: string[];
+  includeFuzzyHashes: string[];
+  excludeFuzzyHashes: string[];
   // startTick?: number;
   // endTick?: number;
   // service?: string;
@@ -20,10 +20,10 @@ const initialState: TulipFilterState = {
   includeTags: [],
   excludeTags: [],
   filterTags: [],
-  ssdeeps: [],
-  ssdeep_ids: [],
-  includeSsdeep: [],
-  excludeSsdeep: [],
+  fuzzyHashes: [],
+  fuzzyHashIds: [],
+  includeFuzzyHashes: [],
+  excludeFuzzyHashes: [],
 };
 
 export const filterSlice = createSlice({
@@ -60,34 +60,34 @@ export const filterSlice = createSlice({
         }
       }
     },
-    toggleFilterSsdeep: (state, action: PayloadAction<string[]>) => {
-      var ssdeep = action.payload[0]
+    toggleFilterFuzzyHashes: (state, action: PayloadAction<string[]>) => {
+      var fuzzyHashes = action.payload[0]
       var id = action.payload[1]
-      var included = state.includeSsdeep.includes(ssdeep)
-      var excluded = state.excludeSsdeep.includes(ssdeep)
+      var included = state.includeFuzzyHashes.includes(fuzzyHashes)
+      var excluded = state.excludeFuzzyHashes.includes(fuzzyHashes)
 
-      // If the ssdeep hash is new cache it
-      if(!state.ssdeeps.includes(ssdeep)) {
-        state.ssdeeps = [...state.ssdeeps, ssdeep]
-        state.ssdeep_ids = [...state.ssdeep_ids, id]
+      // If the fuzzyHashes hash is new cache it
+      if(!state.fuzzyHashes.includes(fuzzyHashes)) {
+        state.fuzzyHashes = [...state.fuzzyHashes, fuzzyHashes]
+        state.fuzzyHashIds = [...state.fuzzyHashIds, id]
       }
 
-      // If a user clicks a 'included' ssdeep hash, the hash should be 'excluded' instead.
+      // If a user clicks a 'included' fuzzyHashes hash, the hash should be 'excluded' instead.
       if (included) {
         // Remove from included
-        state.includeSsdeep = state.includeSsdeep.filter((t) => t !== ssdeep);
+        state.includeFuzzyHashes = state.includeFuzzyHashes.filter((t) => t !== fuzzyHashes);
 
         // Add to excluded
-        state.excludeSsdeep = [...state.excludeSsdeep, ssdeep]
+        state.excludeFuzzyHashes = [...state.excludeFuzzyHashes, fuzzyHashes]
       } else {
-        // If the user clicks on an 'excluded' ssdeep hash, the hash should be 'unset' from both include / exclude tags
+        // If the user clicks on an 'excluded' fuzzyHashes hash, the hash should be 'unset' from both include / exclude tags
         if (excluded) {
           // Remove from excluded
-          state.excludeSsdeep = state.excludeSsdeep.filter((t) => t !== ssdeep);
+          state.excludeFuzzyHashes = state.excludeFuzzyHashes.filter((t) => t !== fuzzyHashes);
         } else {
           if (!included && !excluded) {
             // The tag was disabled, so it should be added to included now
-            state.includeSsdeep = [...state.includeSsdeep, ssdeep]
+            state.includeFuzzyHashes = [...state.includeFuzzyHashes, fuzzyHashes]
           }
         }
       }
@@ -96,6 +96,6 @@ export const filterSlice = createSlice({
 });
 
 
-export const { toggleFilterTag, toggleFilterSsdeep } = filterSlice.actions;
+export const { toggleFilterTag, toggleFilterFuzzyHashes } = filterSlice.actions;
 
 export default filterSlice.reducer;

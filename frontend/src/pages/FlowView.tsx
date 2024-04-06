@@ -21,7 +21,7 @@ import {
   API_BASE_PATH,
   TEXT_FILTER_KEY
 } from "../const";
-import {toggleFilterSsdeep, toggleFilterTag} from "../store/filter";
+import {toggleFilterFuzzyHashes, toggleFilterTag} from "../store/filter";
 import {useAppDispatch, useAppSelector} from "../store";
 
 const SECONDARY_NAVBAR_HEIGHT = 50;
@@ -197,8 +197,6 @@ function formatIP(ip: string) {
 function FlowOverview({ flow }: { flow: FullFlow }) {
   const FILTER_KEY = TEXT_FILTER_KEY;
   let [searchParams, setSearchParams] = useSearchParams();
-  const includeSsdeep = useAppSelector((state) => state.filter.includeSsdeep);
-  const excludeSsdeep = useAppSelector((state) => state.filter.excludeSsdeep);
   const dispatch = useAppDispatch();
   return (
     <div>
@@ -250,10 +248,10 @@ function FlowOverview({ flow }: { flow: FullFlow }) {
             [{flow.tags.map((tag, i) => (
                 <span>
                   {i > 0 ? ', ' : ''}
-                  <button className="font-bold"
+                  <a className="font-bold cursor-pointer"
                           onClick={() => dispatch(toggleFilterTag(tag))}>
                   {tag}
-                  </button>
+                  </a>
                 </span>
               ))}]
             </div>
@@ -263,7 +261,7 @@ function FlowOverview({ flow }: { flow: FullFlow }) {
             [{flow.flags.map((query, i) => (
               <span>
               {i > 0 ? ', ' : ''}
-                <button className="font-bold"
+                <a className="font-bold cursor-pointer"
                         onClick={() => {
                           searchParams.set(FILTER_KEY, query);
                           setSearchParams(searchParams);
@@ -271,7 +269,7 @@ function FlowOverview({ flow }: { flow: FullFlow }) {
                         }
                 >
               {query}
-              </button>
+              </a>
             </span>
           ))}]
           </div>
@@ -281,7 +279,7 @@ function FlowOverview({ flow }: { flow: FullFlow }) {
             [{flow.flagids.map((query, i) => (
               <span>
                 {i > 0 ? ', ' : ''}
-                <button className="font-bold"
+                <a className="font-bold cursor-pointer"
                         onClick={() => {
                           searchParams.set(FILTER_KEY, query);
                           setSearchParams(searchParams);
@@ -289,17 +287,17 @@ function FlowOverview({ flow }: { flow: FullFlow }) {
                         }
                 >
                   {query}
-                </button>
+                </a>
               </span>
         ))}]
         </div>
         <div></div>
-        <div>ssdeep hash:</div>
+        <div>Nilsimsa hash:</div>
         <div>
-          <button className="font-bold"
-                  onClick={() => dispatch(toggleFilterSsdeep([flow.ssdeep, flow._id.$oid]))}>
-            {flow.ssdeep}
-          </button>
+          <a className="font-bold cursor-pointer"
+                  onClick={() => dispatch(toggleFilterFuzzyHashes([flow.fuzzy_hash, flow._id.$oid]))}>
+            {flow.fuzzy_hash}
+          </a>
         </div>
         <div></div>
         <div>Source - Target:</div>

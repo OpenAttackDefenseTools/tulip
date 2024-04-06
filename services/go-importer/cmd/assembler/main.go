@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/glaslos/ssdeep"
+	"github.com/chikamim/nilsimsa"
 	"go-importer/internal/pkg/db"
 
 	"flag"
@@ -71,11 +71,6 @@ var g_db db.Database
 var flagids []db.Flagid
 var flagidUpdate int64 = 0
 
-func init() {
-	// force ssdeep creation even for small data sizes
-	ssdeep.Force = true
-}
-
 // TODO; FIXME; RDJ; this is kinda gross, but this is PoC level code
 func reassemblyCallback(entry db.FlowEntry) {
 	// Parsing HTTP will decode encodings to a plaintext format
@@ -87,16 +82,13 @@ func reassemblyCallback(entry db.FlowEntry) {
 		allData = append(allData[:], []byte(flowItem.Data)[:]...)
 	}
 
-	fuzzyHash, err := ssdeep.FuzzyBytes(allData)
-	if err != nil {
-		log.Println("Error: ", err)
-	}
+	fuzzyHash := nilsimsa.HexSum(allData)
 
 	// Apply flag in / flagout
 	if *flag_regex != "" {
 		ApplyFlagTags(&entry, flag_regex)
 	}
-	entry.Ssdeep = fuzzyHash
+	entry.Fuzzy_hash = fuzzyHash
 
 	//Apply flagid in / out
 	if *flagid {

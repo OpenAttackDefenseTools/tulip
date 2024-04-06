@@ -276,7 +276,7 @@ function Diff() {
 function SimilaritySlider() {
     let [searchParams, setSearchParams] = useSearchParams();
     // Initialize state to keep track of the value
-    const [value, setValue] = useState(searchParams.get(SIMILARITY_FILTER_KEY) ?? 75); // You can set the initial value to whatever you prefer
+    const [value, setValue] = useState(searchParams.get(SIMILARITY_FILTER_KEY) ?? 112); // You can set the initial value to whatever you prefer
 
     // Function to update the state based on input changes
     const handleChange = (event:any) => {
@@ -294,8 +294,8 @@ function SimilaritySlider() {
                 <input
                     style={{paddingTop:0, paddingBottom:0}}
                     type="range"
-                    min="0" // Set the minimum value of the range
-                    max="100" // Set the maximum value of the range
+                    min="-128" // Set the minimum value of the range
+                    max="128" // Set the maximum value of the range
                     value={value} // Bind the range input to the value in the state
                     onChange={handleChange} // Update the state when the range value changes
                 />
@@ -303,8 +303,8 @@ function SimilaritySlider() {
             <input
                 className="w-20"
                 type="number"
-                min="0" // Set the minimum value for the number input
-                max="100" // Set the maximum value for the number input
+                min="-128" // Set the minimum value for the number input
+                max="128" // Set the maximum value for the number input
                 value={value} // Bind the number input to the value in the state
                 onChange={handleChange} // Update the state when the number value changes
             />
