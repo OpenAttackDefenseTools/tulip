@@ -297,7 +297,7 @@ function FlowOverview({ flow }: { flow: FullFlow }) {
         <div>ssdeep hash:</div>
         <div>
           <button className="font-bold"
-                  onClick={() => dispatch(toggleFilterSsdeep(flow.ssdeep))}>
+                  onClick={() => dispatch(toggleFilterSsdeep([flow.ssdeep, flow._id.$oid]))}>
             {flow.ssdeep}
           </button>
         </div>

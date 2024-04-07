@@ -10,12 +10,10 @@ package main
 
 import (
 	"go-importer/internal/pkg/db"
-	"log"
 
 	"sync"
 	"time"
 
-	"github.com/glaslos/ssdeep"
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
 	"github.com/google/gopacket/reassembly"
@@ -39,8 +37,7 @@ type TcpStreamFactory struct {
 }
 
 func (factory *TcpStreamFactory) New(net, transport gopacket.Flow, tcp *layers.TCP, ac reassembly.AssemblerContext) reassembly.Stream {
-	ssdeep.Force = true
-	source := ac.GetCaptureInfo().AncillaryData[0].(string)
+	source := ac.GetCaptureInfo().AncillaryData[0].(string);
 	fsmOptions := reassembly.TCPSimpleFSMOptions{
 		SupportMissingEstablishment: *nonstrict,
 	}
@@ -196,17 +193,6 @@ func (t *TcpStream) ReassemblyComplete(ac reassembly.AssemblerContext) bool {
 	time = t.FlowItems[0].Time
 	duration = t.FlowItems[len(t.FlowItems)-1].Time - time
 
-	allData := make([]byte, 0)
-	for idx := 0; idx < len(t.FlowItems); idx++ {
-		flowItem := &t.FlowItems[idx]
-		allData = append(allData[:], []byte(flowItem.Data)[:]...)
-	}
-
-	fuzzyHash, err := ssdeep.FuzzyBytes(allData)
-	if err != nil {
-		log.Println("Error: ", err)
-	}
-
 	entry := db.FlowEntry{
 		Src_port:    int(t.src_port),
 		Dst_port:    int(t.dst_port),
@@ -218,14 +204,13 @@ func (t *TcpStream) ReassemblyComplete(ac reassembly.AssemblerContext) bool {
 		Parent_id:   primitive.NilObjectID,
 		Child_id:    primitive.NilObjectID,
 		Blocked:     false,
-		Tags:        []string{"tcp"},
+		Tags:        []string { "tcp" },
 		Suricata:    make([]int, 0),
 		Filename:    t.source,
 		Flow:        t.FlowItems,
 		Size:        t.total_size,
 		Flags:       make([]string, 0),
-		Flagids:     make([]string, 0),
-		Ssdeep:      fuzzyHash,
+		Flagids:      make([]string, 0),
 	}
 
 	t.reassemblyCallback(entry)

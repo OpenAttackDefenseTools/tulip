@@ -45,6 +45,7 @@ export function FlowList() {
   const includeSsdeep = useAppSelector((state) => state.filter.includeSsdeep);
   const excludeSsdeep = useAppSelector((state) => state.filter.excludeSsdeep);
   const ssdeeps = useAppSelector((state) => state.filter.ssdeeps);
+    const ssdeep_ids = useAppSelector((state) => state.filter.ssdeep_ids);
 
   const dispatch = useAppDispatch();
 
@@ -143,13 +144,13 @@ export function FlowList() {
                 Similarity filter
               </p>
               <div className="flex gap-2 flex-wrap">
-                {(ssdeeps ?? []).map((ssdeep) => (
+                {(ssdeeps ?? []).map((ssdeep, i) => (
                     <Tag
-                        key={ssdeep}
-                        tag={ssdeep}
+                        key={ssdeep_ids[i]}
+                        tag={ssdeep_ids[i]}
                         disabled={!includeSsdeep.includes(ssdeep)}
                         excluded={excludeSsdeep.includes(ssdeep)}
-                        onClick={() => dispatch(toggleFilterSsdeep(ssdeep))}
+                        onClick={() => dispatch(toggleFilterSsdeep([ssdeep, ssdeep_ids[i]]))}
                     ></Tag>
                 ))}
               </div>

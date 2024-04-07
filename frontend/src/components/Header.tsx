@@ -276,7 +276,7 @@ function Diff() {
 function SimilaritySlider() {
     let [searchParams, setSearchParams] = useSearchParams();
     // Initialize state to keep track of the value
-    const [value, setValue] = useState(75); // You can set the initial value to whatever you prefer
+    const [value, setValue] = useState(searchParams.get(SIMILARITY_FILTER_KEY) ?? 75); // You can set the initial value to whatever you prefer
 
     // Function to update the state based on input changes
     const handleChange = (event:any) => {

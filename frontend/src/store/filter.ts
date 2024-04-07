@@ -1,10 +1,13 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
+// Note: all off these states are immutable and can only be changed through overwrite
 export interface TulipFilterState {
   filterTags: string[];
   includeTags: string[];
   excludeTags: string[];
+  // can't use Map because immutable bs
   ssdeeps: string[];
+  ssdeep_ids: string[];
   includeSsdeep: string[];
   excludeSsdeep: string[];
   // startTick?: number;
@@ -18,6 +21,7 @@ const initialState: TulipFilterState = {
   excludeTags: [],
   filterTags: [],
   ssdeeps: [],
+  ssdeep_ids: [],
   includeSsdeep: [],
   excludeSsdeep: [],
 };
@@ -56,30 +60,34 @@ export const filterSlice = createSlice({
         }
       }
     },
-    toggleFilterSsdeep: (state, action: PayloadAction<string>) => {
-      var included = state.includeSsdeep.includes(action.payload)
-      var excluded = state.excludeSsdeep.includes(action.payload)
+    toggleFilterSsdeep: (state, action: PayloadAction<string[]>) => {
+      var ssdeep = action.payload[0]
+      var id = action.payload[1]
+      var included = state.includeSsdeep.includes(ssdeep)
+      var excluded = state.excludeSsdeep.includes(ssdeep)
 
-      // if ssdeep hash is new cache it
-      if(!state.ssdeeps.includes(action.payload))
-        state.ssdeeps = [...state.ssdeeps, action.payload]
+      // If the ssdeep hash is new cache it
+      if(!state.ssdeeps.includes(ssdeep)) {
+        state.ssdeeps = [...state.ssdeeps, ssdeep]
+        state.ssdeep_ids = [...state.ssdeep_ids, id]
+      }
 
       // If a user clicks a 'included' ssdeep hash, the hash should be 'excluded' instead.
       if (included) {
         // Remove from included
-        state.includeSsdeep = state.includeSsdeep.filter((t) => t !== action.payload);
+        state.includeSsdeep = state.includeSsdeep.filter((t) => t !== ssdeep);
 
         // Add to excluded
-        state.excludeSsdeep = [...state.excludeSsdeep, action.payload]
+        state.excludeSsdeep = [...state.excludeSsdeep, ssdeep]
       } else {
         // If the user clicks on an 'excluded' ssdeep hash, the hash should be 'unset' from both include / exclude tags
         if (excluded) {
           // Remove from excluded
-          state.excludeSsdeep = state.excludeSsdeep.filter((t) => t !== action.payload);
+          state.excludeSsdeep = state.excludeSsdeep.filter((t) => t !== ssdeep);
         } else {
           if (!included && !excluded) {
             // The tag was disabled, so it should be added to included now
-            state.includeSsdeep = [...state.includeSsdeep, action.payload]
+            state.includeSsdeep = [...state.includeSsdeep, ssdeep]
           }
         }
       }
