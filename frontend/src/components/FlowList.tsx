@@ -206,11 +206,24 @@ function FlowListEntry({ flow, isActive, onHeartClick }: FlowListEntryProps) {
     ) : (
       <div>{flow.duration}ms</div>
     );
-  return (
+
+
+  const DEFAULT = [243, 244, 246]
+  const GREEN = [134, 239, 172]
+  const RED = [252, 165, 165]
+
+  var color: number[]
+  if (flow.similarity != undefined)
+    color = GREEN.map((g, i) => ((g*flow.similarity) + (RED[i]*(1-flow.similarity))));
+  else
+    color = DEFAULT;
+
+    return (
     <li
       className={classNames({
         [classes.active]: isActive,
       })}
+      style={{backgroundColor: `rgb(${color[0]} ${color[1]} ${color[2]} / var(--tw-bg-opacity))`}}
     >
       <div className="flex">
         <div

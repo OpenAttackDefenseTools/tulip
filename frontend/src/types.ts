@@ -17,6 +17,7 @@ export interface Flow {
   suricata: number[];
   filename: string;
   fuzzy_hash: string;
+  similarity: number
 }
 
 export interface TickInfo {
