@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Outlet } from "react-router-dom";
 import { Suspense } from "react";
+import { useHotkeys } from 'react-hotkeys-hook';
 
 import "./App.css";
 import { Header } from "./components/Header";
@@ -10,6 +11,7 @@ import { DiffView } from "./pages/DiffView";
 import { Corrie } from "./components/Corrie";
 
 function App() {
+  useHotkeys('esc', () => (document.activeElement as HTMLElement).blur(), {enableOnFormTags: true});
   return (
     <BrowserRouter>
       <Routes>
@@ -40,6 +42,7 @@ function App() {
             }
           />
         </Route>
+        <Route path="*" element={<PageNotFound />} />
       </Routes>
     </BrowserRouter>
   );
@@ -65,4 +68,14 @@ function Layout() {
     </div>
   );
 }
+
+
+function PageNotFound() {
+  return (
+    <div>
+      <h2>404 Page not found</h2>
+    </div>
+  );
+}
+
 export default App;

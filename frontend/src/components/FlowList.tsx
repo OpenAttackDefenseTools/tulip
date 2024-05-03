@@ -4,7 +4,8 @@ import {
   useParams,
   useNavigate,
 } from "react-router-dom";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
+import { useHotkeys } from 'react-hotkeys-hook';
 import { Flow } from "../types";
 import {
   SERVICE_FILTER_KEY,
@@ -36,6 +37,9 @@ export function FlowList() {
   let [searchParams] = useSearchParams();
   let params = useParams();
 
+  // we add a local variable to prevent racing with the browser location API
+  let openedFlowID = params.id
+
   const { data: availableTags } = useGetTagsQuery();
   const { data: services } = useGetServicesQuery();
 
@@ -49,8 +53,7 @@ export function FlowList() {
 
   const [starFlow] = useStarFlowMutation();
 
-  // Set default flowIndex to Infinity, so that initialTopMostItemIndex != 0 and therefore scrolledToInitialItem != true
-  const [flowIndex, setFlowIndex] = useState<number>(1);
+  const [flowIndex, setFlowIndex] = useState<number>(0);
 
   const virtuoso = useRef<VirtuosoHandle>(null);
 
@@ -63,7 +66,7 @@ export function FlowList() {
 
   const debounced_text_filter = useDebounce(text_filter, 300);
 
-  const { data: flowData, isLoading } = useGetFlowsQuery(
+  const { data: flowData, isLoading, refetch } = useGetFlowsQuery(
     {
       "flow.data": debounced_text_filter,
       dst_ip: service?.ip,
@@ -95,6 +98,66 @@ export function FlowList() {
   const onHeartHandler = async (flow: Flow) => {
     await starFlow({ id: flow._id.$oid, star: !flow.tags.includes("starred") });
   };
+
+  const navigate = useNavigate();
+
+  useEffect(() => {
+      virtuoso?.current?.scrollIntoView({
+        index: flowIndex,
+        behavior: 'auto',
+        done: () => {
+          if (transformedFlowData && transformedFlowData[flowIndex ?? 0]) {
+            let idAtIndex = transformedFlowData[flowIndex ?? 0]._id.$oid;
+            // if the current flow ID at the index indeed did change (ie because of keyboard navigation), we need to update the URL as well as local ID
+            if (idAtIndex !== openedFlowID) {
+              navigate(`/flow/${idAtIndex}?${searchParams}`)
+              openedFlowID = idAtIndex
+            }
+          }
+        },
+      })
+    },
+    [flowIndex]
+  )
+
+  // TODO: there must be a better way to do this
+  // this gets called on every refetch, we dont want to iterate all flows on every refetch
+  // so because performance, we hack this by checking if the transformedFlowData length changed
+  const [transformedFlowDataLength, setTransformedFlowDataLength] = useState<number>(0);
+  useEffect(
+    () => {
+      if (transformedFlowData && transformedFlowDataLength != transformedFlowData?.length) {
+        setTransformedFlowDataLength(transformedFlowData?.length)
+
+        for (let i = 0; i < transformedFlowData?.length; i++) {
+          if (transformedFlowData[i]._id.$oid === openedFlowID) {
+            if (i !== flowIndex) {
+              setFlowIndex(i)
+            }
+            return
+          }
+        }
+        setFlowIndex(0)
+      }
+    },
+    [transformedFlowData]
+  )
+
+  useHotkeys('j', () => setFlowIndex(fi => Math.min((transformedFlowData?.length ?? 1)-1, fi + 1)), [transformedFlowData?.length]);
+  useHotkeys('k', () => setFlowIndex(fi => Math.max(0, fi - 1)));
+  useHotkeys('i', () => {
+    setShowFilters(true)
+    if ((availableTags ?? []).includes("flag-in")) {
+      dispatch(toggleFilterTag("flag-in"))
+    }
+  }, [availableTags]);
+  useHotkeys('o', () => {
+    setShowFilters(true)
+    if ((availableTags ?? []).includes("flag-out")) {
+      dispatch(toggleFilterTag("flag-out"))
+    }
+  }, [availableTags]);
+  useHotkeys('r', () => refetch());
 
   const [showFilters, setShowFilters] = useState(false);
 
@@ -148,13 +211,15 @@ export function FlowList() {
         itemContent={(index, flow) => (
           <Link
             to={`/flow/${flow._id.$oid}?${searchParams}`}
+            onClick={() => setFlowIndex(index)}
             key={flow._id.$oid}
             className="focus-visible:rounded-md"
+            //style={{ paddingTop: '1em' }}
           >
             <FlowListEntry
               key={flow._id.$oid}
               flow={flow}
-              isActive={flow._id.$oid === params.id}
+              isActive={flow._id.$oid === openedFlowID}
               onHeartClick={onHeartHandler}
             />
           </Link>
