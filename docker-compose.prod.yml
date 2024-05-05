@@ -1,0 +1,74 @@
+version: "3.2"
+services:
+  mongo:
+    image: mongo:5
+    networks:
+      - internal
+    restart: always
+    ports:
+      - "127.0.0.1:27017:27017"
+
+  frontend:
+    image: ghcr.io/iamsilk/tulip-frontend:latest
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    depends_on:
+      - mongo
+    networks:
+      - internal
+    environment:
+      API_SERVER_ENDPOINT: http://api:5000/
+
+  api:
+    image: ghcr.io/iamsilk/tulip-api:latest
+    restart: unless-stopped
+    depends_on:
+      - mongo
+    networks:
+      - internal
+    volumes:
+      - ${TRAFFIC_DIR_HOST}:${TRAFFIC_DIR_DOCKER}:ro
+      - ${SERVICES_PATH_HOST}:${SERVICES_PATH_DOCKER}:ro
+    environment:
+      VM_IP: ${VM_IP}
+      TULIP_MONGO: mongo:27017
+      TULIP_TRAFFIC_DIR: ${TRAFFIC_DIR_DOCKER}
+      TULIP_SERVICES_PATH: ${SERVICES_PATH_DOCKER}
+      FLAG_REGEX: ${FLAG_REGEX}
+      TICK_START: ${TICK_START}
+      TICK_LENGTH: ${TICK_LENGTH}
+
+  assembler:
+    image: ghcr.io/iamsilk/tulip-assembler:latest
+    restart: unless-stopped
+    depends_on:
+      - mongo
+    networks:
+      - internal
+    volumes:
+      - ${TRAFFIC_DIR_HOST}:${TRAFFIC_DIR_DOCKER}:ro
+    command: "./assembler -dir ${TRAFFIC_DIR_DOCKER}"
+    environment:
+      TULIP_MONGO: ${TULIP_MONGO}
+      FLAG_REGEX: ${FLAG_REGEX}
+      PCAP_OVER_IP: ${PCAP_OVER_IP}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+
+  enricher:
+    image: ghcr.io/iamsilk/tulip-enricher:latest
+    restart: unless-stopped
+    depends_on:
+      - mongo
+    networks:
+      - internal
+    volumes:
+      - ${TRAFFIC_DIR_HOST}:${TRAFFIC_DIR_DOCKER}:ro
+    command: "./enricher -eve ${TRAFFIC_DIR_DOCKER}/eve.json"
+    environment:
+      TULIP_MONGO: ${TULIP_MONGO}
+
+networks:
+  internal:
