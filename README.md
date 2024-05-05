@@ -20,29 +20,20 @@ Tulip was developed by Team Europe for use in the first International Cyber Secu
 ![](./demo_images/demo2.png)
 ![](./demo_images/demo3.png)
 
-## Configuration
-Before starting the stack, edit `services/configurations.py`:
-
-```
-vm_ip = "10.60.4.1"
-services = [{"ip": vm_ip, "port": 18080, "name": "BIOMarkt"},
-            {"ip": vm_ip, "port": 5555, "name": "SaaS"},
-]
-```
-
-You can also edit this during the CTF, just rebuild the `api` service:
-```
-docker-compose up --build -d api
-```
-
 ## Usage
 
 The stack can be started with docker-compose, after creating an `.env` file. See `.env.example` as an example of how to configure your environment.
+
 ```
 cp .env.example .env
 # < Edit the .env file with your favourite text editor >
+
+cp services.json.example services.json
+# < Edit the services.json file >
+
 docker-compose up -d --build
 ```
+
 To ingest traffic, it is recommended to create a shared bind mount with the docker-compose. One convenient way to set this up is as follows:
 1. On the vulnbox, start a rotating packet sniffer (e.g. tcpdump, suricata, ...)
 1. Using rsync, copy complete captures to the machine running tulip (e.g. to /traffic)
