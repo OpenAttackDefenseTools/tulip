@@ -32,7 +32,7 @@ jobs:
           context: "{{defaultContext}}/frontend"
           file: Dockerfile-frontend
           push: true
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_FRONTEND }}:latest
+          tags: ${{ env.REGISTRY }}:${{ env.IMAGE_NAME_FRONTEND }}:latest
 
       - name: Build and push API image
         uses: docker/build-push-action@v5
@@ -40,7 +40,7 @@ jobs:
           context: "{{defaultContext}}/services/api"
           file: Dockerfile-api
           push: true
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_API }}:latest
+          tags: ${{ env.REGISTRY }}:${{ env.IMAGE_NAME_API }}:latest
       
       - name: Build and push Assembler image
         uses: docker/build-push-action@v5
@@ -48,7 +48,7 @@ jobs:
           context: "{{defaultContext}}/services/go-importer"
           file: Dockerfile-assembler
           push: true
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_ASSEMBLER }}:latest
+          tags: ${{ env.REGISTRY }}:${{ env.IMAGE_NAME_ASSEMBLER }}:latest
       
       - name: Build and push Enricher image
         uses: docker/build-push-action@v5
@@ -56,4 +56,4 @@ jobs:
           context: "{{defaultContext}}/services/enricher"
           file: Dockerfile-enricher
           push: true
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_ENRICHER }}:latest
+          tags: ${{ env.REGISTRY }}:${{ env.IMAGE_NAME_ENRICHER }}:latest
