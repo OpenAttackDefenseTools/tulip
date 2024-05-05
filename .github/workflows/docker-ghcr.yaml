@@ -19,9 +19,6 @@ jobs:
       packages: write
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
       - name: Log in to the Container registry
         uses: docker/login-action@v3
         with:
@@ -32,7 +29,7 @@ jobs:
       - name: Build and push frontend image
         uses: docker/build-push-action@v5
         with:
-          context: frontend
+          context: "{{defaultContext}}/frontend"
           file: Dockerfile-frontend
           push: true
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_FRONTEND }}:latest
@@ -40,7 +37,7 @@ jobs:
       - name: Build and push API image
         uses: docker/build-push-action@v5
         with:
-          context: services/api
+          context: "{{defaultContext}}/services/api"
           file: Dockerfile-api
           push: true
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_API }}:latest
@@ -48,7 +45,7 @@ jobs:
       - name: Build and push Assembler image
         uses: docker/build-push-action@v5
         with:
-          context: services/go-importer
+          context: "{{defaultContext}}/services/go-importer"
           file: Dockerfile-assembler
           push: true
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_ASSEMBLER }}:latest
@@ -56,7 +53,7 @@ jobs:
       - name: Build and push Enricher image
         uses: docker/build-push-action@v5
         with:
-          context: services/enricher
+          context: "{{defaultContext}}/services/enricher"
           file: Dockerfile-enricher
           push: true
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_ENRICHER }}:latest
