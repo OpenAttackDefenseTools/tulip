@@ -17,21 +17,22 @@ jobs:
 
     strategy:
       matrix:
-        image_name:
-          - frontend
-          - api
-          - assembler
-          - enricher
-        file:
-          - Dockerfile-frontend
-          - Dockerfile-api
-          - Dockerfile-assembler
-          - Dockerfile-enricher
-        context:
-          - frontend
-          - services/api
-          - services/go-importer
-          - services/go-importer
+        build:
+        - image_name: frontend
+          file: Dockerfile-frontend
+          context: frontend
+
+        - image_name: api
+          file: Dockerfile-api
+          context: services/api
+
+        - image_name: assembler
+          file: Dockerfile-assembler
+          context: services/go-importer
+
+        - image_name: enricher
+          file: Dockerfile-enricher
+          context: services/go-importer
 
     steps:
       - name: Log in to the Container registry
@@ -44,7 +45,7 @@ jobs:
       - name: Build and push image
         uses: docker/build-push-action@v5
         with:
-          context: "{{defaultContext}}:${{ matrix.context }}"
-          file: Dockerfile-${{ matrix.file }}
+          context: "{{defaultContext}}:${{ matrix.build.context }}"
+          file: Dockerfile-${{ matrix.build.file }}
           push: true
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_PREFIX }}-${{ matrix.image_name }}:latest
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_PREFIX }}-${{ matrix.build.image_name }}:latest
