@@ -1,0 +1,51 @@
+name: Build and Upload Docker image
+
+on:
+  push:
+    branches: ['master']
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME_PREFIX: ${{ github.repository }}
+
+jobs:
+  build-and-push-image:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    strategy:
+      matrix:
+        build:
+        - image_name: frontend
+          file: Dockerfile-frontend
+          context: frontend
+
+        - image_name: api
+          file: Dockerfile-api
+          context: services/api
+
+        - image_name: assembler
+          file: Dockerfile-assembler
+          context: services/go-importer
+
+        - image_name: enricher
+          file: Dockerfile-enricher
+          context: services/go-importer
+
+    steps:
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push image
+        uses: docker/build-push-action@v5
+        with:
+          context: "{{defaultContext}}:${{ matrix.build.context }}"
+          file: ${{ matrix.build.file }}
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_PREFIX }}-${{ matrix.build.image_name }}:latest

@@ -9,10 +9,7 @@ services:
       - "127.0.0.1:27017:27017"
 
   frontend:
-    build:
-      context: frontend
-      dockerfile: Dockerfile-frontend
-    image: tulip-frontend:latest
+    image: ghcr.io/iamsilk/tulip-frontend:latest
     restart: unless-stopped
     ports:
       - "3000:3000"
@@ -24,10 +21,7 @@ services:
       API_SERVER_ENDPOINT: http://api:5000/
 
   api:
-    build:
-      context: services/api
-      dockerfile: Dockerfile-api
-    image: tulip-api:latest
+    image: ghcr.io/iamsilk/tulip-api:latest
     restart: unless-stopped
     depends_on:
       - mongo
@@ -46,10 +40,7 @@ services:
       TICK_LENGTH: ${TICK_LENGTH}
 
   assembler:
-    build:
-      context: services/go-importer
-      dockerfile: Dockerfile-assembler
-    image: tulip-assembler:latest
+    image: ghcr.io/iamsilk/tulip-assembler:latest
     restart: unless-stopped
     depends_on:
       - mongo
@@ -67,10 +58,7 @@ services:
 
 
   enricher:
-    build:
-      context: services/go-importer
-      dockerfile: Dockerfile-enricher
-    image: tulip-enricher:latest
+    image: ghcr.io/iamsilk/tulip-enricher:latest
     restart: unless-stopped
     depends_on:
       - mongo
