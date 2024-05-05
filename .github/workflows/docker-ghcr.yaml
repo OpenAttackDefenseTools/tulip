@@ -46,6 +46,6 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: "{{defaultContext}}:${{ matrix.build.context }}"
-          file: Dockerfile-${{ matrix.build.file }}
+          file: ${{ matrix.build.file }}
           push: true
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_PREFIX }}-${{ matrix.build.image_name }}:latest
