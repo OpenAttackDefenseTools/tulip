@@ -6,10 +6,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME_FRONTEND: ${{ github.repository }}-frontend
-  IMAGE_NAME_API: ${{ github.repository }}-api
-  IMAGE_NAME_ASSEMBLER: ${{ github.repository }}-assembler
-  IMAGE_NAME_ENRICHER: ${{ github.repository }}-enricher
+  IMAGE_NAME_PREFIX: ${{ github.repository }}
 
 jobs:
   build-and-push-image:
@@ -17,6 +14,24 @@ jobs:
     permissions:
       contents: read
       packages: write
+
+    strategy:
+      matrix:
+        image_name:
+          - frontend
+          - api
+          - assembler
+          - enricher
+        file:
+          - Dockerfile-frontend
+          - Dockerfile-api
+          - Dockerfile-assembler
+          - Dockerfile-enricher
+        context:
+          - frontend
+          - services/api
+          - services/go-importer
+          - services/go-importer
 
     steps:
       - name: Log in to the Container registry
@@ -26,34 +41,10 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push frontend image
+      - name: Build and push image
         uses: docker/build-push-action@v5
         with:
-          context: "{{defaultContext}}:frontend"
-          file: Dockerfile-frontend
+          context: "{{defaultContext}}:${{ matrix.context }}"
+          file: Dockerfile-${{ matrix.file }}
           push: true
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_FRONTEND }}:latest
-
-      - name: Build and push API image
-        uses: docker/build-push-action@v5
-        with:
-          context: "{{defaultContext}}:services/api"
-          file: Dockerfile-api
-          push: true
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_API }}:latest
-      
-      - name: Build and push Assembler image
-        uses: docker/build-push-action@v5
-        with:
-          context: "{{defaultContext}}:services/go-importer"
-          file: Dockerfile-assembler
-          push: true
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_ASSEMBLER }}:latest
-      
-      - name: Build and push Enricher image
-        uses: docker/build-push-action@v5
-        with:
-          context: "{{defaultContext}}:services/enricher"
-          file: Dockerfile-enricher
-          push: true
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_ENRICHER }}:latest
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_PREFIX }}-${{ matrix.image_name }}:latest
