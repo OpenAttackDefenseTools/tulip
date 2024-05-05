@@ -1,0 +1,62 @@
+name: Build and Upload Docker image
+
+on:
+  push:
+    branches: ['master']
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME_FRONTEND: ${{ github.repository }}-frontend
+  IMAGE_NAME_API: ${{ github.repository }}-api
+  IMAGE_NAME_ASSEMBLER: ${{ github.repository }}-assembler
+  IMAGE_NAME_ENRICHER: ${{ github.repository }}-enricher
+
+jobs:
+  build-and-push-image:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push frontend image
+        uses: docker/build-push-action@v5
+        with:
+          context: frontend
+          file: Dockerfile-frontend
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_FRONTEND }}:latest
+
+      - name: Build and push API image
+        uses: docker/build-push-action@v5
+        with:
+          context: services/api
+          file: Dockerfile-api
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_API }}:latest
+      
+      - name: Build and push Assembler image
+        uses: docker/build-push-action@v5
+        with:
+          context: services/go-importer
+          file: Dockerfile-assembler
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_ASSEMBLER }}:latest
+      
+      - name: Build and push Enricher image
+        uses: docker/build-push-action@v5
+        with:
+          context: services/enricher
+          file: Dockerfile-enricher
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_ENRICHER }}:latest
