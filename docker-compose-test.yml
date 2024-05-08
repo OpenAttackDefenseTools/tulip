@@ -55,10 +55,10 @@ services:
     networks:
       - internal
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
 
   flagids:
-    restart: unless-stopped
+    restart: on-failure
     build:
       context: services/flagids
     image: tulip-flagids:latest
@@ -71,6 +71,7 @@ services:
       TULIP_MONGO: ${TULIP_MONGO}
       TICK_START: ${TICK_START}
       TICK_LENGTH: ${TICK_LENGTH}
+      FLAGID_SCRAPE: ${FLAGID_SCRAPE}
       TEAM_ID: ${TEAM_ID}
       FLAGID_ENDPOINT: ${FLAGID_ENDPOINT}
 

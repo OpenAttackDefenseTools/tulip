@@ -14,11 +14,24 @@ team_id = os.getenv("TEAM_ID", "10.10.3.1")
 team_id_is_digit = team_id.isdigit()
 team_id_int = int(team_id) if team_id_is_digit else None
 flagid_endpoint = os.getenv("FLAGID_ENDPOINT", "http://localhost:8000/flagids.json")
+flagid_scrape_enabled = os.getenv("FLAGID_SCRAPE", "") != ""
 
-print('STARTING FLAGIDS')
-client = pymongo.MongoClient(mongo_host[0], int(mongo_host[1]))
-db = client['pcap']
-print('CONNECTION TO MONGO ESTABLISHED')
+client = None
+db = None
+if flagid_scrape_enabled:
+    print('STARTING FLAGIDS')
+    print("CONFIG:")
+    print("  DELAY: ", DELAY)
+    print("  TICK_LENGTH: ", tick_length)
+    print("  TICK_START: ", start_date)
+    print("  MONGO: ", mongo_host)
+    print("  TEAM_ID: ", team_id)
+    print("  FLAGID_ENDPOINT: ", flagid_endpoint)
+    client = pymongo.MongoClient(mongo_host[0], int(mongo_host[1]))
+    db = client['pcap']
+    print('CONNECTION TO MONGO ESTABLISHED')
+else:
+    print('FLAGID SCRAPE DISABLED')
 
 # get leaf nodes of a json data struct
 def get_leaf_nodes(data):
@@ -64,4 +77,5 @@ def main():
             time.sleep(10)
 
 if __name__ == '__main__':
-    main()
+    if flagid_scrape_enabled:
+        main()
