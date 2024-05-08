@@ -6,8 +6,7 @@ import { Buffer } from "buffer";
 import {
   TEXT_FILTER_KEY,
   MAX_LENGTH_FOR_HIGHLIGHT,
-  FIRST_DIFF_KEY,
-  SECOND_DIFF_KEY,
+  API_BASE_PATH,
 } from "../const";
 import {
   ArrowCircleLeftIcon,
@@ -28,10 +27,6 @@ import {
   useToSinglePythonRequestQuery,
   useGetFlagRegexQuery,
 } from "../api";
-import {
-  API_BASE_PATH,
-  TEXT_FILTER_KEY
-} from "../const";
 
 const SECONDARY_NAVBAR_HEIGHT = 50;
 
