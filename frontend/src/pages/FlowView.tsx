@@ -27,6 +27,7 @@ import {
   useToSinglePythonRequestQuery,
   useGetFlagRegexQuery,
 } from "../api";
+import escapeStringRegexp from 'escape-string-regexp';
 
 const SECONDARY_NAVBAR_HEIGHT = 50;
 
@@ -355,7 +356,7 @@ function FlowOverview({ flow }: { flow: FullFlow }) {
               {i > 0 ? ', ' : ''}
               <button className="font-bold"
                   onClick={() => {
-                    searchParams.set(FILTER_KEY, query);
+                    searchParams.set(FILTER_KEY, escapeStringRegexp(query));
                     setSearchParams(searchParams);
                   }
                 }
@@ -372,7 +373,7 @@ function FlowOverview({ flow }: { flow: FullFlow }) {
                 {i > 0 ? ', ' : ''}
                 <button className="font-bold"
                   onClick={() => {
-                      searchParams.set(FILTER_KEY, query);
+                      searchParams.set(FILTER_KEY, escapeStringRegexp(query));
                       setSearchParams(searchParams);
                     }
                   }
