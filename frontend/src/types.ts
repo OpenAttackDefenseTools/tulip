@@ -16,6 +16,8 @@ export interface Flow {
   flagids: string[];
   suricata: number[];
   filename: string;
+  fuzzy_hash: string;
+  similarity: number
 }
 
 export interface TickInfo {
@@ -59,8 +61,9 @@ export interface FlowsQuery {
   includeTags: string[];
   excludeTags: string[];
   tags: string[];
-  flags: string[];
-  flagids: string[];
+  similarity?: string;
+  includeFuzzyHashes: string[];
+  excludeFuzzyHashes: string[];
 }
 
 export type Service = {

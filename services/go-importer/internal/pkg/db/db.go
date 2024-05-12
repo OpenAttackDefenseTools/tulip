@@ -46,6 +46,7 @@ type FlowEntry struct {
 	Size         int
 	Flags        []string
 	Flagids      []string
+	Fuzzy_hash   string
 }
 
 type Database struct {
