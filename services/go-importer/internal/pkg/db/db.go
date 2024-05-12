@@ -44,6 +44,8 @@ type FlowEntry struct {
 	Flow         []FlowItem
 	Tags         []string
 	Size         int
+	Flags        []string
+	Flagids      []string
 }
 
 type Database struct {
@@ -70,6 +72,8 @@ func (db Database) ConfigureDatabase() {
 	db.InsertTag("blocked")
 	db.InsertTag("suricata")
 	db.InsertTag("starred")
+	db.InsertTag("flagid-in")
+	db.InsertTag("flagid-out")
 	db.InsertTag("tcp")
 	db.InsertTag("udp")
 	db.ConfigureIndexes()
@@ -178,7 +182,7 @@ func (db Database) InsertFlow(flow FlowEntry) {
 
 type PcapFile struct {
 	FileName string `bson:"file_name"`
-	Position int64 `bson:"position"`
+	Position int64  `bson:"position"`
 }
 
 // Insert a new pcap uri, returns true if the pcap was not present yet,
@@ -187,9 +191,9 @@ func (db Database) InsertPcap(uri string, position int64) bool {
 	files := db.client.Database("pcap").Collection("filesImported")
 	exists, _ := db.GetPcap(uri)
 	if !exists {
-		files.InsertOne(context.TODO(), bson.M{"file_name": uri,"position": position})
+		files.InsertOne(context.TODO(), bson.M{"file_name": uri, "position": position})
 	} else {
-		files.UpdateOne(context.TODO(), bson.M{"file_name": uri}, bson.M{"$set":bson.M{"position": position}})
+		files.UpdateOne(context.TODO(), bson.M{"file_name": uri}, bson.M{"$set": bson.M{"position": position}})
 	}
 	return !exists
 }
@@ -346,4 +350,50 @@ func (db Database) InsertTag(tag string) {
 	tagCollection := db.client.Database("pcap").Collection("tags")
 	// Yeah this will err... A lot.... Two more dev days till Athens, this will do.
 	tagCollection.InsertOne(context.TODO(), bson.M{"_id": tag})
+}
+
+type Flagid struct {
+	ID   string `bson:"_id"`
+	Time int    `bson:"time"`
+}
+
+func (db Database) GetFlagids(flaglifetime int) ([]Flagid, error) {
+	// Create a context with a timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	// Access the "pcap" database and "flagids" collection
+	collection := db.client.Database("pcap").Collection("flagids")
+
+	// Find all documents in the
+	var filter bson.M
+	if flaglifetime < 0 {
+		filter = bson.M{}
+	} else {
+		filter = bson.M{"time": bson.M{"$gt": int(time.Now().Unix()) - flaglifetime}}
+	}
+
+	cur, err := collection.Find(ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+	defer cur.Close(ctx)
+
+	var flagids []Flagid
+
+	// Iterate through the cursor and extract _id values
+	for cur.Next(ctx) {
+		var flagid Flagid
+		if err := cur.Decode(&flagid); err != nil {
+			return nil, err
+		}
+		flagids = append(flagids, flagid)
+	}
+
+	if err := cur.Err(); err != nil {
+		return nil, err
+	}
+
+	return flagids, nil
+
 }

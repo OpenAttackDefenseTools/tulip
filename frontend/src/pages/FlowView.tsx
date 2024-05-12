@@ -6,8 +6,7 @@ import { Buffer } from "buffer";
 import {
   TEXT_FILTER_KEY,
   MAX_LENGTH_FOR_HIGHLIGHT,
-  FIRST_DIFF_KEY,
-  SECOND_DIFF_KEY,
+  API_BASE_PATH,
 } from "../const";
 import {
   ArrowCircleLeftIcon,
@@ -28,7 +27,7 @@ import {
   useToSinglePythonRequestQuery,
   useGetFlagRegexQuery,
 } from "../api";
-import { API_BASE_PATH } from "../const";
+import escapeStringRegexp from 'escape-string-regexp';
 
 const SECONDARY_NAVBAR_HEIGHT = 50;
 
@@ -300,6 +299,8 @@ function formatIP(ip: string) {
 }
 
 function FlowOverview({ flow }: { flow: FullFlow }) {
+  const FILTER_KEY = TEXT_FILTER_KEY;
+  let [searchParams, setSearchParams] = useSearchParams();
   return (
     <div>
       {flow.signatures?.length > 0 ? (
@@ -348,6 +349,40 @@ function FlowOverview({ flow }: { flow: FullFlow }) {
           <div></div>
           <div>Tags: </div>
           <div className="font-bold">[{flow.tags.join(", ")}]</div>
+          <div>Flags: </div>
+          <div className="font-bold">
+            [{flow.flags.map((query, i) => (
+            <span>
+              {i > 0 ? ', ' : ''}
+              <button className="font-bold"
+                  onClick={() => {
+                    searchParams.set(FILTER_KEY, escapeStringRegexp(query));
+                    setSearchParams(searchParams);
+                  }
+                }
+              >
+              {query}
+              </button>
+            </span>
+            ))}]
+          </div>
+          <div>Flagids: </div>
+          <div className="font-bold">
+            [{flow.flagids.map((query, i) => (
+              <span>
+                {i > 0 ? ', ' : ''}
+                <button className="font-bold"
+                  onClick={() => {
+                      searchParams.set(FILTER_KEY, escapeStringRegexp(query));
+                      setSearchParams(searchParams);
+                    }
+                  }
+                >
+                  {query}
+                </button>
+              </span>
+            ))}]
+          </div>
           <div></div>
           <div>Source - Target (Duration): </div>
           <div className="flex items-center gap-1">

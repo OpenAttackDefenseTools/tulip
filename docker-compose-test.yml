@@ -44,6 +44,19 @@ services:
       TICK_LENGTH: ${TICK_LENGTH}
       VM_IP: ${VM_IP}
 
+  # Only for testing
+  flagidendpoint:
+    restart: always
+    build:
+      context: services/go-importer/test_data
+    image: flagid-endpoint:latest
+    depends_on:
+      - mongo
+    networks:
+      - internal
+    ports:
+      - "127.0.0.1:8000:8000"
+
   flagids:
     restart: on-failure
     build:
@@ -51,6 +64,7 @@ services:
     image: tulip-flagids:latest
     depends_on:
       - mongo
+      - flagidendpoint
     networks:
       - internal
     environment:
@@ -75,6 +89,7 @@ services:
       - ${TRAFFIC_DIR_HOST}:${TRAFFIC_DIR_DOCKER}:ro
     command: "./assembler -dir ${TRAFFIC_DIR_DOCKER}"
     environment:
+      DELAY: 5
       TULIP_MONGO: ${TULIP_MONGO}
       FLAG_REGEX: ${FLAG_REGEX}
       TICK_LENGTH: ${TICK_LENGTH}

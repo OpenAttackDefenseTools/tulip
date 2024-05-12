@@ -31,7 +31,7 @@ start_date = os.getenv("TICK_START", "2018-06-27T13:00+02:00")
 mongo_host = os.getenv("TULIP_MONGO", "localhost:27017")
 flag_regex = os.getenv("FLAG_REGEX", "[A-Z0-9]{31}=")
 mongo_server = f'mongodb://{mongo_host}/'
-vm_ip = "10.10.3.1"
+vm_ip = os.getenv("VM_IP", "10.10.3.1")
 
 services = [{"ip": vm_ip, "port": 9876, "name": "cc_market"},
             {"ip": vm_ip, "port": 80, "name": "maze"},
