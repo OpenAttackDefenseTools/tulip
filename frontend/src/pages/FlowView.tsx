@@ -27,10 +27,6 @@ import {
   useToSinglePythonRequestQuery,
   useGetFlagRegexQuery,
 } from "../api";
-import {
-  API_BASE_PATH,
-  TEXT_FILTER_KEY
-} from "../const";
 import {toggleFilterFuzzyHashes, toggleFilterTag} from "../store/filter";
 import {useAppDispatch, useAppSelector} from "../store";
 import escapeStringRegexp from 'escape-string-regexp';
@@ -309,111 +305,106 @@ function FlowOverview({ flow }: { flow: FullFlow }) {
   let [searchParams, setSearchParams] = useSearchParams();
   const dispatch = useAppDispatch();
   return (
-    <div>
-      {flow.signatures?.length > 0 ? (
-        <div className="bg-blue-200 p-2">
-          <div className="font-extrabold">Suricata</div>
+      <div>
+        {flow.signatures?.length > 0 ? (
+            <div className="bg-blue-200 p-2">
+              <div className="font-extrabold">Suricata</div>
+              <div className="pl-2">
+                {flow.signatures.map((sig) => {
+                  return (
+                      <div className="py-1">
+                        <div className="flex">
+                          <div>Message:</div>
+                          <div className="font-bold">{sig.msg}</div>
+                        </div>
+                        <div className="flex">
+                          <div>Rule ID:</div>
+                          <div className="font-bold">{sig.id}</div>
+                        </div>
+                        <div className="flex">
+                          <div>Action taken:</div>
+                          <div
+                              className={
+                                sig.action === "blocked"
+                                    ? "font-bold text-red-800"
+                                    : "font-bold text-green-800"
+                              }
+                          >
+                            {sig.action}
+                          </div>
+                        </div>
+                      </div>
+                  );
+                })}
+              </div>
+            </div>
+        ) : undefined}
+        <div className="bg-yellow-200 p-2">
+          <div className="font-extrabold">Meta</div>
           <div className="pl-2">
-            {flow.signatures.map((sig) => {
-              return (
-                <div className="py-1">
-                  <div className="flex">
-                    <div>Message: </div>
-                    <div className="font-bold">{sig.msg}</div>
-                  </div>
-                  <div className="flex">
-                    <div>Rule ID: </div>
-                    <div className="font-bold">{sig.id}</div>
-                  </div>
-                  <div className="flex">
-                    <div>Action taken: </div>
-                    <div
-                      className={
-                        sig.action === "blocked"
-                          ? "font-bold text-red-800"
-                          : "font-bold text-green-800"
-                      }
-                    >
-                      {sig.action}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      ) : undefined}
-      <div className="bg-yellow-200 p-2">
-        <div className="font-extrabold">Meta</div>
-        <div className="pl-2">
-          <div>Source:</div>
-          <div className="font-bold">
-            <a href={`${API_BASE_PATH}/download/?file=${flow.filename}`}>
-              {flow.filename}
-              <DownloadIcon className="inline-flex items-baseline w-5 h-5" />
-            </a>
-          </div>
-          <div></div>
-          <div>Tags:</div>
-          <div className="font-bold">
-            [{flow.tags.map((tag, i) => (
+            <div>Source:</div>
+            <div className="font-bold">
+              <a href={`${API_BASE_PATH}/download/?file=${flow.filename}`}>
+                {flow.filename}
+                <DownloadIcon className="inline-flex items-baseline w-5 h-5"/>
+              </a>
+            </div>
+            <div></div>
+            <div>Tags:</div>
+            <div className="font-bold">
+              [{flow.tags.map((tag, i) => (
                 <span>
                   {i > 0 ? ', ' : ''}
                   <a className="font-bold cursor-pointer"
-                          onClick={() => dispatch(toggleFilterTag(tag))}>
+                     onClick={() => dispatch(toggleFilterTag(tag))}>
                   {tag}
                   </a>
                 </span>
-              ))}]
+            ))}]
             </div>
             <div></div>
             <div>Flags:</div>
             <div className="font-bold">
-            [{flow.flags.map((query, i) => (
-              <span>
+              [{flow.flags.map((query, i) => (
+                <span>
               {i > 0 ? ', ' : ''}
-              <button className="font-bold"
-                  onClick={() => {
-                    searchParams.set(FILTER_KEY, escapeStringRegexp(query));
-                    setSearchParams(searchParams);
-                  }
-                }
-              >
-                <a className="font-bold cursor-pointer"
-                        onClick={() => {
-                          searchParams.set(FILTER_KEY, query);
-                          setSearchParams(searchParams);
-                        }
-                        }
-                >
+                  <a className="font-bold cursor-pointer"
+                     onClick={() => {
+                       searchParams.set(FILTER_KEY, escapeStringRegexp(query));
+                       setSearchParams(searchParams);
+                     }
+                     }
+                  >
               {query}
               </a>
             </span>
-          ))}]
-          </div>
-          <div></div>
-          <div>Flagids:</div>
-          <div className="font-bold">
-            [{flow.flagids.map((query, i) => (
-              <span>
+            ))}]
+            </div>
+            <div></div>
+            <div>Flagids:</div>
+            <div className="font-bold">
+              [{flow.flagids.map((query, i) => (
+                <span>
                 {i > 0 ? ', ' : ''}
-                <a className="font-bold cursor-pointer"
-                        onClick={() => {
-                          searchParams.set(FILTER_KEY, query);
-                          setSearchParams(searchParams);
-                        }
-                        }
-                <button className="font-bold"
-                  onClick={() => {
-                      searchParams.set(FILTER_KEY, escapeStringRegexp(query));
-                      setSearchParams(searchParams);
-                    }
-                  }
-                >
+                  <a className="font-bold cursor-pointer"
+                     onClick={() => {
+                       searchParams.set(FILTER_KEY, escapeStringRegexp(query));
+                       setSearchParams(searchParams);
+                     }
+                     }
+                  >
                   {query}
                 </a>
               </span>
             ))}]
+          </div>
+          <div></div>
+          <div>Nilsimsa hash:</div>
+          <div>
+            <a className="font-bold cursor-pointer"
+               onClick={() => dispatch(toggleFilterFuzzyHashes([flow.fuzzy_hash, flow._id.$oid]))}>
+              {flow.fuzzy_hash}
+            </a>
           </div>
           <div></div>
           <div>Source - Target (Duration): </div>
@@ -436,34 +427,6 @@ function FlowOverview({ flow }: { flow: FullFlow }) {
       </div>
     </div>
   );
-        ))}]
-        </div>
-        <div></div>
-        <div>Nilsimsa hash:</div>
-        <div>
-          <a className="font-bold cursor-pointer"
-                  onClick={() => dispatch(toggleFilterFuzzyHashes([flow.fuzzy_hash, flow._id.$oid]))}>
-            {flow.fuzzy_hash}
-          </a>
-        </div>
-        <div></div>
-        <div>Source - Target:</div>
-        <div className="flex items-center gap-1">
-          <div>
-            {" "}
-            <span>{formatIP(flow.src_ip)}</span>:
-            <span className="font-bold">{flow.src_port}</span>
-          </div>
-          <div>-</div>
-          <div>
-            <span>{formatIP(flow.dst_ip)}</span>:
-            <span className="font-bold">{flow.dst_port}</span>
-          </div>
-        </div>
-      </div>
-    </div>
-</div>
-);
 }
 
 export function FlowView() {
@@ -473,7 +436,6 @@ export function FlowView() {
 
   const id = params.id;
 
-  const {data: flow} = useGetFlowQuery(id!, {skip: id === undefined});
   const { data: flow, isError, isLoading } = useGetFlowQuery(id!, { skip: id === undefined });
 
   const [triggerPwnToolsQuery] = useLazyToPwnToolsQuery();
@@ -566,7 +528,7 @@ export function FlowView() {
             onMouseDown={(e) => {
               if( e.button === 1 ) { // handle opening in new tab
                 window.open(`/flow/${flow.parent_id.$oid}?${searchParams}`, '_blank')
-              } else if (e.button === 0) {
+             } else if (e.button === 0) {
                 navigate(`/flow/${flow.parent_id.$oid}?${searchParams}`)
               }
             }}

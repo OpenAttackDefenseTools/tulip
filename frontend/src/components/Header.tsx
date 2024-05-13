@@ -368,8 +368,6 @@ export function Header() {
     setTimeParam("", START_FILTER_KEY);
     setTimeParam("", END_FILTER_KEY);
   });
-    let [searchParams] = useSearchParams();
-    const {setToLastnTicks, currentTick} = useMessyTimeStuff();
 
     return (
         <>

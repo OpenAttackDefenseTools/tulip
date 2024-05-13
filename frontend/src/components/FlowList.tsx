@@ -240,16 +240,7 @@ export function FlowList() {
             [classes.list_container]: true,
             "sidebar-loading": isLoading,
           })}
-          data={transformedFlowData}
-          ref={virtuoso}
-          initialTopMostItemIndex={flowIndex}
-          itemContent={(index, flow) => (
-              <Link
-                  to={`/flow/${flow._id.$oid}?${searchParams}`}
-                  key={flow._id.$oid}
-            className="focus-visible:rounded-md"
-            //style={{ paddingTop: '1em' }}
-          >
+            >
             <FlowListEntry
               key={flow._id.$oid}
               flow={flow}
