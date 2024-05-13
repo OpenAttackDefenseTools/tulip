@@ -12,10 +12,10 @@ import {
   TEXT_FILTER_KEY,
   START_FILTER_KEY,
   END_FILTER_KEY,
-  FLOW_LIST_REFETCH_INTERVAL_MS,
+  FLOW_LIST_REFETCH_INTERVAL_MS, SIMILARITY_FILTER_KEY,
 } from "../const";
 import { useAppSelector, useAppDispatch } from "../store";
-import { toggleFilterTag } from "../store/filter";
+import {toggleFilterFuzzyHashes, toggleFilterTag} from "../store/filter";
 
 import { HeartIcon, FilterIcon, LinkIcon } from "@heroicons/react/solid";
 import { HeartIcon as EmptyHeartIcon } from "@heroicons/react/outline";
@@ -44,10 +44,12 @@ export function FlowList() {
   const { data: services } = useGetServicesQuery();
 
   const filterTags = useAppSelector((state) => state.filter.filterTags);
-  const filterFlags = useAppSelector((state) => state.filter.filterFlags);
-  const filterFlagids = useAppSelector((state) => state.filter.filterFlagids);
   const includeTags = useAppSelector((state) => state.filter.includeTags);
   const excludeTags = useAppSelector((state) => state.filter.excludeTags);
+  const includeFuzzyHashes = useAppSelector((state) => state.filter.includeFuzzyHashes);
+  const excludeFuzzyHashes = useAppSelector((state) => state.filter.excludeFuzzyHashes);
+  const fuzzyHashes = useAppSelector((state) => state.filter.fuzzyHashes);
+    const fuzzyHashIds = useAppSelector((state) => state.filter.fuzzyHashIds);
 
   const dispatch = useAppDispatch();
 
@@ -61,6 +63,7 @@ export function FlowList() {
   const service = services?.find((s) => s.name == service_name);
 
   const text_filter = searchParams.get(TEXT_FILTER_KEY) ?? undefined;
+  const similarity = searchParams.get(SIMILARITY_FILTER_KEY) ?? undefined;
   const from_filter = searchParams.get(START_FILTER_KEY) ?? undefined;
   const to_filter = searchParams.get(END_FILTER_KEY) ?? undefined;
 
@@ -75,10 +78,11 @@ export function FlowList() {
       to_time: to_filter,
       service: "", // FIXME
       tags: filterTags,
-      flags: filterFlags,
-      flagids: filterFlagids,
       includeTags: includeTags,
-      excludeTags: excludeTags
+      excludeTags: excludeTags,
+      similarity: similarity,
+      includeFuzzyHashes: includeFuzzyHashes,
+      excludeFuzzyHashes: excludeFuzzyHashes
     },
     {
       refetchOnMountOrArgChange: true,
@@ -197,6 +201,24 @@ export function FlowList() {
             </div>
           </div>
         )}
+        {showFilters && (
+            <div className="border-t-gray-300 border-t p-2">
+              <p className="text-sm font-bold text-gray-600 pb-2">
+                Similarity filter
+              </p>
+              <div className="flex gap-2 flex-wrap">
+                {(fuzzyHashes ?? []).map((fuzzyHash, i) => (
+                    <Tag
+                        key={fuzzyHashIds[i]}
+                        tag={fuzzyHashIds[i]}
+                        disabled={!includeFuzzyHashes.includes(fuzzyHash)}
+                        excluded={excludeFuzzyHashes.includes(fuzzyHash)}
+                        onClick={() => dispatch(toggleFilterFuzzyHashes([fuzzyHash, fuzzyHashIds[i]]))}
+                    ></Tag>
+                ))}
+              </div>
+            </div>
+        )}
       </div>
       <div></div>
       <Virtuoso
@@ -213,9 +235,12 @@ export function FlowList() {
             to={`/flow/${flow._id.$oid}?${searchParams}`}
             onClick={() => setFlowIndex(index)}
             key={flow._id.$oid}
-            className="focus-visible:rounded-md"
-            //style={{ paddingTop: '1em' }}
-          >
+          className={classNames({
+            "flex-1": true,
+            [classes.list_container]: true,
+            "sidebar-loading": isLoading,
+          })}
+            >
             <FlowListEntry
               key={flow._id.$oid}
               flow={flow}
@@ -249,11 +274,24 @@ function FlowListEntry({ flow, isActive, onHeartClick }: FlowListEntryProps) {
     ) : (
       <div>{flow.duration}ms</div>
     );
-  return (
+
+
+  const DEFAULT = [243, 244, 246]
+  const GREEN = [134, 239, 172]
+  const RED = [252, 165, 165]
+
+  var color: number[]
+  if (flow.similarity != undefined)
+    color = GREEN.map((g, i) => ((g*flow.similarity) + (RED[i]*(1-flow.similarity))));
+  else
+    color = DEFAULT;
+
+    return (
     <li
       className={classNames({
         [classes.active]: isActive,
       })}
+      style={{backgroundColor: `rgb(${color[0]} ${color[1]} ${color[2]} / var(--tw-bg-opacity))`}}
     >
       <div className="flex">
         <div

@@ -1,11 +1,15 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
+// Note: all off these states are immutable and can only be changed through overwrite
 export interface TulipFilterState {
   filterTags: string[];
-  filterFlags: string[];
-  filterFlagids: string[];
   includeTags: string[];
   excludeTags: string[];
+  // can't use Map because immutable bs
+  fuzzyHashes: string[];
+  fuzzyHashIds: string[];
+  includeFuzzyHashes: string[];
+  excludeFuzzyHashes: string[];
   // startTick?: number;
   // endTick?: number;
   // service?: string;
@@ -16,8 +20,10 @@ const initialState: TulipFilterState = {
   includeTags: [],
   excludeTags: [],
   filterTags: [],
-  filterFlags: [],
-  filterFlagids: [],
+  fuzzyHashes: [],
+  fuzzyHashIds: [],
+  includeFuzzyHashes: [],
+  excludeFuzzyHashes: [],
 };
 
 export const filterSlice = createSlice({
@@ -54,19 +60,42 @@ export const filterSlice = createSlice({
         }
       }
     },
-    toggleFilterFlags: (state, action: PayloadAction<string>) => {
-      state.filterFlags = state.filterFlags.includes(action.payload)
-          ? state.filterFlags.filter((t) => t !== action.payload)
-          : [...state.filterFlags, action.payload];
-    },
-    toggleFilterFlagids: (state, action: PayloadAction<string>) => {
-      state.filterFlagids = state.filterFlagids.includes(action.payload)
-          ? state.filterFlagids.filter((t) => t !== action.payload)
-          : [...state.filterFlagids, action.payload];
-    },
+    toggleFilterFuzzyHashes: (state, action: PayloadAction<string[]>) => {
+      var fuzzyHashes = action.payload[0]
+      var id = action.payload[1]
+      var included = state.includeFuzzyHashes.includes(fuzzyHashes)
+      var excluded = state.excludeFuzzyHashes.includes(fuzzyHashes)
+
+      // If the fuzzyHashes hash is new cache it
+      if(!state.fuzzyHashes.includes(fuzzyHashes)) {
+        state.fuzzyHashes = [...state.fuzzyHashes, fuzzyHashes]
+        state.fuzzyHashIds = [...state.fuzzyHashIds, id]
+      }
+
+      // If a user clicks a 'included' fuzzyHashes hash, the hash should be 'excluded' instead.
+      if (included) {
+        // Remove from included
+        state.includeFuzzyHashes = state.includeFuzzyHashes.filter((t) => t !== fuzzyHashes);
+
+        // Add to excluded
+        state.excludeFuzzyHashes = [...state.excludeFuzzyHashes, fuzzyHashes]
+      } else {
+        // If the user clicks on an 'excluded' fuzzyHashes hash, the hash should be 'unset' from both include / exclude tags
+        if (excluded) {
+          // Remove from excluded
+          state.excludeFuzzyHashes = state.excludeFuzzyHashes.filter((t) => t !== fuzzyHashes);
+        } else {
+          if (!included && !excluded) {
+            // The tag was disabled, so it should be added to included now
+            state.includeFuzzyHashes = [...state.includeFuzzyHashes, fuzzyHashes]
+          }
+        }
+      }
+    }
   },
 });
 
-export const { toggleFilterTag } = filterSlice.actions;
+
+export const { toggleFilterTag, toggleFilterFuzzyHashes } = filterSlice.actions;
 
 export default filterSlice.reducer;

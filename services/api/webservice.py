@@ -23,6 +23,8 @@
 # along with Flower.  If not, see <https://www.gnu.org/licenses/>.
 
 import traceback
+
+import nilsimsa
 from flask import Flask, Response, send_file
 
 from configurations import services, traffic_dir, start_date, tick_length, flag_regex
@@ -62,8 +64,25 @@ def getTickInfo():
 
 @application.route('/query', methods=['POST'])
 def query():
-    json = request.get_json()
-    result = db.getFlowList(json)
+    filter = request.get_json()
+    result = db.getFlowList(filter)
+    similarity = int(filter["similarity"]) if "similarity" in filter else 90
+
+    # adapt similarity to nilsimsa compare value
+    similarity = (similarity*256/100) - 128
+
+    if "includeFuzzyHashes" in filter:
+        result = [x for x in result if all(nilsimsa.compare_digests(hash, x["fuzzy_hash"]) >= similarity for hash in filter["includeFuzzyHashes"])]
+        for x in result:
+            x['similarity'] = ((sum(nilsimsa.compare_digests(hash, x["fuzzy_hash"]) for hash in filter["includeFuzzyHashes"]) / len(filter["includeFuzzyHashes"]))+128)/256
+
+    if "excludeFuzzyHashes" in filter:
+        result = [x for x in result if all(nilsimsa.compare_digests(hash, x["fuzzy_hash"]) < similarity for hash in filter["excludeFuzzyHashes"])]
+        for x in result:
+            similarity = ((-sum(nilsimsa.compare_digests(hash, x["fuzzy_hash"]) for hash in filter["excludeFuzzyHashes"]) / len(filter["excludeFuzzyHashes"]))+128)/256
+            x['similarity'] = (similarity + x['similarity'])/2 if 'similarity' in x else similarity
+
+
     return return_json_response(result)
 
 @application.route('/tags')

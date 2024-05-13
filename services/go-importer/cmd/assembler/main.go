@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/chikamim/nilsimsa"
 	"go-importer/internal/pkg/db"
 
 	"flag"
@@ -75,10 +76,19 @@ func reassemblyCallback(entry db.FlowEntry) {
 	// Parsing HTTP will decode encodings to a plaintext format
 	ParseHttpFlow(&entry)
 
+	allData := make([]byte, 0)
+	for idx := 0; idx < len(entry.Flow); idx++ {
+		flowItem := entry.Flow[idx]
+		allData = append(allData[:], []byte(flowItem.Data)[:]...)
+	}
+
+	fuzzyHash := nilsimsa.HexSum(allData)
+
 	// Apply flag in / flagout
 	if *flag_regex != "" {
 		ApplyFlagTags(&entry, flag_regex)
 	}
+	entry.Fuzzy_hash = fuzzyHash
 
 	//Apply flagid in / out
 	if *flagid {

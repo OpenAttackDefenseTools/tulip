@@ -7,7 +7,7 @@ import {
   START_FILTER_KEY,
   END_FILTER_KEY,
   CORRELATION_MODE_KEY,
-  FLOW_LIST_REFETCH_INTERVAL_MS,
+  FLOW_LIST_REFETCH_INTERVAL_MS, SIMILARITY_FILTER_KEY,
 } from "../const";
 import useDebounce from "../hooks/useDebounce";
 
@@ -29,8 +29,8 @@ export const Corrie = () => {
   const includeTags = useAppSelector((state) => state.filter.includeTags);
   const excludeTags = useAppSelector((state) => state.filter.excludeTags);
   const filterTags = useAppSelector((state) => state.filter.filterTags);
-  const filterFlags = useAppSelector((state) => state.filter.filterFlags);
-  const filterFlagids = useAppSelector((state) => state.filter.filterFlagids);
+  const includeFuzzyHashes = useAppSelector((state) => state.filter.includeFuzzyHashes);
+  const excludeFuzzyHashes = useAppSelector((state) => state.filter.excludeFuzzyHashes);
 
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -38,6 +38,7 @@ export const Corrie = () => {
   const service = services && services.find((s) => s.name == service_name);
 
   const text_filter = searchParams.get(TEXT_FILTER_KEY) ?? undefined;
+  const similarity = searchParams.get(SIMILARITY_FILTER_KEY) ?? undefined;
   const from_filter = searchParams.get(START_FILTER_KEY) ?? undefined;
   const to_filter = searchParams.get(END_FILTER_KEY) ?? undefined;
 
@@ -54,8 +55,9 @@ export const Corrie = () => {
       includeTags: includeTags,
       excludeTags: excludeTags,
       tags: filterTags,
-      flags: filterFlags,
-      flagids: filterFlagids,
+      similarity: similarity,
+      includeFuzzyHashes: includeFuzzyHashes,
+      excludeFuzzyHashes: excludeFuzzyHashes
     },
     {
       refetchOnMountOrArgChange: true,
