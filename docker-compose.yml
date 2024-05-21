@@ -15,7 +15,7 @@ services:
       POSTGRES_HOST_AUTH_METHOD: trust
       POSTGRES_USER: tulip
       POSTGRES_DB: tulip
-    # This does not neet to be adjusted, unless you actually want to limit it
+    # This does not need to be adjusted, unless you actually want to limit it
     # Postgres uses shared memory for caching, and docker assigns just 64 MB by default
     shm_size: '128g'
 

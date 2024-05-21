@@ -55,6 +55,7 @@ class Flow:
     flags_out: int
     signatures: list[Signature]
     tags: list[str]
+    rank: int
 
 
 @dataclass(slots=True, kw_only=True)
@@ -130,30 +131,10 @@ class Pool(psycopg_pool.ConnectionPool):
 
 class Connection(psycopg.Connection):
     def flow_query(self, query: FlowQuery) -> list[Flow]:
+        pre_select = sql.SQL("WITH f AS (SELECT *, fid_rank_desc(id) AS rank FROM flow ORDER BY id DESC)")
         conditions = [sql.SQL("true")]
+        pre_conditions = [sql.SQL("true")]
         parameters = {}
-
-        pre_select = sql.SQL("WITH f AS (SELECT * FROM flow ORDER BY id DESC)")
-
-        if query.regex_insensitive:
-            parameters["regex_insensitive"] = query.regex_insensitive.pattern
-            text = """
-                WITH fi AS (
-                    SELECT flow_id, fid_rank_desc(flow_id) AS rank
-                    FROM flow_index
-                    WHERE text ~* %(regex_insensitive)s
-                    ORDER BY rank
-                ), fd AS (
-                    SELECT DISTINCT ON (rank) flow_id
-                    FROM fi
-                ), f AS (
-                    SELECT fl.*
-                    FROM fd
-                    INNER JOIN flow AS fl
-                        ON fl.id = fd.flow_id
-                )
-            """
-            pre_select = sql.SQL(text)
 
         if query.ip_src:
             parameters["ip_src"] = query.ip_src
@@ -172,9 +153,11 @@ class Connection(psycopg.Connection):
         if query.time_from:
             parameters["time_from"] = query.time_from
             conditions.append(sql.SQL("f.id > fid_pack_low(%(time_from)s)"))
+            pre_conditions.append(sql.SQL("flow_id > fid_pack_low(%(time_from)s)"))
         if query.time_to:
             parameters["time_to"] = query.time_to
             conditions.append(sql.SQL("f.id < fid_pack_high(%(time_to)s)"))
+            pre_conditions.append(sql.SQL("flow_id < fid_pack_high(%(time_to)s)"))
 
         if query.tags_include:
             parameters["tags_include"] = query.tags_include
@@ -183,15 +166,36 @@ class Connection(psycopg.Connection):
             parameters["tags_exclude"] = query.tags_exclude
             conditions.append(sql.SQL("NOT f.tags ?| %(tags_exclude)s"))
 
+        if query.regex_insensitive:
+            parameters["regex_insensitive"] = query.regex_insensitive.pattern
+            text = """
+                WITH fi AS (
+                    SELECT flow_id, fid_rank_desc(flow_id) AS rank
+                    FROM flow_index
+                    WHERE text ~* %(regex_insensitive)s
+                        AND {pre_conditions}
+                    ORDER BY rank
+                ), fd AS (
+                    SELECT DISTINCT ON (rank) flow_id, rank
+                    FROM fi
+                ), f AS (
+                    SELECT fl.*, fd.rank
+                    FROM fd
+                    LEFT JOIN flow AS fl
+                        ON fl.id = fd.flow_id
+                )
+            """
+            pre_select = sql.SQL(text).format(pre_conditions=sql.SQL(" AND ").join(pre_conditions))
+
         text_query = """
             /*+
-                NoBitmapScan(flow_index)
+                IndexScan(flow_index)
                 Set(enable_material false)
             */
             {pre_select}
             SELECT f.*, p.name AS pcap_name
             FROM f
-            INNER JOIN pcap AS p
+            LEFT JOIN pcap AS p
                 ON p.id = f.pcap_id
             WHERE {conditions}
             LIMIT {limit}
@@ -211,7 +215,7 @@ class Connection(psycopg.Connection):
         for flow in flows:
             flow.tags = list(filter(lambda t: t in flow.tags, tags))
 
-        return flows
+        return list(sorted(flows, key=lambda f: f.rank))
 
     def flow_detail(self, id: uuid.UUID) -> FlowDetail | None:
         sql_query = """
