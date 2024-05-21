@@ -3,7 +3,7 @@ services:
   timescale:
     build: services/timescale
     image: tulip-timescale:latest
-    restart: on-failure
+    restart: unless-stopped
     volumes:
     - timescale-data:/var/lib/postgresql/data
     - ./services/schema/system.sql:/docker-entrypoint-initdb.d/100_system.sql:ro
@@ -24,7 +24,7 @@ services:
       context: frontend
       dockerfile: Dockerfile-frontend
     image: tulip-frontend:latest
-    restart: on-failure
+    restart: unless-stopped
     ports:
       - "3000:3000"
     expose:
@@ -46,7 +46,7 @@ services:
       - "127.0.0.1:5000:5000"
     expose:
       - 5000
-    restart: on-failure
+    restart: unless-stopped
     depends_on:
       - timescale
     networks:
@@ -67,7 +67,7 @@ services:
       context: services/go-importer
       dockerfile: Dockerfile-assembler
     image: tulip-assembler:latest
-    restart: on-failure
+    restart: unless-stopped
     depends_on:
       - timescale
     networks:
@@ -95,7 +95,7 @@ services:
       context: services/go-importer
       dockerfile: Dockerfile-enricher
     image: tulip-enricher:latest
-    restart: on-failure
+    restart: unless-stopped
     depends_on:
       - timescale
     networks:
