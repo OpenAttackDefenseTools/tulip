@@ -55,7 +55,7 @@ class Flow:
     flags_out: int
     signatures: list[Signature]
     tags: list[str]
-    rank: int
+    rank: int = 0
 
 
 @dataclass(slots=True, kw_only=True)
