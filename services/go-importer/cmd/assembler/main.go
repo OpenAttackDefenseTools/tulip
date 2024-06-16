@@ -82,9 +82,16 @@ var dumpPcapsFilename = flag.String("dump-pcaps-filename", "2006-01-02_15-04-05.
 Reference: https://pkg.go.dev/time#Layout`)
 var maxFlowItemSize = flag.Int("max-flow-item-size", 16, `Maximum size in MiB of one flow item record.
 While PostgreSQL technically supports values up to 1GiB, they are not very nice to work with.`)
+var flagValidatorType = flag.String("flag-validator-type", "", "Flag validator type, this must be set to enable flag validation. Must be one of the following: FAUST, ENO/ENOWARS")
+var flagValidatorPrefixLen = flag.Int("flag-validator-prefix", -1, "Length of static flag prefix")
+var flagValidatorTeam = flag.Int("flag-validator-team", -1, "Team ID used for flag validation")
+var flagValidatorTickStart = flag.String("flag-validator-tick-start", "", "CTF start time used for flag validation")
+var flagValidatorTickLength = flag.Int("flag-validator-tick-length", -1, "Tick length in miliseconds used for flag validation")
+
 
 var g_db *db.Database
 var workerPool *workerpool.WorkerPool
+var flagValidator FlagValidator
 
 // flagid caching (only once per tick)
 var flagids []db.FlagId
@@ -105,7 +112,7 @@ func reassemblyCallback(entry db.FlowEntry) {
 
 		// Apply flag in / flagout
 		if *flag_regex != "" {
-			ApplyFlagTags(&entry, flag_regex)
+			ApplyFlagTags(&entry, flag_regex, flagValidator)
 		}
 
 		// Apply flagid in / out
@@ -270,6 +277,47 @@ func main() {
 	if *bpf == "" {
 		*bpf = os.Getenv("BPF")
 	}
+
+	// Flag validator setup
+	if *flagValidatorTickStart == "" {
+		*flagValidatorTickStart = os.Getenv("TICK_START")
+	}
+	if *flagValidatorTickLength == -1 && os.Getenv("TICK_LENGTH") != "" {
+		parsed, err := strconv.Atoi(os.Getenv("TICK_LENGTH"))
+		if err != nil {
+			log.Fatal("Invalid TICK_LENGTH environment variable: ", err)
+		}
+		*flagValidatorTickLength = parsed
+	}
+	if *flagValidatorType != "" && *flag_regex == "" {
+		log.Println("WARNING: Flag validation enabled but no flag regex specified. No flag validation will be done.")
+	}
+	switch strings.ToLower(*flagValidatorType) {
+	case "faust":
+		if *flagValidatorPrefixLen == -1 {
+			log.Fatalln("Missing -flag-validator-prefix for FAUST flag validator")
+		}
+		flagValidator = &FaustFlagValidator{*flagValidatorPrefixLen, *flagValidatorTeam, time.Hour, "CTF-GAMESERVER"}
+	case "enowars", "eno":
+		if *flagValidatorPrefixLen == -1 {
+			log.Fatalln("Missing -flag-validator-prefix for ENOWARS flag validator")
+		}
+		// TODO: Try also "2006-01-02T15:04:05Z07:00" == time.RFC3339
+		startTime, err := time.Parse("2006-01-02T15:04Z07:00", *flagValidatorTickStart)
+		if err != nil {
+			log.Fatal("Invalid start time: ", err)
+		}
+		// I don't think that there will be more than 20 services and 20 flag stores...
+		flagValidator = &EnowarsFlagValidator{*flagValidatorPrefixLen, *flagValidatorTeam, 20, 20, time.Hour, startTime, time.Duration(*flagValidatorTickLength) * time.Millisecond}
+	case "":
+		if *flagValidatorPrefixLen != -1 || *flagValidatorTeam != -1  {
+			log.Println("WARNING: No flag validator type specified but additional flag validator options are set. No flag validation will be done.")
+		}
+		flagValidator = &DummyFlagValidator{}
+	default:
+		log.Fatalln("Uknown -flag-validator-type: ", *flagValidatorType)
+	}
+
 
 	log.Println("Connecting to Timescale:", *timescale)
 	g_db = db.NewDatabase(*timescale)

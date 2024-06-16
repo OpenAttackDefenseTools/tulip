@@ -5,16 +5,11 @@ import (
 
 	"log"
 	"regexp"
-	"time"
 
 	"github.com/cloudflare/ahocorasick"
 )
 
 var flagRegex *regexp.Regexp
-
-// var flagValidator FlagValidator = DummyFlagValidator{}
-var flagValidator FlagValidator = FaustFlagValidator{len("FLAG_"), 6, time.Hour, "CTF-GAMESERVER"}
-// var flagValidator FlagValidator = EnowarsFlagValidator{len("ENO"), 11, 6, 2}
 
 func EnsureRegex(reg *string) {
 	if flagRegex == nil {
@@ -40,7 +35,7 @@ func contains(s []string, e string) bool {
 // This assumes the `Data` part of the flowItem is already pre-processed, s.t.
 // we can run regex tags over the payload directly
 // also add the matched flags to the FlowItem
-func ApplyFlagTags(flow *db.FlowEntry, reg *string) {
+func ApplyFlagTags(flow *db.FlowEntry, reg *string, flagValidator FlagValidator) {
 	EnsureRegex(reg)
 
 	// If the regex is not valid, bail here
@@ -76,7 +71,7 @@ func ApplyFlagTags(flow *db.FlowEntry, reg *string) {
 					flow.Flags = append(flow.Flags, flag)
 				}
 				// Check if it is a fake flag
-				if !hasFakeFlag && !flagValidator.IsValid(flag) {
+				if !hasFakeFlag && !flagValidator.IsValid(flag, flowItem.Time) {
 					tags = append(tags, "fake-flag")
 					hasFakeFlag = true
 				}
