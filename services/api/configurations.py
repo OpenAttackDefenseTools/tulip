@@ -40,7 +40,8 @@ if services_path is not None:
     with open(services_path, 'r') as f:
         services = json.load(f)
     for service in services:
-        service["ip"] = vm_ip
+        if "ip" not in service:
+            service["ip"] = vm_ip
 else:
     services = [
         {"ip": vm_ip, "port": 9876, "name": "cc_market"},
