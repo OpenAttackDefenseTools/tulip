@@ -97,9 +97,8 @@ services:
     # - -disable-converters: disable converters
     # - -discard-extra-data: dont split large flow items, just discard them
     # - -flag-validator-type: enables flag validation, must be either FAUST or ENO/ENOWARS
-    # - -flag-validator-prefix: length of static flag prefix
     # - -flag-validator-team: optional team ID/net
-    # Flag validator example: -flag-validator-type eno -flag-validator-prefix 3 -flag-validator-team 11
+    # Flag validator example: -flag-validator-type eno -flag-validator-team 11
     command: "./assembler -http-session-tracking -skipchecksum -disable-converters -dir ${TRAFFIC_DIR_DOCKER}"
     environment:
       TIMESCALE: ${TIMESCALE}

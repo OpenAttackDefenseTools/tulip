@@ -24,15 +24,15 @@ func IsFlagTimeValid(timeFromFlag, referenceTime time.Time, tolerance time.Durat
 // Team net checking can be disabled by setting teamNet to -1.
 // Time checking can be disabled by setting timeTolerance to zero.
 type FaustFlagValidator struct {
-	prefixLen     int
 	teamNet       int
 	timeTolerance time.Duration
 	xorString     string
 }
 
 func (validator *FaustFlagValidator) IsValid(flag string, refTime time.Time) bool {
+	const RAW_FLAG_DATA_LEN = 32
 	const FLAG_DATA_LEN = 8 + 4 + 2
-	data, err := base64.StdEncoding.DecodeString(flag[validator.prefixLen:])
+	data, err := base64.StdEncoding.DecodeString(flag[len(flag)-RAW_FLAG_DATA_LEN:])
 	if err != nil {
 		// We weren't able to decode it, probably fake flag
 		log.Printf("Error during decode of flag %q: %s\n", flag, err)
@@ -57,7 +57,6 @@ func (validator *FaustFlagValidator) IsValid(flag string, refTime time.Time) boo
 // Team ID checking can be disabled by setting teamId to -1.
 // Time checking can be disabled by setting timeTolerance, startTime and/or tickLength to zero.
 type EnowarsFlagValidator struct {
-	prefixLen     int
 	teamId        int
 	serviceCount  int
 	maxFlagStores int
@@ -67,8 +66,9 @@ type EnowarsFlagValidator struct {
 }
 
 func (validator *EnowarsFlagValidator) IsValid(flag string, refTime time.Time) bool {
+	const RAW_FLAG_DATA_LEN = 48
 	const FLAG_DATA_LEN = 4 * 4
-	data, err := base64.StdEncoding.DecodeString(flag[validator.prefixLen:])
+	data, err := base64.StdEncoding.DecodeString(flag[len(flag)-RAW_FLAG_DATA_LEN:])
 	if err != nil {
 		// We weren't able to decode it, probably fake flag
 		log.Printf("Error during decode of flag %q: %s\n", flag, err)
