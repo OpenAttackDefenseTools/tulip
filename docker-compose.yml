@@ -36,6 +36,7 @@ services:
       - internal
     volumes:
       - ${TRAFFIC_DIR_HOST}:${TRAFFIC_DIR_DOCKER}:ro
+    command: "gunicorn -w 3 -t 60 --log-level debug --capture-output --enable-stdio-inheritance -b 0.0.0.0:5000 webservice:application"
     environment:
       TULIP_MONGO: ${TULIP_MONGO}
       TULIP_TRAFFIC_DIR: ${TRAFFIC_DIR_DOCKER}
