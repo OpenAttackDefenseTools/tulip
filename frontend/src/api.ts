@@ -8,6 +8,10 @@ import {
   TickInfo,
   Flow,
   FlowsQuery,
+  StatsQuery,
+  Stats,
+  TicksAttackInfo,
+  TicksAttackQuery,
 } from "./types";
 
 export const tulipApi = createApi({
@@ -39,11 +43,34 @@ export const tulipApi = createApi({
         }),
       }),
     }),
+    getStats: builder.query<Stats[], StatsQuery>({
+      query: (query) => ({
+        url: query.service === "" ? `/stats/all` : `/stats/${query.service}`,
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+        params: {
+          from_tick: query.from_tick,
+          to_tick: query.to_tick
+        }
+      })
+    }),
     getTags: builder.query<string[], void>({
       query: () => `/tags`,
     }),
     getTickInfo: builder.query<TickInfo, void>({
       query: () => `/tick_info`,
+    }),
+    getUnderAttack: builder.query<TicksAttackInfo, TicksAttackQuery>({
+      query: (query) => ({
+        url: '/under_attack',
+        params: {
+          from_tick: query.from_tick,
+          to_tick: query.to_tick,
+        }
+      }),
     }),
     getSignature: builder.query<Signature[], number>({
       query: (id) => `/signature/${id}`,
@@ -116,4 +143,6 @@ export const {
   useLazyToFullPythonRequestQuery,
   useToSinglePythonRequestQuery,
   useStarFlowMutation,
+  useGetStatsQuery,
+  useGetUnderAttackQuery,
 } = tulipApi;

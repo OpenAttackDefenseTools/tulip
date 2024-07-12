@@ -7,6 +7,9 @@ import {
   TEXT_FILTER_KEY,
   MAX_LENGTH_FOR_HIGHLIGHT,
   API_BASE_PATH,
+  REPR_ID_KEY,
+  FIRST_DIFF_KEY,
+  SECOND_DIFF_KEY,
 } from "../const";
 import {
   ArrowCircleLeftIcon,
@@ -14,6 +17,7 @@ import {
   ArrowCircleUpIcon,
   ArrowCircleDownIcon,
   DownloadIcon,
+  LightningBoltIcon,
 } from "@heroicons/react/solid";
 import { format } from "date-fns";
 
@@ -87,7 +91,7 @@ function highlightText(flowText: string, search_string: string, flag_string: str
     }
     const searchClasses = "bg-orange-200 rounded-sm"
     const flagClasses = "bg-red-200 rounded-sm"
-    return <span>{ parts.map((part, i) => 
+    return <span>{ parts.map((part, i) =>
         <span key={i} className={ (search_string !== '' && search_regex.test(part)) ? searchClasses : (flag_regex.test(part) ? flagClasses : '') }>
             { part }
         </span>)
@@ -413,6 +417,8 @@ export function FlowView() {
 
   const id = params.id;
 
+  const [reprId, setReprId] = useState(parseInt(searchParams.get(REPR_ID_KEY) ?? "0"));
+
   const { data: flow, isError, isLoading } = useGetFlowQuery(id!, { skip: id === undefined });
 
   const [triggerPwnToolsQuery] = useLazyToPwnToolsQuery();
@@ -466,20 +472,51 @@ export function FlowView() {
     setCurrentFlow(fi => Math.max(0, fi - 1))
   }, [currentFlow]);
   useHotkeys('l', () => {
-    if (currentFlow === (flow?.flow?.length ?? 1)-1) {
+    if (currentFlow === (flow?.flow[reprId]?.flow?.length ?? 1)-1) {
       document.getElementById(`${id}-${currentFlow}`)?.scrollIntoView(true)
     }
-    setCurrentFlow(fi => Math.min((flow?.flow?.length ?? 1)-1, fi + 1))
-  }, [currentFlow, flow?.flow?.length]);
+    setCurrentFlow(fi => Math.min((flow?.flow[reprId]?.flow?.length ?? 1)-1, fi + 1))
+  }, [currentFlow, flow?.flow[reprId]?.flow?.length, reprId]);
 
   useEffect(
     () => {
       if (currentFlow < 0) {
         return
       }
-      document.getElementById(`${id}`)?.scrollIntoView(true)
+      document.getElementById(`${id}-${currentFlow}`)?.scrollIntoView(true)
     },
     [currentFlow]
+  )
+
+  useHotkeys('m', () => {
+    setReprId(ri => (ri + 1) % (flow?.flow.length ?? 1))
+  }, [reprId, flow?.flow.length]);
+
+  // when the reprId changes, we update the url
+  useEffect(
+    () => {
+      if (reprId === 0) {
+        searchParams.delete(REPR_ID_KEY)
+        setSearchParams(searchParams)
+        return
+      }
+      searchParams.set(REPR_ID_KEY, reprId.toString());
+      setSearchParams(searchParams)
+    },
+    [reprId]
+  )
+
+  // if the flow doesn't have the representation we're looking for, we fallback to raw
+  useEffect(
+    () => {
+      if (flow?.flow.length == undefined || flow?.flow.length === 0) {
+        return
+      }
+      if ((flow?.flow.length-1) < reprId) {
+        setReprId(0)
+      }
+    },
+    [flow?.flow.length]
   )
 
   if (isError) {
@@ -529,6 +566,30 @@ export function FlowView() {
             </div>
           ) : undefined}
         <div className="flex align-middle p-2 gap-3 ml-auto">
+          <p className="my-auto">Decoders <abbr title={"Number of decoders available for this flow: "+flow?.flow.length}>({flow?.flow.length})</abbr>:</p>
+          <select
+            id="repr-select"
+            value={reprId}
+            className="border-2 border-gray-700 text-black px-2 text-sm rounded-md"
+            onChange={(e) => {
+                const target = e.target as HTMLSelectElement;
+                const newreprid = parseInt(target.value);
+                setReprId(newreprid);
+            }}
+          >
+            {flow?.flow.map((e, i) => <option key={id+"reprselect"+i} value={i}>{e['type']}</option>)}
+          </select>
+          { reprId > 0 ? <button
+            className="bg-gray-700 text-white px-2 text-sm rounded-md"
+            title="Diff this representation with the base"
+            onClick={(e) => {
+              searchParams.set(FIRST_DIFF_KEY, `${id}`);
+              searchParams.set(SECOND_DIFF_KEY, `${id}:${reprId}`);
+              navigate(`/diff/${id ?? ""}?${searchParams}`, { replace: true });
+            }}
+          >
+            <LightningBoltIcon className="h-5 w-5"></LightningBoltIcon>
+          </button> : undefined}
           <button
             className="bg-gray-700 text-white px-2 text-sm rounded-md"
             onClick={copyPwn}
@@ -546,7 +607,7 @@ export function FlowView() {
       </div>
 
       {flow ? <FlowOverview flow={flow}></FlowOverview> : undefined}
-      {flow?.flow.map((flow_data, i, a) => {
+      {flow?.flow[(reprId < flow?.flow.length) ? reprId : 0].flow.map((flow_data, i, a) => {
         const delta_time = a[i].time - (a[i - 1]?.time ?? a[i].time);
         return (
           <Flow

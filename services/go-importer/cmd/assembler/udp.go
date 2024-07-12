@@ -16,42 +16,42 @@ type UdpAssembler struct {
 }
 
 func NewUdpAssembler() UdpAssembler {
-	return UdpAssembler {
-		Streams: map[UdpStreamIdendifier]*UdpStream {},
+	return UdpAssembler{
+		Streams: map[UdpStreamIdendifier]*UdpStream{},
 	}
 }
 
 func (assembler *UdpAssembler) Assemble(flow gopacket.Flow, udp *layers.UDP, captureInfo *gopacket.CaptureInfo, source string) *UdpStream {
-	endpointSrc := flow.Src().FastHash();
-	endpointDst := flow.Dst().FastHash();
+	endpointSrc := flow.Src().FastHash()
+	endpointDst := flow.Dst().FastHash()
 	portSrc := uint16(udp.SrcPort)
 	portDst := uint16(udp.DstPort)
-	id := UdpStreamIdendifier {}
+	id := UdpStreamIdendifier{}
 
 	if endpointSrc > endpointDst {
-		id.EndpointLower = endpointDst;
-		id.EndpointUpper = endpointSrc;
+		id.EndpointLower = endpointDst
+		id.EndpointUpper = endpointSrc
 	} else {
-		id.EndpointLower = endpointSrc;
-		id.EndpointUpper = endpointDst;
+		id.EndpointLower = endpointSrc
+		id.EndpointUpper = endpointDst
 	}
 
 	if portSrc > portDst {
-		id.PortLower = portDst;
-		id.PortUpper = portSrc;
+		id.PortLower = portDst
+		id.PortUpper = portSrc
 	} else {
-		id.PortLower = portSrc;
-		id.PortUpper = portDst;
+		id.PortLower = portSrc
+		id.PortUpper = portDst
 	}
 
 	stream, ok := assembler.Streams[id]
 	if !ok {
-		stream = &UdpStream {
+		stream = &UdpStream{
 			Identifier: id,
-			Flow: flow,
-			PortSrc: udp.SrcPort,
-			PortDst: udp.DstPort,
-			Source: source,
+			Flow:       flow,
+			PortSrc:    udp.SrcPort,
+			PortDst:    udp.DstPort,
+			Source:     source,
 		}
 
 		assembler.Streams[id] = stream
@@ -77,25 +77,25 @@ func (assembler *UdpAssembler) CompleteOlderThan(threshold time.Time) []*db.Flow
 type UdpStreamIdendifier struct {
 	EndpointLower uint64
 	EndpointUpper uint64
-	PortLower uint16
-	PortUpper uint16
+	PortLower     uint16
+	PortUpper     uint16
 }
 
 type UdpStream struct {
-	Identifier UdpStreamIdendifier
-	Flow gopacket.Flow
+	Identifier  UdpStreamIdendifier
+	Flow        gopacket.Flow
 	PacketCount uint
-	PacketSize uint
-	Items []db.FlowItem
-	PortSrc layers.UDPPort
-	PortDst layers.UDPPort
-	Source string
-	LastSeen time.Time
+	PacketSize  uint
+	Items       []db.FlowItem
+	PortSrc     layers.UDPPort
+	PortDst     layers.UDPPort
+	Source      string
+	LastSeen    time.Time
 }
 
 func (stream *UdpStream) ProcessSegment(flow gopacket.Flow, udp *layers.UDP, captureInfo *gopacket.CaptureInfo) {
 	if len(udp.Payload) == 0 {
-		return;
+		return
 	}
 
 	from := "s"
@@ -117,7 +117,7 @@ func (stream *UdpStream) ProcessSegment(flow gopacket.Flow, udp *layers.UDP, cap
 		length = 0
 	}
 
-	stream.Items = append(stream.Items, db.FlowItem {
+	stream.Items = append(stream.Items, db.FlowItem{
 		From: from,
 		Data: string(udp.Payload[:length]),
 		Time: int(captureInfo.Timestamp.UnixNano() / 1000000), // TODO; maybe use int64?
@@ -130,21 +130,21 @@ func (stream *UdpStream) CompleteReassembly() *db.FlowEntry {
 	}
 
 	src, dst := stream.Flow.Endpoints()
-	return &db.FlowEntry {
-		Src_port: int(stream.PortSrc),
-		Dst_port: int(stream.PortDst),
-		Src_ip: src.String(),
-		Dst_ip: dst.String(),
-		Time: stream.Items[0].Time,
-		Duration: stream.Items[len(stream.Items) - 1].Time - stream.Items[0].Time,
+	return &db.FlowEntry{
+		Src_port:    int(stream.PortSrc),
+		Dst_port:    int(stream.PortDst),
+		Src_ip:      src.String(),
+		Dst_ip:      dst.String(),
+		Time:        stream.Items[0].Time,
+		Duration:    stream.Items[len(stream.Items)-1].Time - stream.Items[0].Time,
 		Num_packets: int(stream.PacketCount),
-		Parent_id: primitive.NilObjectID,
-		Child_id: primitive.NilObjectID,
-		Blocked: false,
-		Tags: []string { "udp" },
-		Suricata: make([]int, 0),
-		Filename: stream.Source,
-		Flow: stream.Items,
-		Size: int(stream.PacketSize),
+		Parent_id:   primitive.NilObjectID,
+		Child_id:    primitive.NilObjectID,
+		Blocked:     false,
+		Tags:        []string{"udp"},
+		Suricata:    make([]int, 0),
+		Filename:    stream.Source,
+		Flow:        []db.FlowRepresentation{{Type: "raw", Flow: stream.Items}},
+		Size:        int(stream.PacketSize),
 	}
 }

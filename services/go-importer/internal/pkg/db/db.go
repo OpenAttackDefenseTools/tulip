@@ -18,13 +18,23 @@ import (
 type FlowItem struct {
 	/// From: "s" / "c" for server or client
 	From string
+	/// RawData, the raw packet bytes used only for assembler's internal use
+	RawData []byte `bson:"-"`
 	/// Data, in a somewhat readable format
-	Data string
+	Data string `msgpack:"-"`
 	/// The raw data, base64 encoded.
 	// TODO; Replace this with gridfs
-	B64 string
+	B64 string `msgpack:"-"`
 	/// Timestamp of the first packet in the flow (Epoch / ms)
 	Time int
+}
+
+type FlowRepresentation struct {
+	/// A textual description of the type of flow data
+	/// e.g raw, http2, gopher, etc.
+	Type string
+	/// The flow data
+	Flow []FlowItem
 }
 
 type FlowEntry struct {
@@ -41,11 +51,13 @@ type FlowEntry struct {
 	Child_id     primitive.ObjectID
 	Fingerprints []uint32
 	Suricata     []int
-	Flow         []FlowItem
+	Flow         []FlowRepresentation
 	Tags         []string
 	Size         int
 	Flags        []string
 	Flagids      []string
+	Flags_In     int
+	Flags_Out    int
 }
 
 type Database struct {
@@ -120,17 +132,19 @@ func (db Database) InsertFlow(flow FlowEntry) {
 	flowCollection := db.client.Database("pcap").Collection("pcap")
 
 	// Process the data, so it works well in mongodb
-	for idx := 0; idx < len(flow.Flow); idx++ {
-		flowItem := &flow.Flow[idx]
-		// Base64 encode the raw data string
-		flowItem.B64 = base64.StdEncoding.EncodeToString([]byte(flowItem.Data))
-		// filter the data string down to only printable characters
-		flowItem.Data = strings.Map(func(r rune) rune {
-			if r < 128 {
-				return r
-			}
-			return -1
-		}, flowItem.Data)
+	for reprIdx := 0; reprIdx < len(flow.Flow); reprIdx++ {
+		for idx := 0; idx < len(flow.Flow[reprIdx].Flow); idx++ {
+			flowItem := &flow.Flow[reprIdx].Flow[idx]
+			// Base64 encode the raw data string
+			flowItem.B64 = base64.StdEncoding.EncodeToString(flowItem.RawData)
+			// filter the data string down to only printable characters
+			flowItem.Data = strings.Map(func(r rune) rune {
+				if r < 128 {
+					return r
+				}
+				return -1
+			}, string(flowItem.RawData))
+		}
 	}
 
 	if len(flow.Fingerprints) > 0 {

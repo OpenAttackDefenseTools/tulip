@@ -2,6 +2,23 @@
 
 Tulip is a flow analyzer meant for use during Attack / Defence CTF competitions. It allows players to easily find some traffic related to their service and automatically generates python snippets to replicate attacks.
 
+## Disclaimer
+The following disclaimer is intended to clarify the usage and purpose of any tools developed by Team Europe towards ICC. 
+
+Please read the following statement carefully:
+
+Purpose: The tools developed by Team Europe members and coaches on this repository are intended for private use during ICC 2023 and ICC 2024. The tools are designed to enhance the team's performance, strategy, and overall participation in ICC.
+
+Private Use: The tools developed towards ICC are not intended for public distribution, or any use beyond the scope of ICC without explicit authorization from ENISA and the team members.
+
+Intellectual Property: The intellectual property rights of the tools developed by Team Europe towards ICC belong solely to the team and its members. Any unauthorized replication, modification, distribution, or use of the tools outside the specified competition is strictly prohibited.
+
+Exceptions: Upon agreement of ENISA and the Team Europe developers of the tools, authorisation can be provided for the private use of the same tools by national European Teams during the ECSC competition.
+
+By developing and using the tools developed by and for Team Europe towards ICC, you signify your understanding, acceptance, and compliance with the terms outlined in this disclaimer.
+
+---
+
 ## Origins
 Tulip was developed by Team Europe for use in the first International Cyber Security Challenge. The project is a fork of [flower](https://github.com/secgroup/flower), but it contains quite some changes:
 * New front-end (typescript / react / tailwind)

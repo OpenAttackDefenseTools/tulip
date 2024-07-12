@@ -28,6 +28,8 @@ from jinja2 import Environment, BaseLoader
 from io import BytesIO
 import json
 
+discard_cookies = ["PHPSESSID", "wordpress_logged_in_", "session"]
+
 #class to parse request informations
 class HTTPRequest(BaseHTTPRequestHandler):
     def __init__(self, raw_http_request):
@@ -111,7 +113,10 @@ def convert_single_http_requests(raw_request, flow, tokenize=True, use_requests_
 import requests
 import sys
 
-host = sys.argv[1]
+#HOST = sys.argv[1]
+HOST = os.getenv('TARGET_IP')
+EXTRA = json.loads(os.getenv('TARGET_EXTRA', '[]'))
+
 {% if use_requests_session %}
 s = requests.Session()
 
@@ -119,9 +124,11 @@ s.headers = {{headers}}
 {% else %}
 headers = {{headers}}
 {% endif %}
+{% if data|length != 0 %}
 data = {{data}}
+{% endif %}
 
-{% if use_requests_session %}s{% else %}requests{% endif %}.{{request_method}}(f"http://{{ '{' }}host{{ '}' }}:{{port}}" + {{request_path_repr}}, {{data_param_name}}=data{% if not use_requests_session %}, headers=headers{% endif %})""")
+{% if use_requests_session %}s{% else %}requests{% endif %}.{{request_method}}(f"http://{{ '{' }}HOST{{ '}' }}:{{port}}" + {{request_path_repr}}{% if data|length != 0 %}, {{data_param_name}}=data{% endif %}{% if not use_requests_session %}, headers=headers{% endif %})""")
 
     return rtemplate.render(
             headers=str(dict(headers)),
@@ -143,12 +150,15 @@ def convert_flow_to_http_requests(flow, tokenize=True, use_requests_session=True
 import requests
 import sys
 
-host = sys.argv[1]
+#HOST = sys.argv[1]
+HOST = os.getenv('TARGET_IP')
+EXTRA = json.loads(os.getenv('TARGET_EXTRA', '[]'))
+
 {% if use_requests_session %}
 s = requests.Session()
 {% endif %}""",use_requests_session=use_requests_session,
             port=port)
-    for message in flow['flow']:
+    for message in flow['flow'][0]['flow']:
         if message['from'] == 'c':
             request, data, data_param_name, headers = decode_http_request(message['data'].encode(), tokenize)
             request_method = validate_request_method(request.command)
@@ -162,8 +172,10 @@ s.headers = {{headers}}
 {% else %}
 headers = {{headers}}
 {% endif %}
+{% if data|length != 0 %}
 data = {{data}}
-{% if use_requests_session %}s{% else %}requests{% endif %}.{{request_method}}(f"http://{{ '{' }}host{{ '}' }}:{{port}}" + {{request_path_repr}}, {{data_param_name}}=data{% if not use_requests_session %}, headers=headers{% endif %})""",
+{% endif %}
+{% if use_requests_session %}s{% else %}requests{% endif %}.{{request_method}}(f"http://{{ '{' }}HOST{{ '}' }}:{{port}}" + {{request_path_repr}}{% if data|length != 0 %}, {{data_param_name}}=data{% endif %}{% if not use_requests_session %}, headers=headers{% endif %})""",
             headers=str(dict(headers)),
             data=data,
             request_method=request_method,

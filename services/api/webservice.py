@@ -24,8 +24,9 @@
 
 import traceback
 from flask import Flask, Response, send_file
+from requests import get
 
-from configurations import services, traffic_dir, start_date, tick_length, flag_regex
+from configurations import services, traffic_dir, start_date, tick_length, visualizer_url, flag_lifetime, flag_regex, dump_pcaps_dir
 from pathlib import Path
 from data2req import convert_flow_to_http_requests, convert_single_http_requests
 from base64 import b64decode
@@ -56,7 +57,8 @@ def hello_world():
 def getTickInfo():
     data = {
         "startDate": start_date,
-        "tickLength": tick_length
+        "tickLength": tick_length,
+        "flagLifetime": flag_lifetime,
     }
     return return_json_response(data)
 
@@ -65,6 +67,25 @@ def query():
     json = request.get_json()
     result = db.getFlowList(json)
     return return_json_response(result)
+
+@application.route('/stats/<service>')
+def getStats(service):
+    args = request.args
+    result = db.getStats(service, args)
+    return return_json_response(result)
+
+
+@application.route('/under_attack')
+def getUnderAttack():
+    res = get(f'{visualizer_url}/api/under-attack', params = {
+        'from_tick': request.args.get('from_tick'),
+        'to_tick': request.args.get('to_tick'),
+    })
+    assert res.status_code == 200
+
+    tick_data = res.json()
+    return return_json_response(tick_data)
+
 
 @application.route('/tags')
 def getTags():
@@ -145,8 +166,8 @@ def downloadFile():
 
     # Check for path traversal by resolving the file first.
     filepath = filepath.resolve()
-    if not traffic_dir in filepath.parents:
-        return return_text_response("There was an error while downloading the requested file:\n{}: {}".format("Invalid 'file'", "'file' was not in a subdirectory of traffic_dir"))
+    if traffic_dir not in filepath.parents and dump_pcaps_dir not in filepath.parents:
+        return return_text_response("There was an error while downloading the requested file:\n{}: {}".format("Invalid 'file'", "'file' was not in a subdirectory of traffic_dir or dump_pcaps_dir"))
 
     try:
         return send_file(filepath, as_attachment=True)
@@ -155,4 +176,3 @@ def downloadFile():
 
 if __name__ == "__main__":
     application.run(host='0.0.0.0',threaded=True)
-

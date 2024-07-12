@@ -16,6 +16,8 @@ services:
     restart: unless-stopped
     ports:
       - "3000:3000"
+    expose:
+      - 3000
     depends_on:
       - mongo
       - api
@@ -23,6 +25,7 @@ services:
       - internal
     environment:
       API_SERVER_ENDPOINT: http://api:5000/
+      VIRTUAL_HOST: tulip.h4xx.eu
 
   api:
     build:
@@ -35,7 +38,7 @@ services:
     networks:
       - internal
     volumes:
-      - ${TRAFFIC_DIR_HOST}:${TRAFFIC_DIR_DOCKER}:ro
+      - ${TRAFFIC_DIR_HOST}:${TRAFFIC_DIR_DOCKER}:ro,z
     environment:
       TULIP_MONGO: ${TULIP_MONGO}
       TULIP_TRAFFIC_DIR: ${TRAFFIC_DIR_DOCKER}
@@ -60,6 +63,8 @@ services:
       FLAGID_SCRAPE: ${FLAGID_SCRAPE}
       TEAM_ID: ${TEAM_ID}
       FLAGID_ENDPOINT: ${FLAGID_ENDPOINT}
+      VISUALIZER_URL: ${VISUALIZER_URL}
+      DUMP_PCAPS: ${DUMP_PCAPS}
 
   assembler:
     build:
@@ -72,8 +77,14 @@ services:
     networks:
       - internal
     volumes:
-      - ${TRAFFIC_DIR_HOST}:${TRAFFIC_DIR_DOCKER}:ro
-    command: "./assembler -dir ${TRAFFIC_DIR_DOCKER}"
+      - ${TRAFFIC_DIR_HOST}:${TRAFFIC_DIR_DOCKER}:ro,z
+    # Command line flags most likely to fix a tulip issue:
+    # - -http-session-tracking: enable HTTP session tracking
+    # - -dir: directory to read traffic from
+    # - -skipchecksum: skip checksum validation.
+    # - -flush-after: i.e. 2m Not needed in pcap rotation mode
+    # - -disable-converters: disable converters
+    command: "./assembler -http-session-tracking -skipchecksum -dir ${TRAFFIC_DIR_DOCKER}"
     environment:
       TULIP_MONGO: ${TULIP_MONGO}
       FLAG_REGEX: ${FLAG_REGEX}
@@ -81,9 +92,11 @@ services:
       FLAGID_SCAN: ${FLAGID_SCAN}
       FLAG_LIFETIME: ${FLAG_LIFETIME}
       PCAP_OVER_IP: ${PCAP_OVER_IP}
+      DUMP_PCAPS: ${DUMP_PCAPS}
+      DUMP_PCAPS_INTERVAL: ${DUMP_PCAPS_INTERVAL}
+      DUMP_PCAPS_FILENAME: ${DUMP_PCAPS_FILENAME}
     extra_hosts:
       - "host.docker.internal:host-gateway"
-
 
   enricher:
     build:
@@ -96,10 +109,14 @@ services:
     networks:
       - internal
     volumes:
-      - ${TRAFFIC_DIR_HOST}:${TRAFFIC_DIR_DOCKER}:ro
+      - ${TRAFFIC_DIR_HOST}:${TRAFFIC_DIR_DOCKER}:ro,z
     command: "./enricher -eve ${TRAFFIC_DIR_DOCKER}/eve.json"
     environment:
       TULIP_MONGO: ${TULIP_MONGO}
+
+volumes:
+  mongo-config:
+  mongo-data:
 
 networks:
   internal:
