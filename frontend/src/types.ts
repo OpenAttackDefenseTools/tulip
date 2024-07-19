@@ -1,5 +1,5 @@
 export interface Flow {
-  _id: Id;
+  id: Id;
   src_port: number;
   dst_port: number;
   src_ip: string;
@@ -29,9 +29,7 @@ export interface FullFlow extends Flow {
   flow: FlowRepresentation[];
 }
 
-export interface Id {
-  $oid: string;
-}
+export type Id = string;
 
 export interface FlowRepresentation {
   type: string;
@@ -47,38 +45,37 @@ export interface FlowData {
 
 export interface Signature {
   id: number;
-  msg: string;
+  message: string;
   action: string;
 }
 
 // TODO: pagination WTF
 export interface FlowsQuery {
   // Text filter
-  "flow.data"?: string;
+  regex_insensitive?: string;
   // Service filter
   // TODO: Why not use service name here?
-  service: string;
-  dst_ip?: string;
-  dst_port?: number;
-  from_time?: string;
-  to_time?: string;
-  includeTags: string[];
-  excludeTags: string[];
-  tags: string[];
-  flags: string[];
-  flagids: string[];
+  service?: string;
+  ip_dst?: string;
+  port_dst?: number;
+  time_from?: string;
+  time_to?: string;
+  tags_include?: string[];
+  tags_exclude?: string[];
+  tags?: string[];
+  flags?: string[];
+  flagids?: string[];
 }
 
 export interface StatsQuery {
   service: string;
-  from_tick: number;
-  to_tick: number;
+  tick_from: number;
+  tick_to: number;
 }
 
 export interface Stats {
   [key: string]: number; // little hack to make typescript happy
-  _id: number;
-  requests: number;
+  tick: number;
   tag_flag_in: number;
   tag_flag_out: number;
   tag_blocked: number;

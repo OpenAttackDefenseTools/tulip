@@ -45,39 +45,36 @@ func ApplyFlagTags(flow *db.FlowEntry, reg *string) {
 
 	flagsIn := 0
 	flagsOut := 0
-	for reprIdx := 0; reprIdx < len(flow.Flow); reprIdx++ {
-		for idx := 0; idx < len(flow.Flow[reprIdx].Flow); idx++ {
-			flowItem := &flow.Flow[reprIdx].Flow[idx]
+	for idx := 0; idx < len(flow.Flow); idx++ {
+		flowItem := &flow.Flow[idx]
+		matches := flagRegex.FindAllSubmatch(flowItem.Data, -1)
 
-			matches := flagRegex.FindAllStringSubmatch(flowItem.Data, -1)
-
-			if len(matches) > 0 {
-				var tag string
-				if flowItem.From == "c" {
-					tag = "flag-in"
-					if len(matches) > flagsIn {
-						flagsIn = len(matches)
-					}
-				} else {
-					tag = "flag-out"
-					if len(matches) > flagsOut {
-						flagsOut = len(matches)
-					}
+		if len(matches) > 0 {
+			var tag string
+			if flowItem.From == "c" {
+				tag = "flag-in"
+				if len(matches) > flagsIn {
+					flagsIn = len(matches)
 				}
-
-				// Add the flag if it doesn't already exist
-				for _, match := range matches {
-					var flag string
-					flag = match[0]
-					if !contains(flow.Flags, flag) {
-						flow.Flags = append(flow.Flags, flag)
-					}
+			} else {
+				tag = "flag-out"
+				if len(matches) > flagsOut {
+					flagsOut = len(matches)
 				}
+			}
 
-				// Add the tag if it doesn't already exist
-				if !contains(flow.Tags, tag) {
-					flow.Tags = append(flow.Tags, tag)
+			// Add the flag if it doesn't already exist
+			for _, match := range matches {
+				var flag string
+				flag = string(match[0])
+				if !contains(flow.Flags, flag) {
+					flow.Flags = append(flow.Flags, flag)
 				}
+			}
+
+			// Add the tag if it doesn't already exist
+			if !contains(flow.Tags, tag) {
+				flow.Tags = append(flow.Tags, tag)
 			}
 		}
 	}
@@ -89,38 +86,36 @@ func ApplyFlagTags(flow *db.FlowEntry, reg *string) {
 
 // Apply flagids to the entire flow.
 // This assumes the `Data` part of the flowItem is already pre-processed, s.t.
-func ApplyFlagids(flow *db.FlowEntry, flagidsDb []db.Flagid) {
+func ApplyFlagids(flow *db.FlowEntry, flagidsDb []db.FlagId) {
 
 	var flagids []string
 	var matches = make(map[int]int)
 
 	for _, flagid := range flagidsDb {
-		flagids = append(flagids, flagid.ID)
+		flagids = append(flagids, flagid.Content)
 	}
 
 	matcher := ahocorasick.NewStringMatcher(flagids)
-	for reprIdx := 0; reprIdx < len(flow.Flow); reprIdx++ {
-		for idx := 0; idx < len(flow.Flow[reprIdx].Flow); idx++ {
-			flowItem := &flow.Flow[reprIdx].Flow[idx]
-			found := matcher.Match([]byte(flowItem.Data))
+	for idx := 0; idx < len(flow.Flow); idx++ {
+		flowItem := &flow.Flow[idx]
+		found := matcher.Match([]byte(flowItem.Data))
 
-			if len(found) > 0 {
-				var tag string
+		if len(found) > 0 {
+			var tag string
 
-				if flowItem.From == "c" {
-					tag = "flagid-in"
-				} else {
-					tag = "flagid-out"
-				}
+			if flowItem.From == "c" {
+				tag = "flagid-in"
+			} else {
+				tag = "flagid-out"
+			}
 
-				// Add the tag if it doesn't already exist
-				if !contains(flow.Tags, tag) {
-					flow.Tags = append(flow.Tags, tag)
-				}
+			// Add the tag if it doesn't already exist
+			if !contains(flow.Tags, tag) {
+				flow.Tags = append(flow.Tags, tag)
+			}
 
-				for _, match := range found {
-					matches[match] = 1
-				}
+			for _, match := range found {
+				matches[match] = 1
 			}
 		}
 	}

@@ -1,0 +1,17 @@
+SELECT
+	(SELECT count(*) FROM fingerprint) AS fingerprint_count,
+	pg_size_pretty(pg_total_relation_size('fingerprint')) AS fingerprint_table_size,
+	(SELECT count(*) FROM flow) AS flow_count,
+	(SELECT pg_size_pretty(total_bytes) FROM hypertable_detailed_size('flow')) AS flow_total_size,
+	(SELECT pg_size_pretty(index_bytes) FROM hypertable_detailed_size('flow')) AS flow_index_size,
+	(SELECT count(*) FROM flow_item) AS flow_item_count,
+	(SELECT pg_size_pretty(total_bytes) FROM hypertable_detailed_size('flow_item')) AS flow_item_total_size,
+	(SELECT pg_size_pretty(index_bytes) FROM hypertable_detailed_size('flow_item')) AS flow_item_index_size,
+	(SELECT count(*) FROM flow_index) AS flow_index_count,
+	pg_size_pretty(pg_total_relation_size('flow_index')) AS flow_index_total_size,
+	pg_size_pretty(pg_indexes_size('flow_index')) AS flow_index_index_size,
+	(SELECT count(*) FROM pcap) AS pcap_count,
+	pg_size_pretty(pg_total_relation_size('pcap')) AS pcap_table_size,
+	(SELECT count(*) FROM tag) AS tag_count,
+	pg_size_pretty(pg_total_relation_size('tag')) AS tag_table_size,
+	pg_size_pretty(pg_database_size('tulip')) AS database_size;

@@ -1,12 +1,23 @@
-version: "3.2"
+version: "3.5"
 services:
-  mongo:
-    image: mongo:5
+  timescale:
+    build: services/timescale
+    image: tulip-timescale:latest
+    restart: unless-stopped
+    volumes:
+    - timescale-data:/var/lib/postgresql/data
+    - ./services/schema/system.sql:/docker-entrypoint-initdb.d/100_system.sql:ro
+    - ./services/schema/functions.sql:/docker-entrypoint-initdb.d/101_functions.sql:ro
+    - ./services/schema/schema.sql:/docker-entrypoint-initdb.d/102_schema.sql:ro
     networks:
       - internal
-    restart: always
-    ports:
-      - "27017:27017"
+    environment:
+      POSTGRES_HOST_AUTH_METHOD: trust
+      POSTGRES_USER: tulip
+      POSTGRES_DB: tulip
+    # This does not need to be adjusted, unless you actually want to limit it
+    # Postgres uses shared memory for caching, and docker assigns just 64 MB by default
+    shm_size: '128g'
 
   frontend:
     build:
@@ -19,7 +30,7 @@ services:
     expose:
       - 3000
     depends_on:
-      - mongo
+      - timescale
       - api
     networks:
       - internal
@@ -34,13 +45,13 @@ services:
     image: tulip-api:latest
     restart: unless-stopped
     depends_on:
-      - mongo
+      - timescale
     networks:
       - internal
     volumes:
       - ${TRAFFIC_DIR_HOST}:${TRAFFIC_DIR_DOCKER}:ro,z
     environment:
-      TULIP_MONGO: ${TULIP_MONGO}
+      TIMESCALE: ${TIMESCALE}
       TULIP_TRAFFIC_DIR: ${TRAFFIC_DIR_DOCKER}
       FLAG_REGEX: ${FLAG_REGEX}
       TICK_START: ${TICK_START}
@@ -53,11 +64,11 @@ services:
       context: services/flagids
     image: tulip-flagids:latest
     depends_on:
-      - mongo
+      - timescale
     networks:
       - internal
     environment:
-      TULIP_MONGO: ${TULIP_MONGO}
+      TIMESCALE: ${TIMESCALE}
       TICK_START: ${TICK_START}
       TICK_LENGTH: ${TICK_LENGTH}
       FLAGID_SCRAPE: ${FLAGID_SCRAPE}
@@ -73,7 +84,7 @@ services:
     image: tulip-assembler:latest
     restart: unless-stopped
     depends_on:
-      - mongo
+      - timescale
     networks:
       - internal
     volumes:
@@ -81,12 +92,13 @@ services:
     # Command line flags most likely to fix a tulip issue:
     # - -http-session-tracking: enable HTTP session tracking
     # - -dir: directory to read traffic from
-    # - -skipchecksum: skip checksum validation.
+    # - -skipchecksum: skip checksum validation
     # - -flush-after: i.e. 2m Not needed in pcap rotation mode
     # - -disable-converters: disable converters
-    command: "./assembler -http-session-tracking -skipchecksum -dir ${TRAFFIC_DIR_DOCKER}"
+    # - -discard-extra-data: dont split large flow items, just discard them
+    command: "./assembler -http-session-tracking -skipchecksum -disable-converters -dir ${TRAFFIC_DIR_DOCKER}"
     environment:
-      TULIP_MONGO: ${TULIP_MONGO}
+      TIMESCALE: ${TIMESCALE}
       FLAG_REGEX: ${FLAG_REGEX}
       TICK_LENGTH: ${TICK_LENGTH}
       FLAGID_SCAN: ${FLAGID_SCAN}
@@ -105,18 +117,17 @@ services:
     image: tulip-enricher:latest
     restart: unless-stopped
     depends_on:
-      - mongo
+      - timescale
     networks:
       - internal
     volumes:
       - ${TRAFFIC_DIR_HOST}:${TRAFFIC_DIR_DOCKER}:ro,z
     command: "./enricher -eve ${TRAFFIC_DIR_DOCKER}/eve.json"
     environment:
-      TULIP_MONGO: ${TULIP_MONGO}
+      TIMESCALE: ${TIMESCALE}
 
 volumes:
-  mongo-config:
-  mongo-data:
+  timescale-data:
 
 networks:
   internal:

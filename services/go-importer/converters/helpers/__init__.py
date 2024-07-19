@@ -101,7 +101,7 @@ class Converter:
                 stream_chunks = []
                 for chunk in data[b'Flow']:
                     stream_chunks.append(StreamChunk(
-                        Content=chunk[b'RawData'],
+                        Content=chunk[b'Data'],
                         Direction=Direction.CLIENTTOSERVER if chunk[b'From'] == b'c' else Direction.SERVERTOCLIENT,
                     ))
 
@@ -112,7 +112,7 @@ class Converter:
                 for chunk in result.Chunks:
                     formatted_chunks.append({
                         'From': 'c' if chunk.Direction == Direction.CLIENTTOSERVER else 's',
-                        'RawData': chunk.Content,
+                        'Data': chunk.Content,
                     })
 
                 # Naive implementation of checking if it looks like the output data changed at all, if it seems
@@ -123,7 +123,7 @@ class Converter:
                     changed = True
                 else:
                     for stream_chunk, formatted_chunk in zip(stream_chunks, formatted_chunks):
-                        if len(stream_chunk.Content) != len(formatted_chunk['RawData']):
+                        if len(stream_chunk.Content) != len(formatted_chunk['Data']):
                             changed = True
                             break
 

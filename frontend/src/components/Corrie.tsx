@@ -118,21 +118,20 @@ export const Corrie = () => {
   const statsData = needsStats ? useGetStatsQuery(
     {
       service: service_name,
-      from_tick: tickStuff.startTick,
-      to_tick: tickStuff.endTick,
+      tick_from: tickStuff.startTick,
+      tick_to: tickStuff.endTick,
     }
   ).data : [];
 
   const flowData = !needsStats ? useGetFlowsQuery(
     {
-      "flow.data": debounced_text_filter,
-      dst_ip: service?.ip,
-      dst_port: service?.port,
-      from_time: from_filter,
-      to_time: to_filter,
-      service: "", // FIXME
-      includeTags: includeTags,
-      excludeTags: excludeTags,
+      regex_insensitive: debounced_text_filter,
+      ip_dst: service?.ip,
+      port_dst: service?.port,
+      time_from: from_filter ? new Date(parseInt(from_filter)).toISOString() : undefined,
+      time_to: to_filter ? new Date(parseInt(to_filter)).toISOString() : undefined,
+      tags_include: includeTags,
+      tags_exclude: excludeTags,
       tags: filterTags,
       flags: filterFlags,
       flagids: filterFlagids,
@@ -331,7 +330,7 @@ function BarPerTickGraph(graphProps: GraphProps, mode: string) {
       const data = Array(endTick - startTick).fill(0);
 
       statsList.forEach(s => {
-        data[s._id - startTick] = s[t];
+        data[s.tick - startTick] = s[t];
       });
 
       series.push({
@@ -393,7 +392,7 @@ function TimePacketGraph(graphProps: GraphProps) {
       type: "datetime", // FIXME: Timezone is not displayed correctly
     },
     labels: flowList.map((flow) => {
-      return flow._id.$oid;
+      return flow.id;
     }),
     chart: {
       animations: {
@@ -483,7 +482,7 @@ function VolumeGraph(graphProps: GraphProps) {
       type: "datetime", // FIXME: Timezone is not displayed correctly
     },
     labels: flowList.map((flow) => {
-      return flow._id.$oid;
+      return flow.id;
     }),
     chart: {
       animations: {

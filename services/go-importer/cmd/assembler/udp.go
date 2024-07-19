@@ -4,11 +4,10 @@ import (
 	"go-importer/internal/pkg/db"
 
 	"time"
+	"net/netip"
 
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
-
-	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type UdpAssembler struct {
@@ -108,7 +107,7 @@ func (stream *UdpStream) ProcessSegment(flow gopacket.Flow, udp *layers.UDP, cap
 	stream.PacketSize += uint(len(udp.Payload))
 
 	// We have to make sure to stay under the document limit
-	available := uint(streamdoc_limit) - stream.PacketSize
+	available := uint(*maxFlowItemSize * 1024 * 1024) - stream.PacketSize
 	length := uint(len(udp.Payload))
 	if length > available {
 		length = available
@@ -118,9 +117,10 @@ func (stream *UdpStream) ProcessSegment(flow gopacket.Flow, udp *layers.UDP, cap
 	}
 
 	stream.Items = append(stream.Items, db.FlowItem{
+		Kind: "raw",
 		From: from,
-		Data: string(udp.Payload[:length]),
-		Time: int(captureInfo.Timestamp.UnixNano() / 1000000), // TODO; maybe use int64?
+		Data: udp.Payload[:length],
+		Time: captureInfo.Timestamp,
 	})
 }
 
@@ -130,21 +130,30 @@ func (stream *UdpStream) CompleteReassembly() *db.FlowEntry {
 	}
 
 	src, dst := stream.Flow.Endpoints()
+	ip_src, _ := netip.ParseAddr(src.String())
+	ip_dst, _ := netip.ParseAddr(dst.String())
+
+	timeStart := stream.Items[0].Time
+	timeEnd := stream.Items[0].Time
+	for _, item := range stream.Items {
+		if timeEnd.Before(item.Time) {
+			timeEnd = item.Time
+		}
+	}
+
 	return &db.FlowEntry{
-		Src_port:    int(stream.PortSrc),
-		Dst_port:    int(stream.PortDst),
-		Src_ip:      src.String(),
-		Dst_ip:      dst.String(),
-		Time:        stream.Items[0].Time,
-		Duration:    stream.Items[len(stream.Items)-1].Time - stream.Items[0].Time,
+		Src_port:    uint16(stream.PortSrc),
+		Dst_port:    uint16(stream.PortDst),
+		Src_ip:      ip_src,
+		Dst_ip:      ip_dst,
+		Time:        timeStart,
+		Duration:    timeEnd.Sub(timeStart),
 		Num_packets: int(stream.PacketCount),
-		Parent_id:   primitive.NilObjectID,
-		Child_id:    primitive.NilObjectID,
-		Blocked:     false,
+		Parent_id:   nil,
+		Child_id:    nil,
 		Tags:        []string{"udp"},
-		Suricata:    make([]int, 0),
 		Filename:    stream.Source,
-		Flow:        []db.FlowRepresentation{{Type: "raw", Flow: stream.Items}},
+		Flow:        stream.Items,
 		Size:        int(stream.PacketSize),
 	}
 }
