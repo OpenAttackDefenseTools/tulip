@@ -85,7 +85,7 @@ export function FlowList() {
   const transformedFlowData = flowData?.map((flow) => ({
     ...flow,
     service_tag:
-      services?.find((s) => s.ip === flow.dst_ip && s.port === flow.dst_port)
+      services?.find((s) => s.port === flow.dst_port)
         ?.name ?? "unknown",
   }));
 
