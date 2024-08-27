@@ -295,12 +295,17 @@ func main() {
 	case "faust":
 		flagValidator = &FaustFlagValidator{*flagValidatorTeam, time.Hour, "CTF-GAMESERVER"}
 	case "enowars", "eno":
-		// TODO: Try also "2006-01-02T15:04:05Z07:00" == time.RFC3339
+		// This format is used in config (for most of the time values)
 		startTime, err := time.Parse("2006-01-02T15:04Z07:00", *flagValidatorTickStart)
+		if err != nil {
+			// If that format fail, we try it to parse it as RFC3339 ("2006-01-02T15:04:05Z07:00")
+			startTime, err = time.Parse(time.RFC3339, *flagValidatorTickStart)
+		}
+
 		if err != nil {
 			log.Fatal("Invalid start time: ", err)
 		}
-		// I don't think that there will be more than 20 services and 20 flag stores...
+		// I don't think that there will be more than 20 services and 20 flag stores (per service)...
 		flagValidator = &EnowarsFlagValidator{
 			*flagValidatorTeam,
 			20,
