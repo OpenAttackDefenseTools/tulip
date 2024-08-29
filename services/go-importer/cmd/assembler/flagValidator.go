@@ -87,7 +87,7 @@ func (validator *EnowarsFlagValidator) IsValid(flag string, refTime time.Time) b
 		serviceId <= validator.serviceCount &&
 		roundOffset <= validator.maxFlagStores &&
 		(validator.startTime.IsZero() ||
-			validator.tickLength == 0 ||
+			validator.tickLength <= 0 ||
 			validator.timeTolerance == 0 ||
 			IsFlagTimeValid(validator.startTime.Add(time.Duration(roundId) * validator.tickLength), refTime, validator.timeTolerance))
 }

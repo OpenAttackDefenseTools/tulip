@@ -96,9 +96,6 @@ services:
     # - -flush-after: i.e. 2m Not needed in pcap rotation mode
     # - -disable-converters: disable converters
     # - -discard-extra-data: dont split large flow items, just discard them
-    # - -flag-validator-type: enables flag validation, must be either FAUST or ENO/ENOWARS
-    # - -flag-validator-team: optional team ID/net
-    # Flag validator example: -flag-validator-type eno -flag-validator-team 11
     command: "./assembler -http-session-tracking -skipchecksum -disable-converters -dir ${TRAFFIC_DIR_DOCKER}"
     environment:
       TIMESCALE: ${TIMESCALE}
@@ -107,6 +104,8 @@ services:
       TICK_LENGTH: ${TICK_LENGTH}
       FLAGID_SCAN: ${FLAGID_SCAN}
       FLAG_LIFETIME: ${FLAG_LIFETIME}
+      FLAG_VALIDATOR_TYPE: ${FLAG_VALIDATOR_TYPE}
+      FLAG_VALIDATOR_TEAM: ${FLAG_VALIDATOR_TEAM}
       PCAP_OVER_IP: ${PCAP_OVER_IP}
       DUMP_PCAPS: ${DUMP_PCAPS}
       DUMP_PCAPS_INTERVAL: ${DUMP_PCAPS_INTERVAL}

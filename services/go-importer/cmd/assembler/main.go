@@ -48,8 +48,12 @@ var bpf = flag.String("bpf", "", "BPF filter")
 var nonstrict = flag.Bool("nonstrict", false, "Do not check strict TCP / FSM flags")
 
 var flagid = flag.Bool("flagid", false, "Check for flagids in traffic (must be present in mong)")
-var ticklength = *flag.Int("tick length", -1, "the length (in seconds) of a tick")
-var flaglifetime = *flag.Int("flag lifetime", -1, "the lifetime of a flag in ticks")
+var ticklength = flag.Int("tick-length", -1, "the length (in seconds) of a tick")
+var flaglifetime = flag.Int("flag-lifetime", -1, "the lifetime of a flag in ticks")
+var flagTickStart = flag.String("flag-tick-start", "", "CTF start time (used for flag validation)")
+var flagValidatorType = flag.String("flag-validator-type", "", "Flag validator type, this must be set to enable flag validation. Must be one of the following: FAUST, ENO/ENOWARS")
+var flagValidatorTeam = flag.Int("flag-validator-team", -1, "Team ID used for flag validation")
+
 
 var skipchecksum = flag.Bool("skipchecksum", false, "Do not check the TCP checksum")
 var http_session_tracking = flag.Bool("http-session-tracking", false, "Enable http session tracking.")
@@ -82,11 +86,6 @@ var dumpPcapsFilename = flag.String("dump-pcaps-filename", "2006-01-02_15-04-05.
 Reference: https://pkg.go.dev/time#Layout`)
 var maxFlowItemSize = flag.Int("max-flow-item-size", 16, `Maximum size in MiB of one flow item record.
 While PostgreSQL technically supports values up to 1GiB, they are not very nice to work with.`)
-var flagValidatorType = flag.String("flag-validator-type", "", "Flag validator type, this must be set to enable flag validation. Must be one of the following: FAUST, ENO/ENOWARS")
-var flagValidatorTeam = flag.Int("flag-validator-team", -1, "Team ID used for flag validation")
-var flagValidatorTickStart = flag.String("flag-validator-tick-start", "", "CTF start time used for flag validation")
-var flagValidatorTickLength = flag.Int("flag-validator-tick-length", -1, "Tick length in miliseconds used for flag validation")
-
 
 var g_db *db.Database
 var workerPool *workerpool.WorkerPool
@@ -117,9 +116,9 @@ func reassemblyCallback(entry db.FlowEntry) {
 		// Apply flagid in / out
 		if *flagid {
 			unix := time.Now().Unix()
-			if flagidUpdate+int64(ticklength) < unix {
+			if flagidUpdate+int64(*ticklength) < unix {
 				flagidUpdate = unix
-				zwi, err := g_db.FlagIdsQuery(flaglifetime)
+				zwi, err := g_db.FlagIdsQuery(*flaglifetime)
 				if err != nil {
 					log.Fatal(err)
 				}
@@ -215,28 +214,32 @@ func main() {
 
 	// get TICK_LENGTH
 	strticklength := os.Getenv("TICK_LENGTH")
-	if ticklength == -1 && strticklength != "" {
+	if *ticklength == -1 && strticklength != "" {
 		zwi, err := strconv.ParseInt(strticklength, 10, 64)
 		if err != nil {
 			log.Println("Error: ", err)
 		} else {
-			ticklength = int(zwi / 1000)
+			*ticklength = int(zwi / 1000)
 		}
 	}
 
 	// get Flag_LIFETIME
-	strflaglifetime := os.Getenv("FLAG_LIFETIME")
-	if flaglifetime == -1 && strticklength != "" {
+	if strflaglifetime := os.Getenv("FLAG_LIFETIME"); *flaglifetime == -1 && strflaglifetime != "" {
 		zwi, err := strconv.Atoi(strflaglifetime)
 		if err != nil {
 			log.Println("Error: ", err)
 		} else {
-			flaglifetime = zwi
+			*flaglifetime = zwi
 		}
 	}
 
-	if ticklength != -1 && flaglifetime != -1 {
-		flaglifetime *= ticklength
+	if *ticklength != -1 && *flaglifetime != -1 {
+		*flaglifetime *= *ticklength
+	}
+
+	// get TICK_START
+	if *flagTickStart == "" {
+		*flagTickStart = os.Getenv("TICK_START")
 	}
 
 	if concurrentFlows == nil || *concurrentFlows == 0 {
@@ -277,17 +280,19 @@ func main() {
 		*bpf = os.Getenv("BPF")
 	}
 
-	// Flag validator setup
-	if *flagValidatorTickStart == "" {
-		*flagValidatorTickStart = os.Getenv("TICK_START")
+	// Load flag validator variables
+	if *flagValidatorType == "" {
+		*flagValidatorType = os.Getenv("FLAG_VALIDATOR_TYPE")
 	}
-	if *flagValidatorTickLength == -1 && os.Getenv("TICK_LENGTH") != "" {
-		parsed, err := strconv.Atoi(os.Getenv("TICK_LENGTH"))
+	if unparsed := os.Getenv("FLAG_VALIDATOR_TEAM"); *flagValidatorTeam == -1 && unparsed != "" {
+		parsed, err := strconv.Atoi(unparsed)
 		if err != nil {
-			log.Fatal("Invalid TICK_LENGTH environment variable: ", err)
+			log.Fatal("Invalid flag validator team: ", err)
 		}
-		*flagValidatorTickLength = parsed
+		*flagValidatorTeam = parsed
 	}
+	
+	// Flag validator setup
 	if *flagValidatorType != "" && *flag_regex == "" {
 		log.Println("WARNING: Flag validation enabled but no flag regex specified. No flag validation will be done.")
 	}
@@ -295,11 +300,15 @@ func main() {
 	case "faust":
 		flagValidator = &FaustFlagValidator{*flagValidatorTeam, time.Hour, "CTF-GAMESERVER"}
 	case "enowars", "eno":
+		if *flagTickStart == "" {
+			log.Fatal("Start time is not defined but enowars flag validator requires it")
+		}
+
 		// This format is used in config (for most of the time values)
-		startTime, err := time.Parse("2006-01-02T15:04Z07:00", *flagValidatorTickStart)
+		startTime, err := time.Parse("2006-01-02T15:04Z07:00", *flagTickStart)
 		if err != nil {
 			// If that format fail, we try it to parse it as RFC3339 ("2006-01-02T15:04:05Z07:00")
-			startTime, err = time.Parse(time.RFC3339, *flagValidatorTickStart)
+			startTime, err = time.Parse(time.RFC3339, *flagTickStart)
 		}
 
 		if err != nil {
@@ -312,7 +321,7 @@ func main() {
 			20,
 			time.Hour,
 			startTime,
-			time.Duration(*flagValidatorTickLength) * time.Millisecond,
+			time.Duration(*ticklength) * time.Second,
 		}
 	case "":
 		if *flagValidatorTeam != -1  {
