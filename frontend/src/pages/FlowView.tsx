@@ -31,6 +31,7 @@ import {
   useToSinglePythonRequestQuery,
   useGetFlagRegexQuery,
 } from "../api";
+import { getTickStuff } from "../tick";
 import escapeStringRegexp from 'escape-string-regexp';
 
 const SECONDARY_NAVBAR_HEIGHT = 50;
