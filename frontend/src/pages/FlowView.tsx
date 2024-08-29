@@ -26,6 +26,7 @@ import { useCopy } from "../hooks/useCopy";
 import { RadioGroup } from "../components/RadioGroup";
 import {
   useGetFlowQuery,
+  useGetServicesQuery,
   useLazyToFullPythonRequestQuery,
   useLazyToPwnToolsQuery,
   useToSinglePythonRequestQuery,
@@ -306,8 +307,10 @@ function formatIP(ip: string) {
 }
 
 function FlowOverview({ flow }: { flow: FullFlow }) {
-  const FILTER_KEY = TEXT_FILTER_KEY;
   let [searchParams, setSearchParams] = useSearchParams();
+  const { unixTimeToTick } = getTickStuff();
+  const { data: services } = useGetServicesQuery();
+  const service = services?.find((s) => s.ip === flow.dst_ip && s.port === flow.dst_port)?.name ?? "unknown";
   return (
     <div>
       {flow.signatures?.length > 0 ? (
@@ -346,64 +349,69 @@ function FlowOverview({ flow }: { flow: FullFlow }) {
       <div className="bg-yellow-200 p-2">
         <div className="font-extrabold">Meta</div>
         <div className="pl-2">
-          <div>Source: </div>
-          <div className="font-bold">
-            <a href={`${API_BASE_PATH}/download/?file=${flow.filename}`}>
+          <div>
+            Source:&nbsp;
+            <a className="font-bold" href={`${API_BASE_PATH}/download/?file=${flow.filename}`}>
               {flow.filename}
               <DownloadIcon className="inline-flex items-baseline w-5 h-5" />
             </a>
           </div>
-          <div></div>
-          <div>Tags: </div>
-          <div className="font-bold">[{flow.tags.join(", ")}]</div>
+          <div>
+            Tags:&nbsp;
+            <span className="font-bold">[{flow.tags.join(", ")}]</span>
+          </div>
+          <div>
+            Tick:&nbsp;
+            <span className="font-bold">{unixTimeToTick(flow.time)}</span>
+          </div>
+          <div>
+            Service:&nbsp;
+            <span className="font-bold">{service}</span>
+          </div>
           <div>Flags: </div>
           <div className="font-bold">
             [{flow.flags.map((query, i) => (
-            <span>
-              {i > 0 ? ', ' : ''}
-              <button className="font-bold"
-                  onClick={() => {
-                    searchParams.set(FILTER_KEY, escapeStringRegexp(query));
-                    setSearchParams(searchParams);
-                  }
-                }
-              >
-              {query}
-              </button>
-            </span>
-            ))}]
-          </div>
-          <div>Flagids: </div>
-          <div className="font-bold">
-            [{flow.flagids.map((query, i) => (
               <span>
-                {i > 0 ? ', ' : ''}
+                {i > 0 ? ", " : ""}
                 <button className="font-bold"
                   onClick={() => {
-                      searchParams.set(FILTER_KEY, escapeStringRegexp(query));
-                      setSearchParams(searchParams);
-                    }
-                  }
+                    searchParams.set(TEXT_FILTER_KEY, escapeStringRegexp(query));
+                    setSearchParams(searchParams);
+                  }}
                 >
                   {query}
                 </button>
               </span>
             ))}]
           </div>
-          <div></div>
-          <div>Source - Target (Duration): </div>
-          <div className="flex items-center gap-1">
-            <div>
-              {" "}
-              <span>{formatIP(flow.src_ip)}</span>:
-              <span className="font-bold">{flow.src_port}</span>
-            </div>
-            <div>-</div>
-            <div>
-              <span>{formatIP(flow.dst_ip)}</span>:
-              <span className="font-bold">{flow.dst_port}</span>
-            </div>
-            <div>
+          <div>Flagids: </div>
+          <div className="font-bold">
+            [{flow.flagids.map((query, i) => (
+              <span>
+                {i > 0 ? ", " : ""}
+                <button className="font-bold"
+                  onClick={() => {
+                    searchParams.set(TEXT_FILTER_KEY, escapeStringRegexp(query));
+                    setSearchParams(searchParams);
+                  }}
+                >
+                  {query}
+                </button>
+              </span>
+            ))}]
+          </div>
+          <div>
+            Source - Target (Duration):&nbsp;
+            <div className="inline-flex items-center gap-1">
+              <div>
+                <span>{formatIP(flow.src_ip)}</span>:
+                <span className="font-bold">{flow.src_port}</span>
+              </div>
+              <span>-</span>
+              <div>
+                <span>{formatIP(flow.dst_ip)}</span>:
+                <span className="font-bold">{flow.dst_port}</span>
+              </div>
               <span className="italic">({flow.duration} ms)</span>
             </div>
           </div>
