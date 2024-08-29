@@ -1,6 +1,6 @@
 import { useSearchParams, Link, useParams, useNavigate } from "react-router-dom";
 import React, { ChangeEvent, useDeferredValue, useEffect, useState } from "react";
-import { useHotkeys } from 'react-hotkeys-hook';
+import { useHotkeys } from "react-hotkeys-hook";
 import { FlowData, FullFlow } from "../types";
 import { Buffer } from "buffer";
 import {
@@ -33,7 +33,7 @@ import {
   useGetFlagRegexQuery,
 } from "../api";
 import { getTickStuff } from "../tick";
-import escapeStringRegexp from 'escape-string-regexp';
+import escapeStringRegexp from "escape-string-regexp";
 
 const SECONDARY_NAVBAR_HEIGHT = 50;
 
@@ -74,7 +74,7 @@ function FlowContainer({
 }
 
 function HexFlow({ flow }: { flow: FlowData }) {
-  const hex = hexy(Buffer.from(flow.b64, 'base64'), { format: "twos" });
+  const hex = hexy(Buffer.from(flow.b64, "base64"), { format: "twos" });
   return <FlowContainer copyText={hex}>{hex}</FlowContainer>;
 }
 function highlightText(flowText: string, search_string: string, flag_string: string) {
@@ -221,7 +221,7 @@ function getFlowBody(flow: FlowData, flowType: string) {
   if (flowType == "Web") {
     const contentType = flow.data.match(/Content-Type: ([^\s;]+)/im)?.[1];
     if (contentType) {
-      const body = Buffer.from(flow.b64, 'base64').subarray(flow.data.indexOf('\r\n\r\n')+4);
+      const body = Buffer.from(flow.b64, "base64").subarray(flow.data.indexOf("\r\n\r\n") + 4);
       return [contentType, body]
     }
   }
@@ -263,7 +263,7 @@ function Flow({ full_flow, flow, delta_time, id }: FlowProps) {
             onClick={async () => {
               window.open(
                 "https://gchq.github.io/CyberChef/#input=" +
-                  encodeURIComponent(flow.b64)
+                encodeURIComponent(flow.b64)
               );
             }}
           >
@@ -271,28 +271,28 @@ function Flow({ full_flow, flow, delta_time, id }: FlowProps) {
           </button>
           {flowType == "Web" && flowBody && (
             <button
-            className="bg-gray-200 py-1 px-2 rounded-md text-sm ml-2"
-            onClick={async () => {
-              window.open(
-                "https://gchq.github.io/CyberChef/#input=" +
-                  encodeURIComponent(flowBody[1].toString('base64'))
-              );
-            }}
-          >
-            Open body in CC
-          </button>
+              className="bg-gray-200 py-1 px-2 rounded-md text-sm ml-2"
+              onClick={async () => {
+                window.open(
+                  "https://gchq.github.io/CyberChef/#input=" +
+                  encodeURIComponent(flowBody[1].toString("base64"))
+                );
+              }}
+            >
+              Open body in CC
+            </button>
           )}
           <button
             className="bg-gray-200 py-1 px-2 rounded-md text-sm ml-2"
             onClick={async () => {
-              const blob = new Blob([Buffer.from(flow.b64, 'base64')], {
+              const blob = new Blob([Buffer.from(flow.b64, "base64")], {
                 type: "application/octet-stream",
               });
               const url = window.URL.createObjectURL(blob);
-              const a = document.createElement('a');
-              a.style.display = 'none';
+              const a = document.createElement("a");
+              a.style.display = "none";
               a.href = url;
-              a.download = "tulip-dl-"+id+".dat";
+              a.download = "tulip-dl-" + id + ".dat";
               document.body.appendChild(a);
               a.click();
               window.URL.revokeObjectURL(url);
@@ -303,24 +303,24 @@ function Flow({ full_flow, flow, delta_time, id }: FlowProps) {
           </button>
           {flowType == "Web" && flowBody && (
             <button
-            className="bg-gray-200 py-1 px-2 rounded-md text-sm ml-2"
-            onClick={async () => {
-              const blob = new Blob([flowBody[1]], {
-                type: flowBody[0].toString(),
-              });
-              const url = window.URL.createObjectURL(blob);
-              const a = document.createElement('a');
-              a.style.display = 'none';
-              a.href = url;
-              a.download = "tulip-dl-"+id+".dat";
-              document.body.appendChild(a);
-              a.click();
-              window.URL.revokeObjectURL(url);
-              a.remove();
-            }}
-          >
-            Download body
-          </button>
+              className="bg-gray-200 py-1 px-2 rounded-md text-sm ml-2"
+              onClick={async () => {
+                const blob = new Blob([flowBody[1]], {
+                  type: flowBody[0].toString(),
+                });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.style.display = "none";
+                a.href = url;
+                a.download = "tulip-dl-" + id + ".dat";
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                a.remove();
+              }}
+            >
+              Download body
+            </button>
           )}
           <RadioGroup
             options={displayOptions}
@@ -526,18 +526,18 @@ export function FlowView() {
   // TODO: account for user scrolling - update currentFlow accordingly
   const [currentFlow, setCurrentFlow] = useState<number>(-1);
 
-  useHotkeys('h', () => {
+  useHotkeys("h", () => {
     // we do this for the scroll to top
     if (currentFlow === 0) {
       document.getElementById(`${id}-${currentFlow}`)?.scrollIntoView(true)
     }
     setCurrentFlow(fi => Math.max(0, fi - 1))
   }, [currentFlow]);
-  useHotkeys('l', () => {
-    if (currentFlow === (flow?.flow[reprId]?.flow?.length ?? 1)-1) {
+  useHotkeys("l", () => {
+    if (currentFlow === (flow?.flow[reprId]?.flow?.length ?? 1) - 1) {
       document.getElementById(`${id}-${currentFlow}`)?.scrollIntoView(true)
     }
-    setCurrentFlow(fi => Math.min((flow?.flow[reprId]?.flow?.length ?? 1)-1, fi + 1))
+    setCurrentFlow(fi => Math.min((flow?.flow[reprId]?.flow?.length ?? 1) - 1, fi + 1))
   }, [currentFlow, flow?.flow[reprId]?.flow?.length, reprId]);
 
   useEffect(
@@ -550,7 +550,7 @@ export function FlowView() {
     [currentFlow]
   )
 
-  useHotkeys('m', () => {
+  useHotkeys("m", () => {
     setReprId(ri => (ri + 1) % (flow?.flow.length ?? 1))
   }, [reprId, flow?.flow.length]);
 
@@ -574,7 +574,7 @@ export function FlowView() {
       if (flow?.flow.length == undefined || flow?.flow.length === 0) {
         return
       }
-      if ((flow?.flow.length-1) < reprId) {
+      if ((flow?.flow.length - 1) < reprId) {
         setReprId(0)
       }
     },
@@ -595,53 +595,53 @@ export function FlowView() {
         className="sticky shadow-md top-0 bg-white overflow-auto border-b border-b-gray-200 flex"
         style={{ height: SECONDARY_NAVBAR_HEIGHT, zIndex: 100 }}
       >
-          {(flow?.child_id != null || flow?.parent_id != null) ? (
-            <div className="flex align-middle p-2 gap-3">
+        {(flow?.child_id != null || flow?.parent_id != null) ? (
+          <div className="flex align-middle p-2 gap-3">
             <button
-            className="bg-yellow-700 text-white px-2 text-sm rounded-md disabled:opacity-50"
-            key={"parent"+flow.parent_id}
-            disabled={flow?.parent_id === null}
-            onMouseDown={(e) => {
-              if( e.button === 1 ) { // handle opening in new tab
-                window.open(`/flow/${flow.parent_id}?${searchParams}`, '_blank')
-              } else if (e.button === 0) {
-                navigate(`/flow/${flow.parent_id}?${searchParams}`)
-              }
-            }}
+              className="bg-yellow-700 text-white px-2 text-sm rounded-md disabled:opacity-50"
+              key={"parent" + flow.parent_id}
+              disabled={flow?.parent_id === null}
+              onMouseDown={(e) => {
+                if (e.button === 1) { // handle opening in new tab
+                  window.open(`/flow/${flow.parent_id}?${searchParams}`, "_blank")
+                } else if (e.button === 0) {
+                  navigate(`/flow/${flow.parent_id}?${searchParams}`)
+                }
+              }}
             >
               <ArrowCircleUpIcon className="inline-flex items-baseline w-5 h-5"></ArrowCircleUpIcon> Parent
             </button>
             <button
-            className="bg-yellow-700 text-white px-2 text-sm rounded-md disabled:opacity-50"
-            key={"child"+flow.child_id}
-            disabled={flow?.child_id === null}
-            onMouseDown={(e) => {
-              if( e.button === 1 ) { // handle opening in new tab
-                window.open(`/flow/${flow.child_id}?${searchParams}`, '_blank')
-              } else if (e.button === 0) {
-                navigate(`/flow/${flow.child_id}?${searchParams}`)
-              }
-            }}
+              className="bg-yellow-700 text-white px-2 text-sm rounded-md disabled:opacity-50"
+              key={"child" + flow.child_id}
+              disabled={flow?.child_id === null}
+              onMouseDown={(e) => {
+                if (e.button === 1) { // handle opening in new tab
+                  window.open(`/flow/${flow.child_id}?${searchParams}`, "_blank")
+                } else if (e.button === 0) {
+                  navigate(`/flow/${flow.child_id}?${searchParams}`)
+                }
+              }}
             >
               <ArrowCircleDownIcon className="inline-flex items-baseline w-5 h-5"></ArrowCircleDownIcon> Child
             </button>
-            </div>
-          ) : undefined}
+          </div>
+        ) : undefined}
         <div className="flex align-middle p-2 gap-3 ml-auto">
-          <p className="my-auto">Decoders <abbr title={"Number of decoders available for this flow: "+flow?.flow.length}>({flow?.flow.length})</abbr>:</p>
+          <p className="my-auto">Decoders <abbr title={"Number of decoders available for this flow: " + flow?.flow.length}>({flow?.flow.length})</abbr>:</p>
           <select
             id="repr-select"
             value={reprId}
             className="border-2 border-gray-700 text-black px-2 text-sm rounded-md"
             onChange={(e) => {
-                const target = e.target as HTMLSelectElement;
-                const newreprid = parseInt(target.value);
-                setReprId(newreprid);
+              const target = e.target as HTMLSelectElement;
+              const newreprid = parseInt(target.value);
+              setReprId(newreprid);
             }}
           >
-            {flow?.flow.map((e, i) => <option key={id+"reprselect"+i} value={i}>{e['type']}</option>)}
+            {flow?.flow.map((e, i) => <option key={id + "reprselect" + i} value={i}>{e["type"]}</option>)}
           </select>
-          { reprId > 0 ? <button
+          {reprId > 0 ? <button
             className="bg-gray-700 text-white px-2 text-sm rounded-md"
             title="Diff this representation with the base"
             onClick={(e) => {
