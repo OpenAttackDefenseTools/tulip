@@ -50,10 +50,10 @@ var nonstrict = flag.Bool("nonstrict", false, "Do not check strict TCP / FSM fla
 var flagid = flag.Bool("flagid", false, "Check for flagids in traffic (must be present in mong)")
 var ticklength = flag.Int("tick-length", -1, "the length (in seconds) of a tick")
 var flaglifetime = flag.Int("flag-lifetime", -1, "the lifetime of a flag in ticks")
-var flagTickStart = flag.String("flag-tick-start", "", "CTF start time (used for flag validation)")
-var flagValidatorType = flag.String("flag-validator-type", "", "Flag validator type, this must be set to enable flag validation. Must be one of the following: FAUST, ENO/ENOWARS")
+var flagTickStartRaw = flag.String("flag-tick-start", "", "CTF start time (used for flag validation)")
+var flagTickStart time.Time
+var flagValidatorType = flag.String("flag-validator-type", "", "Flag validator type, this must be set to enable flag validation. Must be one of the following: FAUST, ENO/ENOWARS, ITAD")
 var flagValidatorTeam = flag.Int("flag-validator-team", -1, "Team ID used for flag validation")
-
 
 var skipchecksum = flag.Bool("skipchecksum", false, "Do not check the TCP checksum")
 var http_session_tracking = flag.Bool("http-session-tracking", false, "Enable http session tracking.")
@@ -238,9 +238,20 @@ func main() {
 	}
 
 	// get TICK_START
-	if *flagTickStart == "" {
-		*flagTickStart = os.Getenv("TICK_START")
+	if *flagTickStartRaw == "" {
+		*flagTickStartRaw = os.Getenv("TICK_START")
 	}
+	if *flagTickStartRaw != "" {
+		startTime, err := time.Parse("2006-01-02T15:04Z07:00", *flagTickStartRaw)
+		if err != nil {
+			// If that format fail, we try it to parse it as RFC3339 ("2006-01-02T15:04:05Z07:00")
+			startTime, err = time.Parse(time.RFC3339, *flagTickStartRaw)
+		}
+		if err != nil {
+			log.Fatal("Invalid start time: ", err)
+		}
+		flagTickStart = startTime
+	} 
 
 	if concurrentFlows == nil || *concurrentFlows == 0 {
 		*concurrentFlows = runtime.NumCPU() / 2
@@ -300,27 +311,20 @@ func main() {
 	case "faust":
 		flagValidator = &FaustFlagValidator{*flagValidatorTeam, time.Hour, "CTF-GAMESERVER"}
 	case "enowars", "eno":
-		if *flagTickStart == "" {
-			log.Fatal("Start time is not defined but enowars flag validator requires it")
-		}
-
-		// This format is used in config (for most of the time values)
-		startTime, err := time.Parse("2006-01-02T15:04Z07:00", *flagTickStart)
-		if err != nil {
-			// If that format fail, we try it to parse it as RFC3339 ("2006-01-02T15:04:05Z07:00")
-			startTime, err = time.Parse(time.RFC3339, *flagTickStart)
-		}
-
-		if err != nil {
-			log.Fatal("Invalid start time: ", err)
-		}
 		// I don't think that there will be more than 20 services and 20 flag stores (per service)...
 		flagValidator = &EnowarsFlagValidator{
 			*flagValidatorTeam,
 			20,
 			20,
 			time.Hour,
-			startTime,
+			flagTickStart,
+			time.Duration(*ticklength) * time.Second,
+		}
+	case "itad":
+		flagValidator = &ItallyADFlagValidator{
+			*flagValidatorTeam,
+			time.Hour,
+			flagTickStart,
 			time.Duration(*ticklength) * time.Second,
 		}
 	case "":

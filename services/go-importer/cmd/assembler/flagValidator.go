@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"encoding/binary"
 	"log"
+	"strconv"
 	"time"
 )
 
@@ -90,4 +91,33 @@ func (validator *EnowarsFlagValidator) IsValid(flag string, refTime time.Time) b
 			validator.tickLength <= 0 ||
 			validator.timeTolerance == 0 ||
 			IsFlagTimeValid(validator.startTime.Add(time.Duration(roundId) * validator.tickLength), refTime, validator.timeTolerance))
+}
+
+// Team ID checking can be disabled by setting teamId to -1.
+// Time checking can be disabled by setting timeTolerance, startTime and/or tickLength to zero.
+type ItallyADFlagValidator struct {
+	teamId        int
+	timeTolerance time.Duration
+	startTime     time.Time
+	tickLength    time.Duration
+}
+
+func (validator *ItallyADFlagValidator) IsValid(flag string, refTime time.Time) bool {
+	var round, team int64
+	var err error
+
+	round, err = strconv.ParseInt(flag[0:2], 36, 0) // = Tick
+	if err != nil {
+		return false
+	}
+	team, err = strconv.ParseInt(flag[3:4], 36, 0) // = Team
+	if err != nil {
+		return false
+	}
+
+	return (validator.teamId == -1 || validator.teamId == int(team)) &&
+		(validator.startTime.IsZero() ||
+			validator.tickLength <= 0 ||
+			validator.timeTolerance == 0 ||
+			IsFlagTimeValid(validator.startTime.Add(time.Duration(round) * validator.tickLength), refTime, validator.timeTolerance))
 }
