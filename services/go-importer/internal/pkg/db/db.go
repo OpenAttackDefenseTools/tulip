@@ -295,6 +295,7 @@ func (db *Database) FlowInsert(flow FlowEntry) {
 	// Make sure tags exist
 	// This can be done async
 	for _, tag := range flow.Tags {
+		tag := tag
 		db.workerPool.Submit(func() {
 			db.KnownTagsUpsert(tag)
 		})
@@ -429,6 +430,7 @@ func (db *Database) FlowAddTags(flow_id uuid.UUID, tags []string) {
 	// Make sure tags exist
 	// This can (and will) be done async
 	for _, tag := range tags {
+		tag := tag
 		db.workerPool.Submit(func() {
 			db.KnownTagsUpsert(tag)
 		})
