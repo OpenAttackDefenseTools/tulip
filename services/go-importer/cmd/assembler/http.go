@@ -33,7 +33,8 @@ func ParseHttpFlow(g_db *db.Database, flow *db.FlowEntry) {
 	// Use a set to get rid of duplicates
 	fingerprintsSet := make(map[uint32]bool)
 
-	for _, flowItem := range flow.Flow {
+	for i := range flow.Flow {
+		flowItem := &flow.Flow[i]
 		// Run only on raw representation
 		if flowItem.Kind != "raw" {
 			continue
