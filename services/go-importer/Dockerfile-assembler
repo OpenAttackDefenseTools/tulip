@@ -2,9 +2,13 @@ FROM golang:1.19-alpine
 
 RUN apk add --no-cache git make build-base libpcap-dev python3 py3-pip python3-dev bsd-compat-headers openssl-dev
 
-COPY . /app
 WORKDIR /app
 
-RUN python3 -m pip install -r ./converters/helpers/requirements.txt
+COPY go.mod go.sum ./
 RUN go mod download
+COPY ./converters/helpers/requirements.txt ./converters/helpers/requirements.txt
+RUN python3 -m pip install -r ./converters/helpers/requirements.txt
+
+COPY . .
+
 RUN go build ./cmd/assembler
