@@ -155,5 +155,7 @@ func (stream *UdpStream) CompleteReassembly() *db.FlowEntry {
 		Filename:    stream.Source,
 		Flow:        stream.Items,
 		Size:        int(stream.PacketSize),
+		Flags:       make([]string, 0),
+		Flagids:     make([]string, 0),
 	}
 }

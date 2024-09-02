@@ -192,7 +192,7 @@ func (t *TcpStream) ReassemblyComplete(ac reassembly.AssemblerContext) bool {
 		Flow:        t.FlowItems,
 		Size:        t.total_size,
 		Flags:       make([]string, 0),
-		Flagids:      make([]string, 0),
+		Flagids:     make([]string, 0),
 	}
 
 	t.reassemblyCallback(entry)
