@@ -133,7 +133,9 @@ class Pool(psycopg_pool.ConnectionPool):
 
 class Connection(psycopg.Connection):
     def flow_query(self, query: FlowQuery) -> list[Flow]:
-        pre_select = sql.SQL("WITH f AS (SELECT *, fid_rank_desc(id) AS rank FROM flow ORDER BY id DESC)")
+        pre_select = sql.SQL(
+            "WITH f AS (SELECT *, fid_rank_desc(id) AS rank FROM flow ORDER BY id DESC)"
+        )
         conditions = [sql.SQL("true")]
         pre_conditions = [sql.SQL("true")]
         parameters = {}
@@ -187,7 +189,9 @@ class Connection(psycopg.Connection):
                         ON fl.id = fd.flow_id
                 )
             """
-            pre_select = sql.SQL(text).format(pre_conditions=sql.SQL(" AND ").join(pre_conditions))
+            pre_select = sql.SQL(text).format(
+                pre_conditions=sql.SQL(" AND ").join(pre_conditions)
+            )
 
         text_query = """
             /*+

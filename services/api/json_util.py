@@ -32,10 +32,10 @@ class JsonFactory(abc.ABC):
 
 
 class Encoder(json.JSONEncoder):
-    def default(self, obj: Any) -> Any:
-        if isinstance(obj, JsonFactory):
-            return obj.to_json()
-        return encode(obj)
+    def default(self, o: Any) -> Any:
+        if isinstance(o, JsonFactory):
+            return o.to_json()
+        return encode(o)
 
 
 def dumps(*args, **kwargs) -> str:

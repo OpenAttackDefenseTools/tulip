@@ -32,7 +32,8 @@ from database import FlowDetail
 
 discard_cookies = ["PHPSESSID", "wordpress_logged_in_", "session"]
 
-#class to parse request informations
+
+# class to parse request informations
 class HTTPRequest(BaseHTTPRequestHandler):
     def __init__(self, raw_http_request):
         self.rfile = BytesIO(raw_http_request)
@@ -41,9 +42,9 @@ class HTTPRequest(BaseHTTPRequestHandler):
         self.parse_request()
 
         try:
-            self.headers = dict(self.headers)
+            self.headers: dict = dict(self.headers)
         except AttributeError:
-            self.headers = {}
+            self.headers: dict = {}
 
         # Data
         try:
@@ -51,14 +52,21 @@ class HTTPRequest(BaseHTTPRequestHandler):
         except IndexError:
             self.body = None
 
-    def send_error(self, code, message):
+    def send_error(self, code, message=None, explain=None):
         self.error_code = code
         self.error_message = message
+
 
 def decode_http_request(raw_request: bytes, tokenize):
     request = HTTPRequest(raw_request)
     headers = {}
-    blocked_headers = ["content-length", "accept-encoding", "connection", "accept", "host"]
+    blocked_headers = [
+        "content-length",
+        "accept-encoding",
+        "connection",
+        "accept",
+        "host",
+    ]
     content_type = ""
     data = None
     data_param_name = None
@@ -97,7 +105,7 @@ def decode_http_request(raw_request: bytes, tokenize):
         # if content_type.startswith("multipart/form-data"):
         #     data_param_name = "files"
         #     data  = ...
-    
+
         # Fallback to use raw text if nothing else worked out
         if data is None:
             data_param_name = "data"
@@ -105,18 +113,24 @@ def decode_http_request(raw_request: bytes, tokenize):
 
     return request, data, data_param_name, headers
 
+
 # tokenize used for automatically fill data param of request
-def convert_single_http_requests(flow: FlowDetail, tokenize=True, use_requests_session=False):
+def convert_single_http_requests(
+    flow: FlowDetail, tokenize=True, use_requests_session=False
+):
     if not flow.items:
         return "No data"
 
-    request, data, data_param_name, headers = decode_http_request(flow.items[0].data, tokenize)
-    if not request.path.startswith('/'):
-        raise Exception('request path must start with / to be a valid HTTP request')
+    request, data, data_param_name, headers = decode_http_request(
+        flow.items[0].data, tokenize
+    )
+    if not request.path.startswith("/"):
+        raise Exception("request path must start with / to be a valid HTTP request")
     request_path_repr = repr(request.path)
     request_method = validate_request_method(request.command)
 
-    rtemplate = Environment(loader=BaseLoader()).from_string("""import json
+    rtemplate = Environment(loader=BaseLoader()).from_string(
+        """import json
 import os
 import sys
 
@@ -136,25 +150,30 @@ headers = {{headers}}
 data = {{data}}
 {% endif %}
 
-{% if use_requests_session %}s{% else %}requests{% endif %}.{{request_method}}(f"http://{{ '{' }}HOST{{ '}' }}:{{port}}" + {{request_path_repr}}{% if data|length != 0 %}, {{data_param_name}}=data{% endif %}{% if not use_requests_session %}, headers=headers{% endif %})""")
+{% if use_requests_session %}s{% else %}requests{% endif %}.{{request_method}}(f"http://{{ '{' }}HOST{{ '}' }}:{{port}}" + {{request_path_repr}}{% if data|length != 0 %}, {{data_param_name}}=data{% endif %}{% if not use_requests_session %}, headers=headers{% endif %})"""
+    )
 
     return rtemplate.render(
-            headers=str(dict(headers)),
-            data=data,
-            request_method=request_method,
-            request_path_repr=request_path_repr,
-            data_param_name=data_param_name,
-            use_requests_session=use_requests_session,
-            port=flow.port_dst,
-        )
+        headers=str(dict(headers)),
+        data=data,
+        request_method=request_method,
+        request_path_repr=request_path_repr,
+        data_param_name=data_param_name,
+        use_requests_session=use_requests_session,
+        port=flow.port_dst,
+    )
 
 
 def render(template, **kwargs):
     return Environment(loader=BaseLoader()).from_string(template).render(kwargs)
 
-def convert_flow_to_http_requests(flow: FlowDetail, tokenize=True, use_requests_session=True):
+
+def convert_flow_to_http_requests(
+    flow: FlowDetail, tokenize=True, use_requests_session=True
+):
     port = flow.port_dst
-    script = render("""import json
+    script = render(
+        """import json
 import os
 import sys
 
@@ -165,17 +184,24 @@ EXTRA = json.loads(os.getenv('TARGET_EXTRA', '[]'))
 
 {% if use_requests_session %}
 s = requests.Session()
-{% endif %}""",use_requests_session=use_requests_session,
-            port=port)
+{% endif %}""",
+        use_requests_session=use_requests_session,
+        port=port,
+    )
     for item in flow.kind_items():
-        if item.direction == 'c':
-            request, data, data_param_name, headers = decode_http_request(item.data, tokenize)
+        if item.direction == "c":
+            request, data, data_param_name, headers = decode_http_request(
+                item.data, tokenize
+            )
             request_method = validate_request_method(request.command)
-            if not request.path.startswith('/'):
-                raise Exception('request path must start with / to be a valid HTTP request')
+            if not request.path.startswith("/"):
+                raise Exception(
+                    "request path must start with / to be a valid HTTP request"
+                )
             request_path_repr = repr(request.path)
 
-            script += render("""
+            script += render(
+                """
 {% if use_requests_session %}
 s.headers = {{headers}}
 {% else %}
@@ -185,18 +211,28 @@ headers = {{headers}}
 data = {{data}}
 {% endif %}
 {% if use_requests_session %}s{% else %}requests{% endif %}.{{request_method}}(f"http://{{ '{' }}HOST{{ '}' }}:{{port}}" + {{request_path_repr}}{% if data|length != 0 %}, {{data_param_name}}=data{% endif %}{% if not use_requests_session %}, headers=headers{% endif %})""",
-            headers=str(dict(headers)),
-            data=data,
-            request_method=request_method,
-            request_path_repr=request_path_repr,
-            data_param_name=data_param_name,
-            use_requests_session=use_requests_session,
-            port=port)
+                headers=str(dict(headers)),
+                data=data,
+                request_method=request_method,
+                request_path_repr=request_path_repr,
+                data_param_name=data_param_name,
+                use_requests_session=use_requests_session,
+                port=port,
+            )
     return script
+
 
 def validate_request_method(request_method: str):
     request_method = request_method.lower()
-    if request_method not in ['delete', 'get', 'head', 'options', 'patch', 'post', 'put']:
+    if request_method not in [
+        "delete",
+        "get",
+        "head",
+        "options",
+        "patch",
+        "post",
+        "put",
+    ]:
         # Throw Exception for a bad method to prevent command inject via a nasty request method
-        raise Exception(f'Invalid request method: {request_method}')
+        raise Exception(f"Invalid request method: {request_method}")
     return request_method
