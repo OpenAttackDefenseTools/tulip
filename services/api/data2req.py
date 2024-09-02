@@ -113,11 +113,12 @@ def convert_single_http_requests(flow: FlowDetail, tokenize=True, use_requests_s
     request_path_repr = repr(request.path)
     request_method = validate_request_method(request.command)
 
-    rtemplate = Environment(loader=BaseLoader()).from_string("""import os
-import requests
+    rtemplate = Environment(loader=BaseLoader()).from_string("""import json
+import os
 import sys
 
-#HOST = sys.argv[1]
+import requests
+
 HOST = os.getenv('TARGET_IP')
 EXTRA = json.loads(os.getenv('TARGET_EXTRA', '[]'))
 
@@ -150,11 +151,12 @@ def render(template, **kwargs):
 
 def convert_flow_to_http_requests(flow: FlowDetail, tokenize=True, use_requests_session=True):
     port = flow.port_dst
-    script = render("""import os
-import requests
+    script = render("""import json
+import os
 import sys
 
-#HOST = sys.argv[1]
+import requests
+
 HOST = os.getenv('TARGET_IP')
 EXTRA = json.loads(os.getenv('TARGET_EXTRA', '[]'))
 

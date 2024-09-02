@@ -39,10 +39,11 @@ def convert(message):
 
 #convert a flow into pwn script
 def flow2pwn(flow: FlowDetail):
-    script = """from pwn import *
+    script = """import json
 import sys
 
-#HOST = sys.argv[1]
+from pwn import *
+
 HOST = os.getenv('TARGET_IP')
 EXTRA = json.loads(os.getenv('TARGET_EXTRA', '[]'))
 
