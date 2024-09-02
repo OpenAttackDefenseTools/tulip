@@ -30,21 +30,49 @@ import json
 
 from database import FlowDetail
 
-discard_cookies = ["PHPSESSID", "wordpress_logged_in_", "session"]
+DISCARD_COOKIES = ["PHPSESSID", "wordpress_logged_in_", "session"]
+
+
+HEADER_TEMPLATE = """import json
+import os
+import sys
+
+import requests
+
+HOST = os.getenv('TARGET_IP')
+EXTRA = json.loads(os.getenv('TARGET_EXTRA', '[]'))
+{% if use_requests_session %}
+s = requests.Session()
+{% endif -%}
+"""
+
+REQUEST_TEMPLATE = """
+{{"s." if use_requests_session}}headers = {{headers}}
+{% if data -%}
+data = {{data}}
+{% endif -%}
+{{"s" if use_requests_session else "requests"}}.{{request_method}}(f"http://{HOST}:{{port}}" + {{request_path_repr}}{% if data %}, {{data_param_name}}=data{% endif %}{{ ", headers=headers" if not use_requests_session}})
+
+"""
+
+
+def render(template, **kwargs):
+    return Environment(loader=BaseLoader()).from_string(template).render(kwargs)
 
 
 # class to parse request informations
 class HTTPRequest(BaseHTTPRequestHandler):
-    def __init__(self, raw_http_request):
+    def __init__(self, raw_http_request: bytes):
         self.rfile = BytesIO(raw_http_request)
         self.raw_requestline = self.rfile.readline()
         self.error_code = self.error_message = None
         self.parse_request()
 
+        self.headers: dict[str, str]
         try:
-            self.headers: dict = dict(self.headers)
+            self.headers = dict(self.headers)
         except AttributeError:
-            self.headers: dict = {}
+            self.headers = {}
 
         # Data
         try:
@@ -129,32 +157,13 @@ def convert_single_http_requests(
     request_path_repr = repr(request.path)
     request_method = validate_request_method(request.command)
 
-    rtemplate = Environment(loader=BaseLoader()).from_string(
-        """import json
-import os
-import sys
-
-import requests
-
-HOST = os.getenv('TARGET_IP')
-EXTRA = json.loads(os.getenv('TARGET_EXTRA', '[]'))
-
-{% if use_requests_session %}
-s = requests.Session()
-
-s.headers = {{headers}}
-{% else %}
-headers = {{headers}}
-{% endif %}
-{% if data|length != 0 %}
-data = {{data}}
-{% endif %}
-
-{% if use_requests_session %}s{% else %}requests{% endif %}.{{request_method}}(f"http://{{ '{' }}HOST{{ '}' }}:{{port}}" + {{request_path_repr}}{% if data|length != 0 %}, {{data_param_name}}=data{% endif %}{% if not use_requests_session %}, headers=headers{% endif %})"""
-    )
-
-    return rtemplate.render(
-        headers=str(dict(headers)),
+    return render(
+        HEADER_TEMPLATE,
+        use_requests_session=use_requests_session,
+        port=flow.port_dst,
+    ) + render(
+        REQUEST_TEMPLATE,
+        headers=repr(headers),
         data=data,
         request_method=request_method,
         request_path_repr=request_path_repr,
@@ -164,27 +173,12 @@ data = {{data}}
     )
 
 
-def render(template, **kwargs):
-    return Environment(loader=BaseLoader()).from_string(template).render(kwargs)
-
-
 def convert_flow_to_http_requests(
     flow: FlowDetail, tokenize=True, use_requests_session=True
 ):
     port = flow.port_dst
     script = render(
-        """import json
-import os
-import sys
-
-import requests
-
-HOST = os.getenv('TARGET_IP')
-EXTRA = json.loads(os.getenv('TARGET_EXTRA', '[]'))
-
-{% if use_requests_session %}
-s = requests.Session()
-{% endif %}""",
+        HEADER_TEMPLATE,
         use_requests_session=use_requests_session,
         port=port,
     )
@@ -201,17 +195,8 @@ s = requests.Session()
             request_path_repr = repr(request.path)
 
             script += render(
-                """
-{% if use_requests_session %}
-s.headers = {{headers}}
-{% else %}
-headers = {{headers}}
-{% endif %}
-{% if data|length != 0 %}
-data = {{data}}
-{% endif %}
-{% if use_requests_session %}s{% else %}requests{% endif %}.{{request_method}}(f"http://{{ '{' }}HOST{{ '}' }}:{{port}}" + {{request_path_repr}}{% if data|length != 0 %}, {{data_param_name}}=data{% endif %}{% if not use_requests_session %}, headers=headers{% endif %})""",
-                headers=str(dict(headers)),
+                REQUEST_TEMPLATE,
+                headers=repr(headers),
                 data=data,
                 request_method=request_method,
                 request_path_repr=request_path_repr,
