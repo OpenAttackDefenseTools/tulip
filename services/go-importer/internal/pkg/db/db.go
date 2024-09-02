@@ -327,7 +327,7 @@ func (db *Database) FlowInsert(flow FlowEntry) {
 			startIndex := i * chunkLength
 			endIndex := i * chunkLength + chunkLength + chunkOverlap
 			if endIndex >= len(text) {
-				endIndex = len(text) - 1
+				endIndex = len(text)
 			}
 
 			chunk := string(text[startIndex:endIndex])
