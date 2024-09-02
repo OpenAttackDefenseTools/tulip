@@ -134,12 +134,12 @@ export const tulipApi = createApi({
     }),
     toSinglePythonRequest: builder.query<
       string,
-      { body: string; id: string; tokenize: boolean }
+      { body: string; id: string; item_index: number; tokenize: boolean }
     >({
-      query: ({ body, id, tokenize }) => ({
+      query: ({ body, id, item_index, tokenize }) => ({
         url: `/to_single_python_request?tokenize=${
           tokenize ? "1" : "0"
-        }&id=${id}`,
+        }&id=${id}&index=${item_index}`,
         method: "POST",
         responseHandler: "text",
         headers: {

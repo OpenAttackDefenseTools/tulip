@@ -187,13 +187,23 @@ def getFlowDetail(id):
 @application.route("/to_single_python_request", methods=["POST"])
 def convertToSingleRequest():
     flow_id = request.args.get("id", "")
+    item_index = request.args.get("index", "")
+
     if flow_id == "":
         return return_text_response(
             "There was an error while converting the request:\n{}: {}".format(
                 "No flow id", "No flow id param"
             )
         )
+    if item_index == "":
+        return return_text_response(
+            "There was an error while converting the request:\n{}: {}".format(
+                "No index", "No item index param"
+            )
+        )
+
     flow_id = uuid.UUID(flow_id)
+    item_index = int(item_index)
     with db.connection() as c:
         flow = c.flow_detail(flow_id)
     if not flow:
@@ -202,10 +212,19 @@ def convertToSingleRequest():
                 "Invalid flow", "Invalid flow id"
             )
         )
+    if item_index >= len(flow.items):
+        return return_text_response(
+            "There was an error while converting the request:\n{}: {}".format(
+                "Invalid index", "Index out of range"
+            )
+        )
+
     tokenize = bool(request.args.get("tokenize", False))
     use_requests_session = bool(request.args.get("use_requests_session", False))
     try:
-        converted = convert_single_http_requests(flow, tokenize, use_requests_session)
+        converted = convert_single_http_requests(
+            flow, item_index, tokenize, use_requests_session
+        )
     except Exception as ex:
         return return_text_response(
             "There was an error while converting the request:\n{}: {}".format(

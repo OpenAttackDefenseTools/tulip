@@ -147,13 +147,16 @@ def decode_http_request(raw_request: bytes, tokenize):
 
 # tokenize used for automatically fill data param of request
 def convert_single_http_requests(
-    flow: FlowDetail, tokenize=True, use_requests_session=False
+    flow: FlowDetail,
+    item_index: int,
+    tokenize: bool = True,
+    use_requests_session: bool = False,
 ):
     if not flow.items:
         return "No data"
 
     request, data, data_param_name, headers = decode_http_request(
-        flow.items[0].data, tokenize
+        flow.items[item_index].data, tokenize
     )
     if not request.path.startswith("/"):
         raise Exception("request path must start with / to be a valid HTTP request")
@@ -173,12 +176,12 @@ def convert_single_http_requests(
         data_param_name=data_param_name,
         use_requests_session=use_requests_session,
         port=flow.port_dst,
-        print_info=True
+        print_info=True,
     )
 
 
 def convert_flow_to_http_requests(
-    flow: FlowDetail, tokenize=True, use_requests_session=True
+    flow: FlowDetail, tokenize: bool = True, use_requests_session: bool = True
 ):
     port = flow.port_dst
     script = render(
@@ -192,7 +195,7 @@ def convert_flow_to_http_requests(
     except StopIteration:
         # No send request, nothing to do...
         return script
-    
+
     for item in flow.kind_items():
         if item.direction == "c":
             request, data, data_param_name, headers = decode_http_request(
@@ -214,7 +217,7 @@ def convert_flow_to_http_requests(
                 data_param_name=data_param_name,
                 use_requests_session=use_requests_session,
                 port=port,
-                print_info=item == last
+                print_info=item == last,
             )
     return script
 

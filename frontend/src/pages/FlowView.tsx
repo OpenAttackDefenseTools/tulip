@@ -188,13 +188,16 @@ function WebFlow({ flow }: { flow: FlowData }) {
 function PythonRequestFlow({
   full_flow,
   flow,
+  item_index,
 }: {
   full_flow: FullFlow;
   flow: FlowData;
+  item_index: number,
 }) {
   const { data } = useToSinglePythonRequestQuery({
     body: flow.b64,
     id: full_flow.id,
+    item_index,
     tokenize: true,
   });
 
@@ -204,6 +207,7 @@ function PythonRequestFlow({
 interface FlowProps {
   full_flow: FullFlow;
   flow: FlowData;
+  flow_item_index: number;
   delta_time: number;
   id: string;
 }
@@ -228,7 +232,7 @@ function getFlowBody(flow: FlowData, flowType: string) {
   return null
 }
 
-function Flow({ full_flow, flow, delta_time, id }: FlowProps) {
+function Flow({ full_flow, flow, flow_item_index, delta_time, id }: FlowProps) {
   const formatted_time = format(new Date(flow.time), "HH:mm:ss:SSS");
   const displayOptions = flow.from === "s"
     ? ["Plain", "Hex", "Web"]
@@ -344,6 +348,7 @@ function Flow({ full_flow, flow, delta_time, id }: FlowProps) {
           <PythonRequestFlow
             flow={flow}
             full_flow={full_flow}
+            item_index={flow_item_index}
           ></PythonRequestFlow>
         )}
       </div>
@@ -674,6 +679,7 @@ export function FlowView() {
         return (
           <Flow
             flow={flow_data}
+            flow_item_index={i}
             delta_time={delta_time}
             full_flow={flow}
             key={flow.id + "-" + i}
