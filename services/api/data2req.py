@@ -51,8 +51,11 @@ REQUEST_TEMPLATE = """
 {% if data -%}
 data = {{data}}
 {% endif -%}
-{{"s" if use_requests_session else "requests"}}.{{request_method}}(f"http://{HOST}:{{port}}" + {{request_path_repr}}{% if data %}, {{data_param_name}}=data{% endif %}{{ ", headers=headers" if not use_requests_session}})
-
+{{"res = " if print_info}}{{"s" if use_requests_session else "requests"}}.{{request_method}}(f"http://{HOST}:{{port}}" + {{request_path_repr}}{% if data %}, {{data_param_name}}=data{% endif %}{{ ", headers=headers" if not use_requests_session}})
+{% if print_info -%}
+print(res.text)
+print(res.status_code, res.headers)
+{% endif %}
 """
 
 
@@ -170,6 +173,7 @@ def convert_single_http_requests(
         data_param_name=data_param_name,
         use_requests_session=use_requests_session,
         port=flow.port_dst,
+        print_info=True
     )
 
 
@@ -182,6 +186,13 @@ def convert_flow_to_http_requests(
         use_requests_session=use_requests_session,
         port=port,
     )
+
+    try:
+        last = next(iter(x for x in reversed(flow.kind_items()) if x.direction == "c"))
+    except StopIteration:
+        # No send request, nothing to do...
+        return script
+    
     for item in flow.kind_items():
         if item.direction == "c":
             request, data, data_param_name, headers = decode_http_request(
@@ -203,6 +214,7 @@ def convert_flow_to_http_requests(
                 data_param_name=data_param_name,
                 use_requests_session=use_requests_session,
                 port=port,
+                print_info=item == last
             )
     return script
 
