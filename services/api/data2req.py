@@ -57,14 +57,11 @@ class HTTPRequest(BaseHTTPRequestHandler):
 
 def decode_http_request(raw_request: bytes, tokenize):
     request = HTTPRequest(raw_request)
-
-    data = {}
     headers = {}
-
     blocked_headers = ["content-length", "accept-encoding", "connection", "accept", "host"]
     content_type = ""
-    data_param_name = "data"
-    body = request.body
+    data = None
+    data_param_name = None
 
     for i in request.headers:
         normalized_header = i.lower()
@@ -75,11 +72,12 @@ def decode_http_request(raw_request: bytes, tokenize):
             headers[i] = request.headers[i]
 
     # if tokenization is enabled and body is not empty, try to decode form body or JSON body
-    if tokenize and body:
+    if tokenize and request.body:
         # try to deserialize form data
         if content_type.startswith("application/x-www-form-urlencoded"):
             data_param_name = "data"
-            body_dict = parse_qs(body.decode())
+            data = {}
+            body_dict = parse_qs(request.body.decode())
             for key, value in body_dict.items():
                 if len(value) == 1:
                     data[key] = value[0]
@@ -89,17 +87,22 @@ def decode_http_request(raw_request: bytes, tokenize):
         # try to deserialize json
         if content_type.startswith("application/json"):
             data_param_name = "json"
-            data = json.loads(body)
+            try:
+                data = json.loads(request.body)
+            except json.decoder.JSONDecodeError:
+                pass
 
-        # try to use raw text
-        if content_type.startswith("text/plain"):
+        # Forms with files are not yet implemented
+        # # try to extract files
+        # if content_type.startswith("multipart/form-data"):
+        #     data_param_name = "files"
+        #     data  = ...
+    
+        # Fallback to use raw text if nothing else worked out
+        if data is None:
             data_param_name = "data"
-            data = body
+            data = request.body
 
-        # try to extract files
-        if content_type.startswith("multipart/form-data"):
-            data_param_name = "files"
-            return "Forms with files are not yet implemented", None, None, None
     return request, data, data_param_name, headers
 
 # tokenize used for automatically fill data param of request
