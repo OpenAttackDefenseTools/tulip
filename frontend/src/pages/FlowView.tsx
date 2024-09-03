@@ -424,37 +424,41 @@ function FlowOverview({ flow }: { flow: FullFlow }) {
             Service:&nbsp;
             <span className="font-bold">{service}</span>
           </div>
-          <div>Flags: </div>
-          <div className="font-bold">
-            [{flow.flags.map((query, i) => (
-              <span>
-                {i > 0 ? ", " : ""}
-                <button className="font-bold"
-                  onClick={() => {
-                    searchParams.set(TEXT_FILTER_KEY, escapeStringRegexp(query));
-                    setSearchParams(searchParams);
-                  }}
-                >
-                  {query}
-                </button>
-              </span>
-            ))}]
+          <div>
+            Flags:&nbsp;
+            <span className="font-bold">
+              [{flow.flags.map((query, i) => (
+                <span>
+                  {i > 0 ? ", " : ""}
+                  <button className="font-bold"
+                    onClick={() => {
+                      searchParams.set(TEXT_FILTER_KEY, escapeStringRegexp(query));
+                      setSearchParams(searchParams);
+                    }}
+                  >
+                    {query}
+                  </button>
+                </span>
+              ))}]
+            </span>
           </div>
-          <div>Flagids: </div>
-          <div className="font-bold">
-            [{flow.flagids.map((query, i) => (
-              <span>
-                {i > 0 ? ", " : ""}
-                <button className="font-bold"
-                  onClick={() => {
-                    searchParams.set(TEXT_FILTER_KEY, escapeStringRegexp(query));
-                    setSearchParams(searchParams);
-                  }}
-                >
-                  {query}
-                </button>
-              </span>
-            ))}]
+          <div>
+            Flagids:&nbsp;
+            <span className="font-bold">
+              [{flow.flagids.map((query, i) => (
+                <span>
+                  {i > 0 ? ", " : ""}
+                  <button className="font-bold"
+                    onClick={() => {
+                      searchParams.set(TEXT_FILTER_KEY, escapeStringRegexp(query));
+                      setSearchParams(searchParams);
+                    }}
+                  >
+                    {query}
+                  </button>
+                </span>
+              ))}]
+            </span>
           </div>
           <div>
             Source - Target (Duration):&nbsp;
