@@ -190,12 +190,6 @@ def convert_flow_to_http_requests(
         port=port,
     )
 
-    try:
-        last = next(iter(x for x in reversed(flow.kind_items()) if x.direction == "c"))
-    except StopIteration:
-        # No send request, nothing to do...
-        return script
-
     for item in flow.kind_items():
         if item.direction == "c":
             request, data, data_param_name, headers = decode_http_request(
@@ -217,7 +211,7 @@ def convert_flow_to_http_requests(
                 data_param_name=data_param_name,
                 use_requests_session=use_requests_session,
                 port=port,
-                print_info=item == last,
+                print_info=True,
             )
     return script
 
