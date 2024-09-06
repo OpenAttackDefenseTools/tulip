@@ -8,4 +8,6 @@ RUN pip install -r requirements.txt
 
 COPY . /app
 
-CMD python3 webservice.py
+STOPSIGNAL SIGINT
+
+CMD ["python3", "webservice.py"]
