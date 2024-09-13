@@ -97,13 +97,14 @@ func (validator *EnowarsFlagValidator) IsValid(flag string, refTime time.Time) b
 // Time checking can be disabled by setting timeTolerance, startTime and/or tickLength to zero.
 type ItallyADFlagValidator struct {
 	teamId        int
+	serviceCount  int
 	timeTolerance time.Duration
 	startTime     time.Time
 	tickLength    time.Duration
 }
 
 func (validator *ItallyADFlagValidator) IsValid(flag string, refTime time.Time) bool {
-	var round, team int64
+	var round, team, service int64
 	var err error
 
 	round, err = strconv.ParseInt(flag[0:2], 36, 0) // = Tick
@@ -114,8 +115,13 @@ func (validator *ItallyADFlagValidator) IsValid(flag string, refTime time.Time) 
 	if err != nil {
 		return false
 	}
+	service, err = strconv.ParseInt(flag[5:6], 36, 0) // = Service
+	if err != nil {
+		return false
+	}
 
 	return (validator.teamId == -1 || validator.teamId == int(team)) &&
+		int(service) <= validator.serviceCount &&
 		(validator.startTime.IsZero() ||
 			validator.tickLength <= 0 ||
 			validator.timeTolerance == 0 ||

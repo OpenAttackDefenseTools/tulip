@@ -321,8 +321,10 @@ func main() {
 			time.Duration(*ticklength) * time.Second,
 		}
 	case "itad":
+		// 20 services should be more than enough...
 		flagValidator = &ItallyADFlagValidator{
 			*flagValidatorTeam,
+			20,
 			time.Hour,
 			flagTickStart,
 			time.Duration(*ticklength) * time.Second,
