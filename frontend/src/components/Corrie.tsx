@@ -48,6 +48,7 @@ export const Corrie = () => {
   const excludeTags = useAppSelector((state) => state.filter.excludeTags);
   const filterFlags = useAppSelector((state) => state.filter.filterFlags);
   const filterFlagids = useAppSelector((state) => state.filter.filterFlagids);
+  const tagIntersectionMode = useAppSelector((state) => state.filter.tagIntersectionMode);
 
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -105,6 +106,7 @@ export const Corrie = () => {
       time_to: to_filter ? new Date(parseInt(to_filter)).toISOString() : undefined,
       tags_include: includeTags,
       tags_exclude: excludeTags,
+      tag_intersection_mode: tagIntersectionMode,
       flags: filterFlags,
       flagids: filterFlagids,
     },

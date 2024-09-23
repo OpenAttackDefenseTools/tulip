@@ -16,7 +16,7 @@ import {
   FLOW_LIST_REFETCH_INTERVAL_MS,
 } from "../const";
 import { useAppSelector, useAppDispatch } from "../store";
-import { toggleFilterTag } from "../store/filter";
+import { toggleFilterTag, toggleTagIntersectMode } from "../store/filter";
 
 import { HeartIcon, FilterIcon, LinkIcon } from "@heroicons/react/solid";
 import { HeartIcon as EmptyHeartIcon } from "@heroicons/react/outline";
@@ -48,6 +48,7 @@ export function FlowList() {
   const filterFlagids = useAppSelector((state) => state.filter.filterFlagids);
   const includeTags = useAppSelector((state) => state.filter.includeTags);
   const excludeTags = useAppSelector((state) => state.filter.excludeTags);
+  const tagIntersectionMode = useAppSelector((state) => state.filter.tagIntersectionMode);
 
   const dispatch = useAppDispatch();
 
@@ -79,6 +80,7 @@ export function FlowList() {
       time_to: to_filter ? new Date(parseInt(to_filter)).toISOString() : undefined,
       tags_include: includeTags,
       tags_exclude: excludeTags,
+      tag_intersection_mode: tagIntersectionMode,
       flags: filterFlags,
       flagids: filterFlagids,
     },
@@ -200,9 +202,17 @@ export function FlowList() {
         </div>
         {showFilters && (
           <div className="border-t-gray-300 border-t p-2">
-            <p className="text-sm font-bold text-gray-600 pb-2">
-              Intersection filter
-            </p>
+            <div className="flex">
+              <p className="text-sm font-bold text-gray-600 pb-2">
+                Intersection filter
+              </p>
+              <button
+                className="w-24 h-5 bg-blue-100 text-sm rounded-md ml-auto"
+                onClick={() => dispatch(toggleTagIntersectMode())}
+              >
+                Mode:&nbsp;{tagIntersectionMode}
+              </button>
+            </div>
             <div className="flex gap-2 flex-wrap">
               {(availableTags ?? []).map((tag) => (
                 <Tag

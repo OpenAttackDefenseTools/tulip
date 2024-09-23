@@ -32,6 +32,7 @@ class FlowQuery:
     time_to: datetime | None = None
     tags_include: list[str] = field(default_factory=list)
     tags_exclude: list[str] = field(default_factory=list)
+    tag_intersection_and: bool = False
     limit: int = 1000
 
 
@@ -165,7 +166,10 @@ class Connection(psycopg.Connection):
 
         if query.tags_include:
             parameters["tags_include"] = query.tags_include
-            conditions.append(sql.SQL("f.tags ?| %(tags_include)s"))
+            if query.tag_intersection_and:
+                conditions.append(sql.SQL("f.tags ?& %(tags_include)s"))
+            else:
+                conditions.append(sql.SQL("f.tags ?| %(tags_include)s"))
         if query.tags_exclude:
             parameters["tags_exclude"] = query.tags_exclude
             conditions.append(sql.SQL("NOT f.tags ?| %(tags_exclude)s"))

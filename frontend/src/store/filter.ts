@@ -5,6 +5,7 @@ export interface TulipFilterState {
   filterFlagids: string[];
   includeTags: string[];
   excludeTags: string[];
+  tagIntersectionMode: "AND" | "OR";
   // startTick?: number;
   // endTick?: number;
   // service?: string;
@@ -16,6 +17,7 @@ const initialState: TulipFilterState = {
   excludeTags: [],
   filterFlags: [],
   filterFlagids: [],
+  tagIntersectionMode: "OR",
 };
 
 export const filterSlice = createSlice({
@@ -62,9 +64,12 @@ export const filterSlice = createSlice({
           ? state.filterFlagids.filter((t) => t !== action.payload)
           : [...state.filterFlagids, action.payload];
     },
+    toggleTagIntersectMode: (state) => {
+      state.tagIntersectionMode = state.tagIntersectionMode == "AND" ? "OR" : "AND";
+    },
   },
 });
 
-export const { toggleFilterTag } = filterSlice.actions;
+export const { toggleFilterTag, toggleTagIntersectMode } = filterSlice.actions;
 
 export default filterSlice.reducer;

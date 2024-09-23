@@ -62,6 +62,7 @@ export interface FlowsQuery {
   time_to?: string;
   tags_include?: string[];
   tags_exclude?: string[];
+  tag_intersection_mode?: "AND" | "OR";
   flags?: string[];
   flagids?: string[];
 }
