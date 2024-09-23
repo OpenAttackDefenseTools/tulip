@@ -44,7 +44,6 @@ export function FlowList() {
   const { data: availableTags } = useGetTagsQuery();
   const { data: services } = useGetServicesQuery();
 
-  const filterTags = useAppSelector((state) => state.filter.filterTags);
   const filterFlags = useAppSelector((state) => state.filter.filterFlags);
   const filterFlagids = useAppSelector((state) => state.filter.filterFlagids);
   const includeTags = useAppSelector((state) => state.filter.includeTags);
@@ -80,7 +79,6 @@ export function FlowList() {
       time_to: to_filter ? new Date(parseInt(to_filter)).toISOString() : undefined,
       tags_include: includeTags,
       tags_exclude: excludeTags,
-      tags: filterTags,
       flags: filterFlags,
       flagids: filterFlagids,
     },

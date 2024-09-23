@@ -62,7 +62,6 @@ export interface FlowsQuery {
   time_to?: string;
   tags_include?: string[];
   tags_exclude?: string[];
-  tags?: string[];
   flags?: string[];
   flagids?: string[];
 }
