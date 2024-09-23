@@ -261,7 +261,8 @@ function FlowListEntry({ flow, isActive, onHeartClick }: FlowListEntryProps) {
   const formatted_time_h_m_s = format(new Date(flow.time), "HH:mm:ss");
   const formatted_time_ms = format(new Date(flow.time), ".SSS");
 
-  const isStarred = flow.tags.includes("starred");
+  const [isStarred, setStarred] = useState(flow.tags.includes("starred"));
+
   // Filter tag list for tags that are handled specially
   const filtered_tag_list = flow.tags.filter((t) => t != "starred");
 
@@ -281,10 +282,11 @@ function FlowListEntry({ flow, isActive, onHeartClick }: FlowListEntryProps) {
         <div
           className="w-5 ml-1 mr-1 self-center shrink-0"
           onClick={() => {
+            setStarred(!isStarred);
             onHeartClick(flow);
           }}
         >
-          {flow.tags.includes("starred") ? (
+          {isStarred ? (
             <HeartIcon className="text-red-500" />
           ) : (
             <EmptyHeartIcon />
