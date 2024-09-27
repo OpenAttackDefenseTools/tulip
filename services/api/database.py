@@ -184,7 +184,7 @@ class Connection(psycopg.Connection):
                         AND {pre_conditions}
                     ORDER BY rank
                 ), fd AS (
-                    SELECT DISTINCT ON (rank) flow_id, rank
+                    SELECT DISTINCT flow_id, rank
                     FROM fi
                 ), f AS (
                     SELECT fl.*, fd.rank
