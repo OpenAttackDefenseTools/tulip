@@ -10,4 +10,4 @@ RUN pip install -r ./requirements.txt
 
 COPY ./flagids.py /app/
 
-CMD python3 ./flagids.py
+CMD ["python3", "./flagids.py"]
