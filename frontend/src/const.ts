@@ -1,4 +1,4 @@
-export const API_BASE_PATH = "/api";
+export const API_BASE_PATH = `${window.location.origin}/api`;
 
 export const TEXT_FILTER_KEY = "text";
 export const SERVICE_FILTER_KEY = "service";
