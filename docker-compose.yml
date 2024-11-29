@@ -59,7 +59,7 @@ services:
       VM_IP: ${VM_IP}
 
   flagids:
-    restart: on-failure
+    restart: unless-stopped
     build:
       context: services/flagids
     image: tulip-flagids:latest

@@ -27,9 +27,9 @@ if flagid_scrape_enabled:
     print("  TEAM_ID: ", team_id)
     print("  FLAGID_ENDPOINT: ", flagid_endpoint)
     db = psycopg_pool.ConnectionPool(os.environ["TIMESCALE"])
-    print("CONNECTION TO MONGO ESTABLISHED")
+    print("CONNECTION TO MONGO ESTABLISHED", flush=True)
 else:
-    print("FLAGID SCRAPE DISABLED")
+    print("FLAGID SCRAPE DISABLED", flush=True)
 
 
 # get leaf nodes of a json data struct
@@ -40,14 +40,14 @@ def get_leaf_nodes(data):
         elif team_id_is_digit and team_id_int in data.keys():
             yield from get_leaf_nodes(data[team_id_int])
         else:
-            for key, value in data.items():
+            for value in data.values():
                 yield from get_leaf_nodes(value)
     elif isinstance(data, list):
         if team_id in data or (team_id_is_digit and team_id_int in data):
             yield
         else:
             for item in data:
-                print(item, end=" ")
+                print(item, end=" ", flush=True)
                 yield from get_leaf_nodes(item)
     else:
         # prevent id from being used as Flagids
@@ -59,7 +59,7 @@ def update_flagids():
 
     response = requests.get(flagid_endpoint)
     rows = [(node,) for node in get_leaf_nodes(response.json()) if node is not None]
-    print("Updating flagids: ", time.time(), f"({len(rows)})")
+    print("Updating flagids: ", time.time(), f"({len(rows)})", flush=True)
 
     with db.connection() as conn:
         with conn.cursor() as cur:
@@ -68,13 +68,14 @@ def update_flagids():
 
 
 def main():
-    start_datetime = datetime.strptime(start_date, "%Y-%m-%dT%H:%M%z")
+    start_datetime = datetime.strptime(start_date, "%Y-%m-%dT%H:%M:%S%z")
     unixtime = time.mktime(start_datetime.timetuple())
     while True:
         try:
-            update_flagids()
+            if flagid_scrape_enabled:
+                update_flagids()
             crnt_time = time.time()
-            time_diff = crnt_time - unixtime
+            time_diff = max(0, crnt_time - unixtime)
             wait = (
                 DELAY
                 + tick_length * (time_diff // tick_length)
@@ -82,10 +83,9 @@ def main():
             )
             time.sleep(wait)
         except Exception as e:
-            print("ERROR: ", e)
+            print("ERROR: ", e, flush=True)
             time.sleep(10)
 
 
 if __name__ == "__main__":
-    if flagid_scrape_enabled:
-        main()
+    main()
