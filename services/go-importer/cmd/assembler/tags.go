@@ -35,7 +35,7 @@ func contains(s []string, e string) bool {
 // This assumes the `Data` part of the flowItem is already pre-processed, s.t.
 // we can run regex tags over the payload directly
 // also add the matched flags to the FlowItem
-func ApplyFlagTags(flow *db.FlowEntry, reg *string) {
+func ApplyFlagTags(flow *db.FlowEntry, reg *string, flagValidator FlagValidator) {
 	EnsureRegex(reg)
 
 	// If the regex is not valid, bail here
@@ -43,43 +43,63 @@ func ApplyFlagTags(flow *db.FlowEntry, reg *string) {
 		return
 	}
 
+	flagsIn := 0
+	flagsOut := 0
 	for idx := 0; idx < len(flow.Flow); idx++ {
 		flowItem := &flow.Flow[idx]
-		matches := flagRegex.FindAllStringSubmatch(flowItem.Data, -1)
-		if len(matches) > 0 {
-			var tag string
-			if flowItem.From == "c" {
-				tag = "flag-in"
-			} else {
-				tag = "flag-out"
-			}
+		matches := flagRegex.FindAll(flowItem.Data, -1)
 
-			// Add the flag if it doesn't already exist
-			for _, match := range matches {
-				var flag string
-				flag = match[0]
-				if !contains(flow.Flags, flag) {
-					flow.Flags = append(flow.Flags, flag)
+		if len(matches) > 0 {
+			var tags []string
+			if flowItem.From == "c" {
+				tags = append(tags, "flag-in")
+				if len(matches) > flagsIn {
+					flagsIn = len(matches)
+				}
+			} else {
+				tags = append(tags, "flag-out")
+				if len(matches) > flagsOut {
+					flagsOut = len(matches)
 				}
 			}
 
-			// Add the tag if it doesn't already exist
-			if !contains(flow.Tags, tag) {
-				flow.Tags = append(flow.Tags, tag)
+			hasFakeFlag := false
+			for _, match := range matches {
+				flag := string(match)
+				// Add the flag if it doesn't already exist
+				if !contains(flow.Flags, flag) {
+					flow.Flags = append(flow.Flags, flag)
+				}
+				// Check if it is a fake flag
+				if !hasFakeFlag && !flagValidator.IsValid(flag, flowItem.Time) {
+					tags = append(tags, "fake-flag")
+					hasFakeFlag = true
+				}
+			}
+
+			for _, tag := range tags {
+				// Add the tag if it doesn't already exist
+				if !contains(flow.Tags, tag) {
+					flow.Tags = append(flow.Tags, tag)
+				}
 			}
 		}
 	}
+
+	// Different repr may have multiple duplicate flags between each other, so assume that the "max" inside a repr is the most accurate value
+	flow.Flags_In += flagsIn
+	flow.Flags_Out += flagsOut
 }
 
 // Apply flagids to the entire flow.
 // This assumes the `Data` part of the flowItem is already pre-processed, s.t.
-func ApplyFlagids(flow *db.FlowEntry, flagidsDb []db.Flagid) {
+func ApplyFlagids(flow *db.FlowEntry, flagidsDb []db.FlagId) {
 
 	var flagids []string
 	var matches = make(map[int]int)
 
 	for _, flagid := range flagidsDb {
-		flagids = append(flagids, flagid.ID)
+		flagids = append(flagids, flagid.Content)
 	}
 
 	matcher := ahocorasick.NewStringMatcher(flagids)

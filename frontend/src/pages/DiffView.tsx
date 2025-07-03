@@ -1,5 +1,6 @@
 import { useSearchParams, Link, useParams } from "react-router-dom";
 import { useState } from "react";
+import { Buffer } from "buffer";
 
 import { FullFlow } from "../types";
 
@@ -56,8 +57,8 @@ const deriveDisplayMode = (
       i++
     ) {
       if (
-        !isASCII(firstFlow.flow[i].data) ||
-        !isASCII(secondFlow.flow[i].data)
+        !isASCII(firstFlow.flow[0].flow[i].data) ||
+        !isASCII(secondFlow.flow[0].flow[i].data)
       ) {
         return displayOptions[1];
       }
@@ -69,16 +70,20 @@ const deriveDisplayMode = (
 
 export function DiffView() {
   let [searchParams] = useSearchParams();
-  const firstFlowId = searchParams.get(FIRST_DIFF_KEY);
-  const secondFlowId = searchParams.get(SECOND_DIFF_KEY);
+  const firstFlowParam = searchParams.get(FIRST_DIFF_KEY);
+  const firstFlowId = firstFlowParam?.split(":")[0];
+  const firstFlowRepr = parseInt(firstFlowParam?.split(":")[1] ?? "0");
+  const secondFlowParam = searchParams.get(SECOND_DIFF_KEY);
+  const secondFlowId = secondFlowParam?.split(":")[0];
+  const secondFlowRepr = parseInt(secondFlowParam?.split(":")[1] ?? "0");
 
-  let { data: firstFlow, isLoading: firstFlowLoading } = useGetFlowQuery(
+  let { data: firstFlow, isLoading: firstFlowLoading, isError: firstFlowError } = useGetFlowQuery(
     firstFlowId!,
     {
       skip: firstFlowId === null,
     }
   );
-  let { data: secondFlow, isLoading: secondFlowLoading } = useGetFlowQuery(
+  let { data: secondFlow, isLoading: secondFlowLoading, isError: secondFlowError } = useGetFlowQuery(
     secondFlowId!,
     {
       skip: secondFlowId === null,
@@ -89,7 +94,7 @@ export function DiffView() {
     deriveDisplayMode(firstFlow!, secondFlow!)
   );
 
-  if (firstFlowId === null || secondFlowId === null) {
+  if (firstFlowError || secondFlowError) {
     return <div>Invalid flow id</div>;
   }
 
@@ -113,9 +118,9 @@ export function DiffView() {
         <div>
           {Array.from(
             {
-              length: Math.min(firstFlow!.flow.length, secondFlow!.flow.length),
+              length: Math.min(firstFlow!.flow[firstFlowRepr].flow.length, secondFlow!.flow[secondFlowRepr].flow.length),
             },
-            (_, i) => Flow(firstFlow!.flow[i].data, secondFlow!.flow[i].data)
+            (_, i) => Flow(firstFlow!.flow[firstFlowRepr].flow[i].data, secondFlow!.flow[secondFlowRepr].flow[i].data)
           )}
         </div>
       )}
@@ -125,12 +130,12 @@ export function DiffView() {
         <div>
           {Array.from(
             {
-              length: Math.min(firstFlow!.flow.length, secondFlow!.flow.length),
+              length: Math.min(firstFlow!.flow[firstFlowRepr].flow.length, secondFlow!.flow[secondFlowRepr].flow.length),
             },
             (_, i) =>
               Flow(
-                hexy(firstFlow!.flow[i].data, { format: "twos" }),
-                hexy(secondFlow!.flow[i].data, { format: "twos" })
+                hexy(Buffer.from(firstFlow!.flow[firstFlowRepr].flow[i].b64, 'base64'), { format: "twos" }),
+                hexy(Buffer.from(secondFlow!.flow[secondFlowRepr].flow[i].b64, 'base64'), { format: "twos" })
               )
           )}
         </div>

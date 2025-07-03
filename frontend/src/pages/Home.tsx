@@ -12,6 +12,7 @@ const shortcutTableData = [
     { key: 'r', action: 'Refresh flows' },
   ],
   [
+    { key: 'm', action: 'Switch between decoders' },
     { key: 'd', action: 'Diff view' },
     { key: 'f', action: 'Load flow to first diff slot' },
     { key: 'g', action: 'Load flow to second diff slot' },

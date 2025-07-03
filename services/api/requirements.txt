@@ -1,4 +1,5 @@
 Flask_Cors
-pymongo
 Flask
 requests
+python-dateutil
+psycopg[binary,pool]

@@ -28,14 +28,50 @@ from jinja2 import Environment, BaseLoader
 from io import BytesIO
 import json
 
-#class to parse request informations
+from database import FlowDetail
+
+DISCARD_COOKIES = ["PHPSESSID", "wordpress_logged_in_", "session"]
+
+
+HEADER_TEMPLATE = """import json
+import os
+import sys
+
+import requests
+
+HOST = os.getenv('TARGET_IP')
+EXTRA = json.loads(os.getenv('TARGET_EXTRA', '[]'))
+{% if use_requests_session %}
+s = requests.Session()
+{% endif -%}
+"""
+
+REQUEST_TEMPLATE = """
+{{"s." if use_requests_session}}headers = {{headers}}
+{% if data -%}
+data = {{data}}
+{% endif -%}
+{{"res = " if print_info}}{{"s" if use_requests_session else "requests"}}.{{request_method}}(f"http://{HOST}:{{port}}" + {{request_path_repr}}{% if data %}, {{data_param_name}}=data{% endif %}{{ ", headers=headers" if not use_requests_session}})
+{% if print_info -%}
+print(res.text)
+print(res.status_code, res.headers)
+{% endif %}
+"""
+
+
+def render(template, **kwargs):
+    return Environment(loader=BaseLoader()).from_string(template).render(kwargs)
+
+
+# class to parse request informations
 class HTTPRequest(BaseHTTPRequestHandler):
-    def __init__(self, raw_http_request):
+    def __init__(self, raw_http_request: bytes):
         self.rfile = BytesIO(raw_http_request)
         self.raw_requestline = self.rfile.readline()
         self.error_code = self.error_message = None
         self.parse_request()
 
+        self.headers: dict[str, str]
         try:
             self.headers = dict(self.headers)
         except AttributeError:
@@ -47,20 +83,24 @@ class HTTPRequest(BaseHTTPRequestHandler):
         except IndexError:
             self.body = None
 
-    def send_error(self, code, message):
+    def send_error(self, code, message=None, explain=None):
         self.error_code = code
         self.error_message = message
 
-def decode_http_request(raw_request, tokenize):
+
+def decode_http_request(raw_request: bytes, tokenize):
     request = HTTPRequest(raw_request)
-
-    data = {}
     headers = {}
-
-    blocked_headers = ["content-length", "accept-encoding", "connection", "accept", "host"]
+    blocked_headers = [
+        "content-length",
+        "accept-encoding",
+        "connection",
+        "accept",
+        "host",
+    ]
     content_type = ""
-    data_param_name = "data"
-    body = request.body
+    data = None
+    data_param_name = None
 
     for i in request.headers:
         normalized_header = i.lower()
@@ -71,11 +111,12 @@ def decode_http_request(raw_request, tokenize):
             headers[i] = request.headers[i]
 
     # if tokenization is enabled and body is not empty, try to decode form body or JSON body
-    if tokenize and body:
+    if tokenize and request.body:
         # try to deserialize form data
         if content_type.startswith("application/x-www-form-urlencoded"):
             data_param_name = "data"
-            body_dict = parse_qs(body.decode())
+            data = {}
+            body_dict = parse_qs(request.body.decode())
             for key, value in body_dict.items():
                 if len(value) == 1:
                     data[key] = value[0]
@@ -85,97 +126,107 @@ def decode_http_request(raw_request, tokenize):
         # try to deserialize json
         if content_type.startswith("application/json"):
             data_param_name = "json"
-            data = json.loads(body)
+            try:
+                data = json.loads(request.body)
+            except json.decoder.JSONDecodeError:
+                pass
 
-        # try to use raw text
-        if content_type.startswith("text/plain"):
+        # Forms with files are not yet implemented
+        # # try to extract files
+        # if content_type.startswith("multipart/form-data"):
+        #     data_param_name = "files"
+        #     data  = ...
+
+        # Fallback to use raw text if nothing else worked out
+        if data is None:
             data_param_name = "data"
-            data = body
+            data = request.body
 
-        # try to extract files
-        if content_type.startswith("multipart/form-data"):
-            data_param_name = "files"
-            return "Forms with files are not yet implemented", None, None, None
     return request, data, data_param_name, headers
 
-# tokenize used for automatically fill data param of request
-def convert_single_http_requests(raw_request, flow, tokenize=True, use_requests_session=False):
 
-    request, data, data_param_name, headers = decode_http_request(raw_request, tokenize)
-    if not request.path.startswith('/'):
-        raise Exception('request path must start with / to be a valid HTTP request')
+# tokenize used for automatically fill data param of request
+def convert_single_http_requests(
+    flow: FlowDetail,
+    item_index: int,
+    tokenize: bool = True,
+    use_requests_session: bool = False,
+):
+    if not flow.items:
+        return "No data"
+
+    request, data, data_param_name, headers = decode_http_request(
+        flow.items[item_index].data, tokenize
+    )
+    if not request.path.startswith("/"):
+        raise Exception("request path must start with / to be a valid HTTP request")
     request_path_repr = repr(request.path)
     request_method = validate_request_method(request.command)
 
-    rtemplate = Environment(loader=BaseLoader()).from_string("""import os
-import requests
-import sys
-
-host = sys.argv[1]
-{% if use_requests_session %}
-s = requests.Session()
-
-s.headers = {{headers}}
-{% else %}
-headers = {{headers}}
-{% endif %}
-data = {{data}}
-
-{% if use_requests_session %}s{% else %}requests{% endif %}.{{request_method}}(f"http://{{ '{' }}host{{ '}' }}:{{port}}" + {{request_path_repr}}, {{data_param_name}}=data{% if not use_requests_session %}, headers=headers{% endif %})""")
-
-    return rtemplate.render(
-            headers=str(dict(headers)),
-            data=data,
-            request_method=request_method,
-            request_path_repr=request_path_repr,
-            data_param_name=data_param_name,
-            use_requests_session=use_requests_session,
-            port=flow["dst_port"]
-        )
+    return render(
+        HEADER_TEMPLATE,
+        use_requests_session=use_requests_session,
+        port=flow.port_dst,
+    ) + render(
+        REQUEST_TEMPLATE,
+        headers=repr(headers),
+        data=data,
+        request_method=request_method,
+        request_path_repr=request_path_repr,
+        data_param_name=data_param_name,
+        use_requests_session=use_requests_session,
+        port=flow.port_dst,
+        print_info=True,
+    )
 
 
-def render(template, **kwargs):
-    return Environment(loader=BaseLoader()).from_string(template).render(kwargs)
+def convert_flow_to_http_requests(
+    flow: FlowDetail, tokenize: bool = True, use_requests_session: bool = True
+):
+    port = flow.port_dst
+    script = render(
+        HEADER_TEMPLATE,
+        use_requests_session=use_requests_session,
+        port=port,
+    )
 
-def convert_flow_to_http_requests(flow, tokenize=True, use_requests_session=True):
-    port = flow["dst_port"]
-    script = render("""import os
-import requests
-import sys
-
-host = sys.argv[1]
-{% if use_requests_session %}
-s = requests.Session()
-{% endif %}""",use_requests_session=use_requests_session,
-            port=port)
-    for message in flow['flow']:
-        if message['from'] == 'c':
-            request, data, data_param_name, headers = decode_http_request(message['data'].encode(), tokenize)
+    for item in flow.kind_items():
+        if item.direction == "c":
+            request, data, data_param_name, headers = decode_http_request(
+                item.data, tokenize
+            )
             request_method = validate_request_method(request.command)
-            if not request.path.startswith('/'):
-                raise Exception('request path must start with / to be a valid HTTP request')
+            if not request.path.startswith("/"):
+                raise Exception(
+                    "request path must start with / to be a valid HTTP request"
+                )
             request_path_repr = repr(request.path)
 
-            script += render("""
-{% if use_requests_session %}
-s.headers = {{headers}}
-{% else %}
-headers = {{headers}}
-{% endif %}
-data = {{data}}
-{% if use_requests_session %}s{% else %}requests{% endif %}.{{request_method}}(f"http://{{ '{' }}host{{ '}' }}:{{port}}" + {{request_path_repr}}, {{data_param_name}}=data{% if not use_requests_session %}, headers=headers{% endif %})""",
-            headers=str(dict(headers)),
-            data=data,
-            request_method=request_method,
-            request_path_repr=request_path_repr,
-            data_param_name=data_param_name,
-            use_requests_session=use_requests_session,
-            port=port)
+            script += render(
+                REQUEST_TEMPLATE,
+                headers=repr(headers),
+                data=data,
+                request_method=request_method,
+                request_path_repr=request_path_repr,
+                data_param_name=data_param_name,
+                use_requests_session=use_requests_session,
+                port=port,
+                print_info=True,
+            )
     return script
+
 
 def validate_request_method(request_method: str):
     request_method = request_method.lower()
-    if request_method not in ['delete', 'get', 'head', 'options', 'patch', 'post', 'put']:
+    if request_method not in [
+        "delete",
+        "get",
+        "head",
+        "options",
+        "patch",
+        "post",
+        "put",
+    ]:
         # Throw Exception for a bad method to prevent command inject via a nasty request method
-        raise Exception(f'Invalid request method: {request_method}')
+        raise Exception(f"Invalid request method: {request_method}")
     return request_method
