@@ -251,7 +251,7 @@ func main() {
 			log.Fatal("Invalid start time: ", err)
 		}
 		flagTickStart = startTime
-	} 
+	}
 
 	if concurrentFlows == nil || *concurrentFlows == 0 {
 		*concurrentFlows = runtime.NumCPU() / 2
@@ -302,7 +302,7 @@ func main() {
 		}
 		*flagValidatorTeam = parsed
 	}
-	
+
 	// Flag validator setup
 	if *flagValidatorType != "" && *flag_regex == "" {
 		log.Println("WARNING: Flag validation enabled but no flag regex specified. No flag validation will be done.")
@@ -330,14 +330,13 @@ func main() {
 			time.Duration(*ticklength) * time.Second,
 		}
 	case "":
-		if *flagValidatorTeam != -1  {
+		if *flagValidatorTeam != -1 {
 			log.Println("WARNING: No flag validator type specified but additional flag validator options are set. No flag validation will be done.")
 		}
 		flagValidator = &DummyFlagValidator{}
 	default:
 		log.Fatalln("Uknown -flag-validator-type: ", *flagValidatorType)
 	}
-
 
 	log.Println("Connecting to Timescale:", *timescale)
 	g_db = db.NewDatabase(*timescale)
@@ -601,14 +600,14 @@ func (service *AssemblerService) ProcessPcapHandle(handle *pcap.Handle, sourceNa
 		// NOTE: PCAP-over-IP: pcapOpenOfflineFile is blocking so we need at least see some packets passing by to get here.
 		if service.FlushInterval != 0 && lastFlush.Add(service.FlushInterval).Unix() < time.Now().Unix() {
 			service.FlushConnections()
-			log.Println("Processed", count - pcap.Position, "packets from", sourceName, "(so far)")
+			log.Println("Processed", count-pcap.Position, "packets from", sourceName, "(so far)")
 			lastFlush = time.Now()
 		}
 
 		count++
 
 		// Skip packets that were already processed from this pcap
-		if count < pcap.Position + 1 {
+		if count < pcap.Position+1 {
 			continue
 		}
 
@@ -704,7 +703,7 @@ func (service *AssemblerService) ProcessPcapHandle(handle *pcap.Handle, sourceNa
 
 	g_db.PcapSetPosition(pcap.Id, count)
 	service.FlushConnections()
-	log.Println("Processed", count - pcap.Position, "packets from", sourceName)
+	log.Println("Processed", count-pcap.Position, "packets from", sourceName)
 }
 
 func (service *AssemblerService) DumpPacket(packet *gopacket.Packet) {

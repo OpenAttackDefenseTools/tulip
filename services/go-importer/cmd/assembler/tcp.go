@@ -32,7 +32,7 @@ type TcpStreamFactory struct {
 }
 
 func (factory *TcpStreamFactory) New(net, transport gopacket.Flow, tcp *layers.TCP, ac reassembly.AssemblerContext) reassembly.Stream {
-	source := ac.GetCaptureInfo().AncillaryData[0].(string);
+	source := ac.GetCaptureInfo().AncillaryData[0].(string)
 	fsmOptions := reassembly.TCPSimpleFSMOptions{
 		SupportMissingEstablishment: *nonstrict,
 	}
@@ -187,7 +187,7 @@ func (t *TcpStream) ReassemblyComplete(ac reassembly.AssemblerContext) bool {
 		Num_packets: t.num_packets,
 		Parent_id:   nil,
 		Child_id:    nil,
-		Tags:        []string { "tcp" },
+		Tags:        []string{"tcp"},
 		Filename:    t.source,
 		Flow:        t.FlowItems,
 		Size:        t.total_size,

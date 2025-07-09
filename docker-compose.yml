@@ -11,12 +11,15 @@ services:
     - ./services/schema/schema.sql:/docker-entrypoint-initdb.d/102_schema.sql:ro
     networks:
       - internal
+    ports:
+      - "5432"
     environment:
       POSTGRES_HOST_AUTH_METHOD: trust
       POSTGRES_USER: tulip
       POSTGRES_DB: tulip
     # This does not need to be adjusted, unless you actually want to limit it
     # Postgres uses shared memory for caching, and docker assigns just 64 MB by default
+    # This is the available size of the volume, not the memory limit of the container
     shm_size: '128g'
 
   frontend:

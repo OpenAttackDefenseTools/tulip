@@ -7,6 +7,7 @@ import psycopg_pool
 import requests
 
 DELAY = 5  # DELAY from start of tick
+# Pri os.getenv je drugi parameter DEFAULT VALUE, če ne najde environment spremenljivke
 tick_length = int(os.getenv("TICK_LENGTH", 10 * 1000)) // 1000
 start_date = os.getenv("TICK_START", "2018-06-27T13:00+02:00")
 team_id = os.getenv("TEAM_ID", "10.10.3.1")
@@ -26,8 +27,9 @@ if flagid_scrape_enabled:
     print("  TIMESCALE: ", os.environ.get("TIMESCALE"))
     print("  TEAM_ID: ", team_id)
     print("  FLAGID_ENDPOINT: ", flagid_endpoint)
+    print(os.environ["TIMESCALE"])
     db = psycopg_pool.ConnectionPool(os.environ["TIMESCALE"])
-    print("CONNECTION TO MONGO ESTABLISHED", flush=True)
+    print("CONNECTION TO POSTGRES ESTABLISHED", flush=True)
 else:
     print("FLAGID SCRAPE DISABLED", flush=True)
 
@@ -68,7 +70,7 @@ def update_flagids():
 
 
 def main():
-    start_datetime = datetime.strptime(start_date, "%Y-%m-%dT%H:%M:%S%z")
+    start_datetime = datetime.strptime(start_date, "%Y-%m-%dT%H:%M%z")
     unixtime = time.mktime(start_datetime.timetuple())
     while True:
         try:

@@ -35,6 +35,11 @@ vm_ip = os.getenv("VM_IP", "10.10.3.1")
 visualizer_url = os.getenv("VISUALIZER_URL", "http://127.0.0.1:1337")
 
 vm_ip_1 = "10.60.2.1"
+
+# This is a list of services that are running and must be "protected"
+# Although the services can be named with any name and a whitespace is allowed,
+# it is recommended to use a single word without spaces.
+# The format is: <ip>:<port> <name> <points>
 helper = '''
 10.61.5.1:1237 CyberUni 4
 10.61.5.1:1236 CyberUni 3
@@ -45,6 +50,8 @@ helper = '''
 10.62.5.1:5000 Trademark
 10.63.5.1:1337 RPN
 '''
+
+
 
 services = [{"ip": x.split(" ")[0].split(":")[0], "port": int(x.split(" ")[0].split(":")[1]), "name": " ".join(x.split(" ")[1:])} for x in helper.strip().split("\n")]
 services += [{"ip": vm_ip_1, "port": -1, "name": "other"}]
