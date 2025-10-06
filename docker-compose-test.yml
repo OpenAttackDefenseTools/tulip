@@ -37,6 +37,7 @@ services:
     volumes:
       - ${TRAFFIC_DIR_HOST}:${TRAFFIC_DIR_DOCKER}:ro
     environment:
+      SERVICES: ${SERVICES}
       TULIP_MONGO: ${TULIP_MONGO}
       TULIP_TRAFFIC_DIR: ${TRAFFIC_DIR_DOCKER}
       FLAG_REGEX: ${FLAG_REGEX}

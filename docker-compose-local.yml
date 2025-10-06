@@ -1,7 +1,8 @@
 version: "3.5"
 services:
   timescale:
-    image: ghcr.io/openattackdefensetools/tulip-timescale:latest
+    build: services/timescale
+    image: tulip-timescale:latest
     restart: unless-stopped
     volumes:
     - timescale-data:/var/lib/postgresql/data
@@ -19,7 +20,10 @@ services:
     shm_size: '128g'
 
   frontend:
-    image: ghcr.io/openattackdefensetools/tulip-frontend:latest
+    build:
+      context: frontend
+      dockerfile: Dockerfile-frontend
+    image: tulip-frontend:latest
     restart: unless-stopped
     ports:
       - "3000:3000"
@@ -35,14 +39,17 @@ services:
       VIRTUAL_HOST: tulip.h4xx.eu
 
   api:
-    image: ghcr.io/openattackdefensetools/tulip-api:latest
+    build:
+      context: services/api
+      dockerfile: Dockerfile-api
+    image: tulip-api:latest
     restart: unless-stopped
     depends_on:
       - timescale
     networks:
       - internal
     volumes:
-      - ${TRAFFIC_DIR_HOST}:${TRAFFIC_DIR_DOCKER}:ro
+      - ${TRAFFIC_DIR_HOST}:${TRAFFIC_DIR_DOCKER}:ro,z
     environment:
       SERVICES: ${SERVICES}
       TIMESCALE: ${TIMESCALE}
@@ -54,7 +61,9 @@ services:
 
   flagids:
     restart: unless-stopped
-    image: ghcr.io/openattackdefensetools/tulip-flagids:latest
+    build:
+      context: services/flagids
+    image: tulip-flagids:latest
     depends_on:
       - timescale
     networks:
@@ -70,7 +79,10 @@ services:
       DUMP_PCAPS: ${DUMP_PCAPS}
 
   assembler:
-    image: ghcr.io/openattackdefensetools/tulip-assembler:latest
+    build:
+      context: services/go-importer
+      dockerfile: Dockerfile-assembler
+    image: tulip-assembler:latest
     restart: unless-stopped
     depends_on:
       - timescale
@@ -99,12 +111,14 @@ services:
       DUMP_PCAPS: ${DUMP_PCAPS}
       DUMP_PCAPS_INTERVAL: ${DUMP_PCAPS_INTERVAL}
       DUMP_PCAPS_FILENAME: ${DUMP_PCAPS_FILENAME}
-      BPF: ${BPF}
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
   enricher:
-    image: ghcr.io/openattackdefensetools/tulip-enricher:latest
+    build:
+      context: services/go-importer
+      dockerfile: Dockerfile-enricher
+    image: tulip-enricher:latest
     restart: unless-stopped
     depends_on:
       - timescale

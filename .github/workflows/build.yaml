@@ -1,0 +1,63 @@
+name: Build Docker images
+on:
+  push:
+    branches:
+      - master
+  release:
+    types: [ published ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build and publish a Docker image for ${{ github.repository }}-api
+        uses: macbre/push-to-ghcr@master
+        with:
+          image_name: ${{ github.repository }}-api
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          dockerfile: services/api/Dockerfile-api
+          context: services/api
+
+      - name: Build and publish a Docker image for ${{ github.repository }}-flagids
+        uses: macbre/push-to-ghcr@master
+        with:
+          image_name: ${{ github.repository }}-flagids
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          dockerfile: services/flagids/Dockerfile
+          context: services/flagids
+
+      - name: Build and publish a Docker image for ${{ github.repository }}-assembler
+        uses: macbre/push-to-ghcr@master
+        with:
+          image_name: ${{ github.repository }}-assembler
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          dockerfile: services/go-importer/Dockerfile-assembler
+          context: services/go-importer
+
+      - name: Build and publish a Docker image for ${{ github.repository }}-enricher
+        uses: macbre/push-to-ghcr@master
+        with:
+          image_name: ${{ github.repository }}-enricher
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          dockerfile: services/go-importer/Dockerfile-enricher
+          context: services/go-importer
+
+      - name: Build and publish a Docker image for ${{ github.repository }}-timescale
+        uses: macbre/push-to-ghcr@master
+        with:
+          image_name: ${{ github.repository }}-timescale
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          dockerfile: services/timescale/Dockerfile
+          context: services/timescale
+
+      - name: Build and publish a Docker image for ${{ github.repository }}-frontend
+        uses: macbre/push-to-ghcr@master
+        with:
+          image_name: ${{ github.repository }}-frontend
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          dockerfile: frontend/Dockerfile-frontend
+          context: frontend
