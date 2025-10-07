@@ -27,8 +27,6 @@ services:
     restart: unless-stopped
     ports:
       - "3000:3000"
-    expose:
-      - 3000
     depends_on:
       - timescale
       - api
@@ -36,7 +34,6 @@ services:
       - internal
     environment:
       API_SERVER_ENDPOINT: http://api:5000/
-      VIRTUAL_HOST: tulip.h4xx.eu
 
   api:
     build:
