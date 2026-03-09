@@ -111,11 +111,11 @@ func (validator *ItallyADFlagValidator) IsValid(flag string, refTime time.Time) 
 	if err != nil {
 		return false
 	}
-	team, err = strconv.ParseInt(flag[3:4], 36, 0) // = Team
+	team, err = strconv.ParseInt(flag[2:4], 36, 0) // = Team
 	if err != nil {
 		return false
 	}
-	service, err = strconv.ParseInt(flag[5:6], 36, 0) // = Service
+	service, err = strconv.ParseInt(flag[4:6], 36, 0) // = Service
 	if err != nil {
 		return false
 	}
