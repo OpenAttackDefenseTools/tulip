@@ -188,8 +188,7 @@ export function FlowList() {
         }
       }
     }
-  }
-  );
+  });
   useHotkeys('k', () => setFlowIndex(fi => Math.max(0, fi - 1)));
   useHotkeys('i', () => {
     setShowFilters(true)
