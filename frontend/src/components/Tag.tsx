@@ -22,12 +22,13 @@ export function tagToColor(tag: string) {
 }
 interface TagProps {
   tag: string;
+  count?: number;
   color?: string;
   disabled?: boolean;
   excluded?: boolean;
   onClick?: () => void;
 }
-export const Tag = ({ tag, color, disabled = false, excluded = false, onClick }: TagProps) => {
+export const Tag = ({ tag, count = 0, color, disabled = false, excluded = false, onClick }: TagProps) => {
   var tagBackgroundColor = disabled ? "#eee" : color ?? tagToColor(tag);
 
   var tagTextColor = disabled
@@ -52,7 +53,7 @@ export const Tag = ({ tag, color, disabled = false, excluded = false, onClick }:
         color: tagTextColor,
       }}
     >
-      <span  style={excluded ? { textDecoration: 'line-through' } : {}}>{tag}</span>
+      <span  style={excluded ? { textDecoration: 'line-through' } : {}}>{tag}{count > 1 ? ` x${count}` : ''}</span>
     </div>
   );
 };

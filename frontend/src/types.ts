@@ -12,6 +12,8 @@ export interface Flow {
   parent_id: Id;
   child_id: Id;
   tags: string[];
+  flags_in: number;
+  flags_out: number;
   flags: string[];
   flagids: string[];
   suricata: number[];
