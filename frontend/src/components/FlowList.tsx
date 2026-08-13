@@ -354,7 +354,7 @@ function FlowListEntry({ flow, isActive, onHeartClick }: FlowListEntryProps) {
           </div>
           <div className="flex gap-2 flex-wrap">
             {filtered_tag_list.map((tag) => (
-              <Tag key={tag} tag={tag}></Tag>
+              <Tag key={tag} tag={tag} count={tag === "flag-in" ? flow.flags_in : (tag === "flag-out" ? flow.flags_out : 0)}></Tag>
             ))}
           </div>
         </div>
