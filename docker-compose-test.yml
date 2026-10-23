@@ -12,7 +12,7 @@ services:
     build:
       context: frontend
       dockerfile: Dockerfile-frontend
-    image: tulip-frontend:latest
+    image: sunflower-frontend:latest
     restart: unless-stopped
     ports:
       - "3000:3000"
@@ -28,7 +28,7 @@ services:
     build:
       context: services/api
       dockerfile: Dockerfile-api
-    image: tulip-api:latest
+    image: sunflower-api:latest
     restart: unless-stopped
     depends_on:
       - mongo
@@ -37,8 +37,8 @@ services:
     volumes:
       - ${TRAFFIC_DIR_HOST}:${TRAFFIC_DIR_DOCKER}:ro
     environment:
-      TULIP_MONGO: ${TULIP_MONGO}
-      TULIP_TRAFFIC_DIR: ${TRAFFIC_DIR_DOCKER}
+      SUNFLOWER_MONGO: ${SUNFLOWER_MONGO}
+      SUNFLOWER_TRAFFIC_DIR: ${TRAFFIC_DIR_DOCKER}
       FLAG_REGEX: ${FLAG_REGEX}
       TICK_START: ${TICK_START}
       TICK_LENGTH: ${TICK_LENGTH}
@@ -61,14 +61,14 @@ services:
     restart: on-failure
     build:
       context: services/flagids
-    image: tulip-flagids:latest
+    image: sunflower-flagids:latest
     depends_on:
       - mongo
       - flagidendpoint
     networks:
       - internal
     environment:
-      TULIP_MONGO: ${TULIP_MONGO}
+      SUNFLOWER_MONGO: ${SUNFLOWER_MONGO}
       TICK_START: ${TICK_START}
       TICK_LENGTH: ${TICK_LENGTH}
       FLAGID_SCRAPE: ${FLAGID_SCRAPE}
@@ -79,7 +79,7 @@ services:
     build:
       context: services/go-importer
       dockerfile: Dockerfile-assembler
-    image: tulip-assembler:latest
+    image: sunflower-assembler:latest
     restart: unless-stopped
     depends_on:
       - mongo
@@ -90,7 +90,7 @@ services:
     command: "./assembler -dir ${TRAFFIC_DIR_DOCKER}"
     environment:
       DELAY: 5
-      TULIP_MONGO: ${TULIP_MONGO}
+      SUNFLOWER_MONGO: ${SUNFLOWER_MONGO}
       FLAG_REGEX: ${FLAG_REGEX}
       TICK_LENGTH: ${TICK_LENGTH}
       FLAGID_SCAN: ${FLAGID_SCAN}
@@ -104,7 +104,7 @@ services:
     build:
       context: services/go-importer
       dockerfile: Dockerfile-enricher
-    image: tulip-enricher:latest
+    image: sunflower-enricher:latest
     restart: unless-stopped
     depends_on:
       - mongo
@@ -114,7 +114,7 @@ services:
       - ${TRAFFIC_DIR_HOST}:${TRAFFIC_DIR_DOCKER}:ro
     command: "./enricher -eve ${TRAFFIC_DIR_DOCKER}/eve.json"
     environment:
-      TULIP_MONGO: ${TULIP_MONGO}
+      SUNFLOWER_MONGO: ${SUNFLOWER_MONGO}
 
 networks:
   internal:

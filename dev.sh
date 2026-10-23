@@ -1,7 +1,8 @@
 #!/bin/bash
+set -euo pipefail
 
 # Requires internet
-# docker-compose -f docker-compose.yml.dev up
+# docker compose -f docker-compose.yml.dev up
 
-docker-compose up -d mongo
-docker-compose up -d api
+docker compose up -d timescale
+docker compose up -d api

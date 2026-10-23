@@ -21,7 +21,7 @@ function base64DecodeUnicode(str: string) : string {
   return new TextDecoder().decode(bytes);
 }
 
-export const tulipApi = createApi({
+export const sunflowerApi = createApi({
   baseQuery: fetchBaseQuery({ baseUrl: API_BASE_PATH }),
   endpoints: (builder) => ({
     getServices: builder.query<Service[], void>({
@@ -170,7 +170,7 @@ export const tulipApi = createApi({
         // `updateQueryData` requires the endpoint name and cache key arguments,
         // so it knows which piece of cache state to update
         const patchResult = dispatch(
-          tulipApi.util.updateQueryData("getFlows", {service: "undefined", tags_include: [], tags_exclude:[]}, (flows) => {
+          sunflowerApi.util.updateQueryData("getFlows", {service: "undefined", tags_include: [], tags_exclude:[]}, (flows) => {
             // The `flows` is Immer-wrapped and can be "mutated" like in createSlice
             const flow = flows.find((flow) => flow.id === id);
             if (flow) {
@@ -206,4 +206,4 @@ export const {
   useStarFlowMutation,
   useGetStatsQuery,
   useGetUnderAttackQuery,
-} = tulipApi;
+} = sunflowerApi;

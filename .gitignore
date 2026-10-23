@@ -133,3 +133,6 @@ workspace.xml
 
 /traffic
 suricata
+# local artifacts
+sunflower.tar.gz
+frontend/package-lock.json

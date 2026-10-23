@@ -103,7 +103,7 @@ CREATE OPERATOR <-> (
 
 CREATE FUNCTION fid_distance_op(internal, uuid, int2, oid, internal)
 RETURNS float8 LANGUAGE C IMMUTABLE PARALLEL SAFE STRICT
-AS 'tulip';
+AS 'sunflower';
 
 CREATE OPERATOR CLASS gist_fid_ops
 FOR TYPE uuid USING gist AS

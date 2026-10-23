@@ -293,7 +293,7 @@ class WebsocketConverter(HTTP2Converter):
 
     def handle_http1_request(self, chunk: StreamChunk,
                              request: HTTPRequest) -> List[StreamChunk]:
-        # tulip: Connection: keep-alive, Upgrade is also valid for websocket traffic
+        # sunflower: Connection: keep-alive, Upgrade is also valid for websocket traffic
         if "Upgrade" in request.headers.get(
                 "Connection") and request.headers.get(
                     "Upgrade") == "websocket":

@@ -1,6 +1,6 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
-export interface TulipFilterState {
+export interface SunflowerFilterState {
   filterFlags: string[];
   filterFlagids: string[];
   includeTags: string[];
@@ -12,7 +12,7 @@ export interface TulipFilterState {
   // textSearch?: string;
 }
 
-const initialState: TulipFilterState = {
+const initialState: SunflowerFilterState = {
   includeTags: [],
   excludeTags: [],
   filterFlags: [],

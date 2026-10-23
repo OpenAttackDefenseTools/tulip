@@ -296,7 +296,7 @@ function Flow({ full_flow, flow, flow_item_index, delta_time, id }: FlowProps) {
               const a = document.createElement("a");
               a.style.display = "none";
               a.href = url;
-              a.download = "tulip-dl-" + id + ".dat";
+              a.download = "sunflower-dl-" + id + ".dat";
               document.body.appendChild(a);
               a.click();
               window.URL.revokeObjectURL(url);
@@ -316,7 +316,7 @@ function Flow({ full_flow, flow, flow_item_index, delta_time, id }: FlowProps) {
                 const a = document.createElement("a");
                 a.style.display = "none";
                 a.href = url;
-                a.download = "tulip-dl-" + id + ".dat";
+                a.download = "sunflower-dl-" + id + ".dat";
                 document.body.appendChild(a);
                 a.click();
                 window.URL.revokeObjectURL(url);

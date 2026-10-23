@@ -41,7 +41,7 @@ var tstype = ""
 var promisc = true
 
 var watch_dir = flag.String("dir", "", "Directory to watch for new pcaps")
-var timescale = flag.String("timescale", "", "Timescale connection string (e. g. postgres://usr:pwd@host:5432/tulip)")
+var timescale = flag.String("timescale", "", "Timescale connection string (e. g. postgres://usr:pwd@host:5432/sunflower)")
 var flag_regex = flag.String("flag", "", "flag regex, used for flag in/out tagging")
 var pcap_over_ip = flag.String("pcap-over-ip", "", "PCAP-over-IP host + port (e.g. remote:1337)")
 var bpf = flag.String("bpf", "", "BPF filter")

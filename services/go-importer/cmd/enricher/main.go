@@ -17,7 +17,7 @@ import (
 )
 
 var eve_file = flag.String("eve", "", "Eve file to watch for suricata's tags")
-var timescale = flag.String("timescale", "", "Timescale connection string (e. g. postgres://usr:pwd@host:5432/tulip)")
+var timescale = flag.String("timescale", "", "Timescale connection string (e. g. postgres://usr:pwd@host:5432/sunflower)")
 var tag_flowbits = flag.Bool("flowbits", true, "Tag flows with their flowbits")
 var rescan_period = flag.Int("t", 30, "rescan period (in seconds).")
 

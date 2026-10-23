@@ -5,7 +5,7 @@ CREATE EXTENSION pg_trgm;
 CREATE EXTENSION btree_gin;
 CREATE EXTENSION btree_gist;
 
-ALTER SYSTEM SET shared_preload_libraries = 'timescaledb', 'pg_hint_plan', 'pg_prewarm', 'auto_explain', 'tulip';
+ALTER SYSTEM SET shared_preload_libraries = 'timescaledb', 'pg_hint_plan', 'pg_prewarm', 'auto_explain', 'sunflower';
 ALTER SYSTEM SET timescaledb.telemetry_level = off;
 
 LOAD 'auto_explain';

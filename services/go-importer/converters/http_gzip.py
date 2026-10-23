@@ -93,7 +93,7 @@ class HTTPConverter(Converter):
                     status = int(requestline[1])
                     headers = parse_headers(header_stream)
 
-                    # tulip: fix the header format, HTTPResponse expects a dict?
+                    # sunflower: fix the header format, HTTPResponse expects a dict?
                     headers = headers.items()
 
                     body_stream = BytesIO(body)

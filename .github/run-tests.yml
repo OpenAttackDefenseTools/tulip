@@ -6,13 +6,34 @@ on:
     branches: [ master ]
 
 jobs:
-  build:
-    runs-on: ubuntu:20.04
+  verify:
+    runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
-    - name: Run the old unit test and hope it works
+    - uses: actions/checkout@v4
+
+    - name: Validate compose files
       run: |
-              docker-compose up -d
-              sleep 60
-              docker exec -it project_flower-python_1 python2 services/tests.py
+        docker compose -f docker-compose.yml config -q
+        docker compose -f docker-compose-test.yml config -q
+        docker compose -f docker-compose-suricata.yml config -q
+
+    - name: Python syntax check
+      run: |
+        python3 -m py_compile services/api/configurations.py \
+          services/go-importer/converters/http_gzip.py \
+          services/go-importer/converters/websockets.py
+
+    - name: Go vet and build
+      run: |
+        sudo apt-get update -y -q && sudo apt-get install -y -q libpcap-dev
+        cd services/go-importer
+        go vet ./...
+        go build ./...
+
+    - name: Frontend typecheck and build
+      run: |
+        cd frontend
+        npm install --legacy-peer-deps --no-audit --no-fund
+        npx tsc --noEmit
+        npx vite build

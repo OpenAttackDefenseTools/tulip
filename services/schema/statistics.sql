@@ -14,4 +14,4 @@ SELECT
 	pg_size_pretty(pg_total_relation_size('pcap')) AS pcap_table_size,
 	(SELECT count(*) FROM tag) AS tag_count,
 	pg_size_pretty(pg_total_relation_size('tag')) AS tag_table_size,
-	pg_size_pretty(pg_database_size('tulip')) AS database_size;
+	pg_size_pretty(pg_database_size('sunflower')) AS database_size;
